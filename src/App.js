@@ -142,10 +142,7 @@ function LoginPage() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <input style={inp(!!err)} placeholder="Email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} onKeyDown={e => e.key === "Enter" && login()} />
-            <div style={{ position: "relative" }}>
-              <input style={{ ...inp(!!err), paddingRight: 44 }} placeholder="Password" type={showPw ? "text" : "password"} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} onKeyDown={e => e.key === "Enter" && login()} />
-              <button style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 18, color: C.muted, padding: 0 }} onClick={() => setShowPw(!showPw)}>{showPw ? "🙈" : "👁"}</button>
-            </div>
+            <input style={inp(!!err)} placeholder="Password" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} onKeyDown={e => e.key === "Enter" && login()} />
             {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
             <button style={{ ...btn(C.green), width: "100%", opacity: busy ? 0.7 : 1, marginTop: 4 }} onClick={login} disabled={busy}>{busy ? "Accesso..." : "Accedi →"}</button>
             <button style={{ background: "none", border: "none", color: C.muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }} onClick={reset}>Password dimenticata?</button>
@@ -846,7 +843,7 @@ function StudentPortal({ userData }) {
         </div>
       </aside>
 
-      <main style={{ flex:1, padding:"20px 16px", overflowY:"auto", width:"100%", boxSizing:"border-box", overflowX:"hidden" }}>
+      <main style={{ flex:1, padding:"36px 40px", overflowY:"auto" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:32 }}>
           <div>
             <h2 style={{ fontSize:24, fontWeight:800, margin:0, letterSpacing:"-0.5px" }}>
