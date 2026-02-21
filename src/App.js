@@ -315,7 +315,7 @@ function AdminPanel({ adminUser }) {
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <img src="/logo_MindSell_definitivo_senza_sfondo.png" alt="" style={{ height: 30, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
           <span style={{ fontWeight: 800, fontSize: 18, background: `linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>MindSell Admin</span>
-          <div style={{ display: "flex", gap: 4, marginLeft: 16 }}>
+          <div style={{ display: "flex", gap: 4, marginLeft: 8, overflowX: "auto", maxWidth: "60vw" }}>
             {[["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["chat", "💬 Messaggi"]].map(([id, label]) => (
               <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit" }}
                 onClick={() => { setSection(id); setView("lista"); }}>{label}</button>
@@ -816,7 +816,7 @@ function StudentPortal({ userData }) {
   ];
 
   return (
-    <div className="ms-layout" style={{ display:"flex", minHeight:"100vh", background:C.bg, fontFamily:"'Segoe UI',sans-serif", color:C.text }}>
+    <div className="ms-layout" style={{ display:"flex", minHeight:"100vh", background:C.bg, fontFamily:"'Segoe UI',sans-serif", color:C.text, maxWidth:"100vw", overflowX:"hidden" }}>
       <GlobalStyle />
       <aside className="ms-sidebar" style={{ width:248, background:C.surface, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", justifyContent:"space-between", padding:"24px 0", position:"sticky", top:0, height:"100vh" }}>
         <div>
@@ -834,7 +834,7 @@ function StudentPortal({ userData }) {
               <div style={{ fontSize:11, color:C.muted, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{data.plan||""}</div>
             </div>
           </div>
-          <nav className="ms-nav" style={{ padding:"0 10px", display:"flex", flexDirection:"column", gap:3 }}>
+          <nav className="ms-nav" style={{ padding:"0 10px", display:"flex", flexDirection:"column", gap:3, overflowX:"auto" }}>
             {tabs.map(t => (
               <button key={t.id} style={{ display:"flex", alignItems:"center", gap:10, background:tab===t.id?C.purpleDim:"none", border:tab===t.id?`1px solid ${C.purple}44`:"1px solid transparent", color:tab===t.id?C.purpleGlow:C.muted, padding:"10px 14px", borderRadius:10, cursor:"pointer", fontSize:14, textAlign:"left", fontFamily:"inherit", boxShadow:tab===t.id?glow(C.purple,6):"none" }} onClick={()=>setTab(t.id)}>
                 <span style={{ fontSize:13, width:16 }}>{t.emoji}</span>{t.label}
@@ -1138,7 +1138,7 @@ function ChatWidget({ studentUid, studentName }) {
   return (
     <>
       {/* Icona flottante */}
-      <div style={{ position:"fixed", bottom:24, right:24, zIndex:200 }}>
+      <div style={{ position:"fixed", bottom:16, right:16, zIndex:200 }}>
         {open ? (
           <div style={{ width:340, height:480, background:C.card, border:`1px solid ${C.border}`, borderRadius:20, display:"flex", flexDirection:"column", boxShadow:`0 20px 60px rgba(0,0,0,0.8),${glow(C.purple,16)}` }}>
             {/* Header chat */}
@@ -1287,8 +1287,9 @@ function AdminChat({ selected }) {
 function GlobalStyle() {
   return (
     <style>{`
-      * { box-sizing: border-box; }
-      body { overflow-x: hidden; margin: 0; }
+      * { box-sizing: border-box; max-width: 100%; }
+      body { overflow-x: hidden; margin: 0; width: 100%; }
+      html { overflow-x: hidden; }
       @media (max-width: 768px) {
         .ms-layout { flex-direction: column !important; }
         .ms-sidebar { 
