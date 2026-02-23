@@ -413,7 +413,7 @@ function AdminPanel({ adminUser }) {
                     {m.videolezioni?.length === 0 && <p style={{ color: C.muted, fontSize: 13 }}>Nessuna videolezione. Aggiungine una.</p>}
                     {m.videolezioni?.map((v, vIdx) => (
                       <div key={vIdx} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "11px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ fontSize: 18 }}>{v.emoji}</span>
+                        <input style={{ background: "none", border: `1px solid ${C.border}44`, color: C.text, fontSize: 14, fontWeight: 600, width: 160, outline: "none", fontFamily: "inherit", borderRadius: 6, padding: "3px 8px" }} value={v.emoji} onChange={e => { const l = [...libreria]; l[mIdx].videolezioni[vIdx].emoji = e.target.value; setLibreria(l); }} />
                         <div style={{ flex: 1 }}>
                           <input style={{ background: "none", border: `1px solid ${C.border}44`, color: C.text, fontSize: 14, fontWeight: 600, width: "100%", outline: "none", fontFamily: "inherit", borderRadius: 6, padding: "3px 8px", marginBottom: 3 }} value={v.title} onChange={e => { const l = [...libreria]; l[mIdx].videolezioni[vIdx].title = e.target.value; setLibreria(l); }} />
                           <input style={{ background: "none", border: `1px solid ${C.border}44`, color: C.muted, fontSize: 12, width: "100%", outline: "none", fontFamily: "inherit", borderRadius: 6, padding: "3px 8px" }} placeholder="URL iframe Bunny es. https://iframe.mediadelivery.net/embed/..." value={extractBunnyUrl(v.url)} onChange={e => { const l = [...libreria]; l[mIdx].videolezioni[vIdx].url = e.target.value; setLibreria(l); }} />
