@@ -889,10 +889,11 @@ function StudentPortal({ userData }) {
                   {open&&m.videolezioni?.map((v,vIdx)=>(
                     <div key={vIdx} style={{ padding:"14px 24px", borderTop:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center", background:C.surface, cursor:"pointer" }} onClick={()=>setActiveVideo({...v,color:col})}>
                       <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                        <div style={{ width:34, height:34, background:`${col}22`, border:`1px solid ${col}44`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center" }}>{v.emoji||"🎬"}</div>
-                        <div>
-                          <div style={{ fontWeight:600, fontSize:14 }}>{v.title}</div>
-                          <div style={{ fontSize:12, color:C.muted }}>{v.duration}</div>
+                        <div style={{ width:28, height:28, background:`${col}22`, border:`1px solid ${col}44`, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{v.emoji||"🎬"}</div>
+                        <div style={{ width:24, height:24, background:`${col}33`, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:col, flexShrink:0 }}>{vIdx+1}</div>
+                        <div style={{ minWidth:0, flex:1 }}>
+                          <div style={{ fontWeight:600, fontSize:14, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{(v.title||"").replace(/^lezione\s*/i,"")}</div>
+                          {v.duration&&String(v.duration).trim().length>2&&<div style={{ fontSize:12, color:C.muted }}>{v.duration}</div>}
                         </div>
                       </div>
                       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
