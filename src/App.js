@@ -887,7 +887,7 @@ function StudentPortal({ userData }) {
                     </div>
                   </div>
                   {open&&m.videolezioni?.map((v,vIdx)=>(
-                    <div key={vIdx} style={{ padding:"14px 20px", borderTop:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center", background:C.surface, cursor:"pointer" }} onClick={()=>setActiveVideo({...v,color:col})}}>
+                    <div key={vIdx} style={{ padding:"14px 20px", borderTop:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center", background:C.surface, cursor:"pointer" }} onClick={()=>setActiveVideo({...v,color:col})}>
                       <div style={{ display:"flex", alignItems:"center", gap:10, flex:1, minWidth:0 }}>
                         <div style={{ width:30, height:30, background:`${col}22`, border:`1px solid ${col}55`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, flexShrink:0 }}>{v.emoji||"🎬"}</div>
                         <div style={{ minWidth:0, flex:1 }}>
