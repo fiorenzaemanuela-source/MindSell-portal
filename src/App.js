@@ -281,8 +281,25 @@ function AdminPanel({ adminUser }) {
     try {
       const { id, ...data } = modulo;
       await setDoc(doc(db, "libreria", id), data);
+      // Sincronizza automaticamente tutti gli studenti che hanno questo modulo assegnato
+      const studSnap = await getDocs(collection(db, "studenti"));
+      const syncPromises = [];
+      studSnap.forEach(studDoc => {
+        const studData = studDoc.data();
+        if (!studData.moduli) return;
+        const moduli = studData.moduli.map(m => {
+          if (m.libId !== id) return m;
+          // Aggiorna titolo, emoji e videolezioni mantenendo il progresso
+          const progressMap = {};
+          (m.videolezioni || []).forEach((v, i) => { progressMap[i] = v.progress || 0; });
+          const nuoveLezioni = (modulo.videolezioni || []).map((v, i) => ({ ...v, progress: progressMap[i] || 0 }));
+          return { ...m, title: modulo.title, emoji: modulo.emoji, videolezioni: nuoveLezioni };
+        });
+        syncPromises.push(setDoc(doc(db, "studenti", studDoc.id), { ...studData, moduli }));
+      });
+      await Promise.all(syncPromises);
       await loadAll();
-      showToast("✅ Modulo salvato!");
+      showToast("✅ Modulo salvato e sincronizzato con tutti gli studenti!");
     } catch { showToast("❌ Errore."); }
   };
 
