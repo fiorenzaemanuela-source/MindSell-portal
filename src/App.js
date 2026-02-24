@@ -955,14 +955,21 @@ function StudentPortal({ userData }) {
                       <span style={{ color:C.muted }}>{open?"▲":"▼"}</span>
                     </div>
                   </div>
-                  {open&&m.videolezioni?.map((v,vIdx)=>(
-                    <div key={vIdx} style={{ padding:"14px 20px", borderTop:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center", background:C.surface, cursor:"pointer" }} onClick={()=>setActiveVideo({...v,color:col})}>
+                  {open&&m.videolezioni?.map((v,vIdx)=>{
+                    const completata = v.progress === 100;
+                    const sbloccata = vIdx === 0 || m.videolezioni[vIdx-1]?.progress === 100;
+                    const bgColor = completata ? `${C.green}11` : C.surface;
+                    const borderColor = completata ? `${C.green}44` : C.border;
+                    return (
+                    <div key={vIdx} style={{ padding:"14px 20px", borderTop:`1px solid ${borderColor}`, display:"flex", justifyContent:"space-between", alignItems:"center", background:bgColor, cursor:sbloccata?"pointer":"not-allowed", opacity:sbloccata?1:0.45 }} onClick={()=>{ if(sbloccata) setActiveVideo({...v,color:col}); else showToast("⚠️ Completa prima la lezione precedente!"); }}>
                       <div style={{ display:"flex", alignItems:"center", gap:10, flex:1, minWidth:0 }}>
-                        <div style={{ width:30, height:30, background:`${col}22`, border:`1px solid ${col}55`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, flexShrink:0 }}>{v.emoji||"🎬"}</div>
+                        <div style={{ width:30, height:30, background:completata?`${C.green}22`:`${col}22`, border:`1px solid ${completata?C.green:col}55`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, flexShrink:0 }}>
+                          {completata ? "✓" : (v.emoji||"🎬")}
+                        </div>
                         <div style={{ minWidth:0, flex:1 }}>
                           <div style={{ fontWeight:600, fontSize:14, display:"flex", alignItems:"center", gap:6 }}>
-                            <span style={{ fontSize:11, fontWeight:700, color:col, background:`${col}22`, borderRadius:4, padding:"1px 6px", flexShrink:0 }}>{vIdx+1}</span>
-                            <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{(v.title||"").replace(/^lezione\s*/i,"")}</span>
+                            <span style={{ fontSize:11, fontWeight:700, color:completata?C.green:col, background:completata?`${C.green}22`:`${col}22`, borderRadius:4, padding:"1px 6px", flexShrink:0 }}>{vIdx+1}</span>
+                            <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:completata?C.green:C.text }}>{(v.title||"").replace(/^lezione\s*/i,"")}</span>
                           </div>
                           {v.duration && isNaN(Number(String(v.duration).trim())) && <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{v.duration}</div>}
                         </div>
@@ -974,7 +981,7 @@ function StudentPortal({ userData }) {
                         <span style={{ color:col, fontSize:13, fontWeight:600 }}>Guarda →</span>
                       </div>
                     </div>
-                  ))}
+                  })}
                 </div>
               );
             })
