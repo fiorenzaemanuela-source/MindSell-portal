@@ -819,6 +819,9 @@ function StudentPortal({ userData }) {
   const [activeRec, setActiveRec] = useState(null);
   const [bookForm, setBookForm] = useState({ date: "", time: "", note: "" });
   const [expandedModulo, setExpandedModulo] = useState(null);
+  const [studentToast, setStudentToast] = useState("");
+
+  const showToast = (msg) => { setStudentToast(msg); setTimeout(() => setStudentToast(""), 3000); };
 
   const data = userData || {};
 
@@ -1046,6 +1049,9 @@ function StudentPortal({ userData }) {
       </main>
 
       {/* ── VIDEO MODAL con player Bunny integrato ── */}
+      {studentToast && (
+        <div style={{ position:"fixed", bottom:30, left:"50%", transform:"translateX(-50%)", background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 24px", fontSize:14, fontWeight:600, color:C.text, zIndex:999, boxShadow:"0 8px 32px rgba(0,0,0,0.4)" }}>{studentToast}</div>
+      )}
       {activeVideo && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.95)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, padding:20 }} onClick={()=>setActiveVideo(null)}>
           <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:20, width:"100%", maxWidth:860, position:"relative", overflow:"hidden" }} onClick={e=>e.stopPropagation()}>
