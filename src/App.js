@@ -187,6 +187,7 @@ function AdminPanel({ adminUser }) {
   const [fSession, setFSession] = useState({ label: "", icon: "🎯", total: 1 });
   const [fRec, setFRec] = useState({ title: "", date: "", duration: "", coach: "", url: "" });
   const [fContent, setFContent] = useState({ title: "", type: "PDF", size: "", emoji: "📄", url: "" });
+  const [searchStudenti, setSearchStudenti] = useState("");
   const [selectedLibModuli, setSelectedLibModuli] = useState([]);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
@@ -453,11 +454,12 @@ function AdminPanel({ adminUser }) {
               <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Studenti ({studenti.length})</h2>
               <button style={btn(C.green)} onClick={() => setModalStudent(true)}>＋ Nuovo studente</button>
             </div>
+            <input style={{ width:"100%", padding:"10px 16px", borderRadius:10, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:14, outline:"none", boxSizing:"border-box", marginBottom:12 }} placeholder="🔍 Cerca per nome o email..." value={searchStudenti} onChange={e=>setSearchStudenti(e.target.value)} />
             {loadingData ? <p style={{ color: C.muted }}>Caricamento...</p> : (
               studenti.length === 0
                 ? <EmptyState emoji="👤" text="Nessuno studente." sub="Aggiungi il primo studente." />
                 : <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {studenti.map(s => (
+                  {studenti.filter(s => !searchStudenti || (s.name||"").toLowerCase().includes(searchStudenti.toLowerCase()) || (s.email||"").toLowerCase().includes(searchStudenti.toLowerCase())).map(s => (
                     <div key={s.uid} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                         <div style={{ width: 44, height: 44, borderRadius: "50%", background: `linear-gradient(135deg,${C.green},${C.blue})`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 15, color: "#fff" }}>{s.avatar || "?"}</div>
