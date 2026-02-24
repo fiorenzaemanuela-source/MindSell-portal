@@ -821,6 +821,50 @@ function StudentPortal({ userData }) {
   const [expandedModulo, setExpandedModulo] = useState(null);
 
   const data = userData || {};
+
+  // Segna video come completato al 100% su Firestore
+  const markVideoComplete = async (videoUrl) => {
+    try {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const ref = doc(db, 'studenti', uid);
+      const docSnap = await getDoc(ref);
+      if (!docSnap.exists()) return;
+      const studentData = docSnap.data();
+      let updated = false;
+      const moduli = (studentData.moduli || []).map(m => ({
+        ...m,
+        videolezioni: (m.videolezioni || []).map(v => {
+          const vUrl = (v.url || '').split('?')[0];
+          const targetUrl = (videoUrl || '').split('?')[0];
+          if (vUrl === targetUrl && v.progress !== 100) {
+            updated = true;
+            return { ...v, progress: 100 };
+          }
+          return v;
+        })
+      }));
+      if (updated) {
+        await setDoc(ref, { ...studentData, moduli });
+        setActiveVideo(prev => prev ? { ...prev, progress: 100 } : null);
+        showToast('✅ Lezione completata!');
+      }
+    } catch(e) { console.error('Errore salvataggio progresso:', e); }
+  };
+
+  // Ascolta eventi Bunny via postMessage per completamento automatico
+  useEffect(() => {
+    const handleMessage = (e) => {
+      try {
+        const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        if (msg && (msg.event === 'ended' || msg.event === 'finish')) {
+          if (activeVideo?.url) markVideoComplete(activeVideo.url);
+        }
+      } catch {}
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [activeVideo]);
   const initials = data.name?.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase() || "MS";
 
   useEffect(() => {
@@ -1007,7 +1051,7 @@ function StudentPortal({ userData }) {
             {/* Player Bunny iframe */}
             <div style={{ position:"relative", paddingTop:"56.25%", background:"#000" }}>
               <iframe
-                src={extractBunnyUrl(activeVideo.url)}
+                src={extractBunnyUrl(activeVideo.url) + '?enablejsapi=1'}
                 style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", border:"none" }}
                 allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture"
                 allowFullScreen
@@ -1025,6 +1069,12 @@ function StudentPortal({ userData }) {
                   <div style={{ height:"100%", width:`${activeVideo.progress||0}%`, background:activeVideo.color }}/>
                 </div>
                 <span style={{ color:C.muted, fontSize:12 }}>{activeVideo.progress||0}%</span>
+                {activeVideo.progress !== 100 && (
+                  <button style={{ background:C.green+"22", border:`1px solid ${C.green}55`, color:C.green, borderRadius:8, padding:"6px 14px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>markVideoComplete(activeVideo.url)}>✓ Segna completata</button>
+                )}
+                {activeVideo.progress === 100 && (
+                  <span style={{ color:C.green, fontSize:13, fontWeight:700 }}>✓ Completata!</span>
+                )}
               </div>
             </div>
           </div>
