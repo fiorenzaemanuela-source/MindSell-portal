@@ -866,49 +866,7 @@ function StudentPortal({ userData }) {
     return () => window.removeEventListener('message', handleMessage);
   }, [activeVideo]);
 
-  // Segna video come completato al 100% su Firestore
-  const markVideoComplete = async (videoUrl) => {
-    try {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
-      const ref = doc(db, 'studenti', uid);
-      const docSnap = await getDoc(ref);
-      if (!docSnap.exists()) return;
-      const studentData = docSnap.data();
-      let updated = false;
-      const moduli = (studentData.moduli || []).map(m => ({
-        ...m,
-        videolezioni: (m.videolezioni || []).map(v => {
-          const vUrl = (v.url || '').split('?')[0];
-          const targetUrl = (videoUrl || '').split('?')[0];
-          if (vUrl === targetUrl && v.progress !== 100) {
-            updated = true;
-            return { ...v, progress: 100 };
-          }
-          return v;
-        })
-      }));
-      if (updated) {
-        await setDoc(ref, { ...studentData, moduli });
-        setActiveVideo(prev => prev ? { ...prev, progress: 100 } : null);
-        showToast('✅ Lezione completata!');
-      }
-    } catch(e) { console.error('Errore salvataggio progresso:', e); }
-  };
-
-  // Ascolta eventi Bunny via postMessage per completamento automatico
-  useEffect(() => {
-    const handleMessage = (e) => {
-      try {
-        const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        if (msg && (msg.event === 'ended' || msg.event === 'finish')) {
-          if (activeVideo?.url) markVideoComplete(activeVideo.url);
-        }
-      } catch {}
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [activeVideo]);
+  
   const initials = data.name?.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase() || "MS";
 
   useEffect(() => {
