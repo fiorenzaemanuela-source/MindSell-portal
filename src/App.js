@@ -820,8 +820,62 @@ function StudentPortal({ userData }) {
   const [bookForm, setBookForm] = useState({ date: "", time: "", note: "" });
   const [expandedModulo, setExpandedModulo] = useState(null);
   const [studentToast, setStudentToast] = useState("");
+  const [noteModal, setNoteModal] = useState(null); // { mIdx, vIdx, v }
+  const [noteText, setNoteText] = useState("");
+  const [noteColor, setNoteColor] = useState("yellow");
+  const [noteStars, setNoteStars] = useState(0);
 
   const showToast = (msg) => { setStudentToast(msg); setTimeout(() => setStudentToast(""), 3000); };
+
+  const getNota = (mIdx, vIdx) => {
+    return (userData?.note || {})?.[mIdx + "_" + vIdx] || null;
+  };
+
+  const saveNota = async () => {
+    try {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      const ref = doc(db, "studenti", uid);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return;
+      const d = snap.data();
+      const note = { ...(d.note || {}) };
+      const key = noteModal.mIdx + "_" + noteModal.vIdx;
+      if (noteText.trim()) {
+        note[key] = { text: noteText, color: noteColor, stars: noteStars, title: noteModal.v.title, moduloTitle: userData?.moduli?.[noteModal.mIdx]?.title || "" };
+      } else {
+        delete note[key];
+      }
+      await setDoc(ref, { ...d, note });
+      setNoteModal(null);
+      showToast("✅ Nota salvata!");
+    } catch(e) { showToast("❌ Errore salvataggio nota."); }
+  };
+
+  const exportPDF = () => {
+    const note = userData?.note || {};
+    const moduli = userData?.moduli || [];
+    let html = `<html><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;padding:40px;color:#222;max-width:800px;margin:0 auto}h1{color:#1a1a2e;border-bottom:3px solid #6DBF3E;padding-bottom:10px}h2{color:#2B6CC4;margin-top:30px}h3{color:#555;margin:16px 0 6px}.nota{padding:16px;border-radius:10px;margin:10px 0;border-left:4px solid #ccc}.yellow{background:#FFFDE7;border-color:#F9A825}.green{background:#E8F5E9;border-color:#43A047}.pink{background:#FCE4EC;border-color:#E91E63}.stars{color:#F9A825;font-size:18px}.empty{color:#999;font-style:italic}</style></head><body>`;
+    html += `<h1>📝 Le mie Note — ${userData?.name || ""}</h1>`;
+    let hasNote = false;
+    moduli.forEach((m, mIdx) => {
+      const noteModulo = (m.videolezioni || []).map((v, vIdx) => ({ v, vIdx, nota: note[mIdx + "_" + vIdx] })).filter(x => x.nota);
+      if (noteModulo.length === 0) return;
+      hasNote = true;
+      html += `<h2>📚 ${m.title}</h2>`;
+      noteModulo.forEach(({ v, vIdx, nota }) => {
+        const stars = nota.stars > 0 ? "⭐".repeat(nota.stars) : "";
+        html += `<h3>${vIdx+1}. ${(v.title||"").replace(/^lezione\s*/i,"")} ${stars}</h3>`;
+        html += `<div class='nota ${nota.color}'>${nota.text.replace(/\n/g,"<br>")}</div>`;
+      });
+    });
+    if (!hasNote) html += "<p class='empty'>Nessuna nota ancora.</p>";
+    html += "</body></html>";
+    const w = window.open("", "_blank");
+    w.document.write(html);
+    w.document.close();
+    w.print();
+  };
 
   const data = userData || {};
 
@@ -978,6 +1032,7 @@ function StudentPortal({ userData }) {
                         <div style={{ width:56, height:3, background:C.border, borderRadius:4, overflow:"hidden" }}>
                           <div style={{ height:"100%", width:`${v.progress||0}%`, background:col }}/>
                         </div>
+                        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:"0 4px", opacity: getNota(mIdx,vIdx) ? 1 : 0.3, filter: getNota(mIdx,vIdx) ? "none" : "grayscale(1)" }} onClick={e=>{ e.stopPropagation(); const n=getNota(mIdx,vIdx); setNoteText(n?.text||""); setNoteColor(n?.color||"yellow"); setNoteStars(n?.stars||0); setNoteModal({mIdx,vIdx,v}); }} title="Note lezione">💬</button>
                         <span style={{ color:col, fontSize:13, fontWeight:600 }}>Guarda →</span>
                       </div>
                     </div>
@@ -1057,6 +1112,34 @@ function StudentPortal({ userData }) {
       </main>
 
       {/* ── VIDEO MODAL con player Bunny integrato ── */}
+      {noteModal && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200, padding:20 }} onClick={()=>setNoteModal(null)}>
+          <div style={{ background:"#1a2030", border:"1px solid #2a3545", borderRadius:20, width:"100%", maxWidth:520, padding:28, position:"relative" }} onClick={e=>e.stopPropagation()}>
+            <h3 style={{ margin:"0 0 4px", fontSize:16, color:"#E8EDF5" }}>📝 Note — {(noteModal.v.title||"").replace(/^leziones*/i,"")}</h3>
+            <p style={{ color:"#6B7A8D", fontSize:12, margin:"0 0 16px" }}>I tuoi appunti personali su questa lezione</p>
+            {/* Stelle */}
+            <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:14 }}>
+              <span style={{ fontSize:12, color:"#6B7A8D" }}>Valutazione:</span>
+              {[1,2,3,4,5].map(s => (
+                <span key={s} style={{ fontSize:22, cursor:"pointer", opacity: s<=noteStars?1:0.3 }} onClick={()=>setNoteStars(s===noteStars?0:s)}>⭐</span>
+              ))}
+            </div>
+            {/* Colore evidenziatore */}
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+              <span style={{ fontSize:12, color:"#6B7A8D" }}>Colore:</span>
+              {[["yellow","#FFFDE7","#F9A825"],["green","#E8F5E9","#43A047"],["pink","#FCE4EC","#E91E63"]].map(([key,bg,border]) => (
+                <div key={key} onClick={()=>setNoteColor(key)} style={{ width:28, height:28, borderRadius:6, background:bg, border:`3px solid ${noteColor===key?border:"transparent"}`, cursor:"pointer" }}/>
+              ))}
+            </div>
+            {/* Area testo */}
+            <textarea value={noteText} onChange={e=>setNoteText(e.target.value)} placeholder="Scrivi i tuoi appunti qui..." style={{ width:"100%", minHeight:140, padding:"12px 14px", borderRadius:10, border:"1px solid #2a3545", background: noteColor==="yellow"?"#FFFDE744": noteColor==="green"?"#E8F5E944":"#FCE4EC44", color:"#E8EDF5", fontSize:14, fontFamily:"inherit", resize:"vertical", outline:"none", boxSizing:"border-box" }}/>
+            <div style={{ display:"flex", justifyContent:"flex-end", gap:10, marginTop:16 }}>
+              <button style={{ background:"none", border:"1px solid #2a3545", color:"#6B7A8D", borderRadius:8, padding:"8px 18px", cursor:"pointer", fontFamily:"inherit", fontSize:13 }} onClick={()=>setNoteModal(null)}>Annulla</button>
+              <button style={{ background:"#6DBF3E22", border:"1px solid #6DBF3E55", color:"#6DBF3E", borderRadius:8, padding:"8px 18px", cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:700 }} onClick={saveNota}>💾 Salva nota</button>
+            </div>
+          </div>
+        </div>
+      )}
       {studentToast && (
         <div style={{ position:"fixed", bottom:30, left:"50%", transform:"translateX(-50%)", background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 24px", fontSize:14, fontWeight:600, color:C.text, zIndex:999, boxShadow:"0 8px 32px rgba(0,0,0,0.4)" }}>{studentToast}</div>
       )}
