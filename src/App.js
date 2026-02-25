@@ -824,11 +824,12 @@ function StudentPortal({ userData }) {
   const [noteText, setNoteText] = useState("");
   const [noteColor, setNoteColor] = useState("yellow");
   const [noteStars, setNoteStars] = useState(0);
+  const [localNote, setLocalNote] = useState(userData?.note || {});
 
   const showToast = (msg) => { setStudentToast(msg); setTimeout(() => setStudentToast(""), 3000); };
 
   const getNota = (mIdx, vIdx) => {
-    return (userData?.note || {})?.[mIdx + "_" + vIdx] || null;
+    return localNote?.[mIdx + "_" + vIdx] || null;
   };
 
   const saveNota = async () => {
@@ -847,13 +848,14 @@ function StudentPortal({ userData }) {
         delete note[key];
       }
       await setDoc(ref, { ...d, note });
+      setLocalNote({...note});
       setNoteModal(null);
       showToast("✅ Nota salvata!");
     } catch(e) { showToast("❌ Errore salvataggio nota."); }
   };
 
   const exportPDF = () => {
-    const note = userData?.note || {};
+    const note = localNote || {};
     const moduli = userData?.moduli || [];
     let html = `<html><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;padding:40px;color:#222;max-width:800px;margin:0 auto}h1{color:#1a1a2e;border-bottom:3px solid #6DBF3E;padding-bottom:10px}h2{color:#2B6CC4;margin-top:30px}h3{color:#555;margin:16px 0 6px}.nota{padding:16px;border-radius:10px;margin:10px 0;border-left:4px solid #ccc}.yellow{background:#FFFDE7;border-color:#F9A825}.green{background:#E8F5E9;border-color:#43A047}.pink{background:#FCE4EC;border-color:#E91E63}.stars{color:#F9A825;font-size:18px}.empty{color:#999;font-style:italic}</style></head><body>`;
     html += `<h1>📝 Le mie Note — ${userData?.name || ""}</h1>`;
