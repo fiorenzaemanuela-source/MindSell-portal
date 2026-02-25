@@ -1157,7 +1157,7 @@ function StudentPortal({ userData }) {
                       {Array.from({length:p.total}).map((_,i)=><div key={i} style={{ flex:1, height:6, borderRadius:4, background:i<p.used?C.dim:col, maxWidth:40 }}/>)}
                     </div>
                     <p style={{ fontSize:12, color:C.muted, marginBottom:14 }}>{p.used} su {p.total} utilizzate</p>
-                    <button style={{ width:"100%", background:`${col}22`, border:`1px solid ${col}66`, color:col, borderRadius:10, padding:"11px 0", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit" }} onClick={()=>{setBookPkg({...p,color:col});setBookConfirmed(false);}}>Prenota sessione →</button>
+                    <button style={{ width:"100%", background:`${col}22`, border:`1px solid ${col}66`, color:col, borderRadius:10, padding:"11px 0", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit" }} onClick={()=>{setBookPkg({...p,color:col});setBookConfirmed(false);}}>📅 Prenota sessione →</button>
                   </div>
                 );
               })}
@@ -1301,19 +1301,24 @@ function StudentPortal({ userData }) {
 
       {/* BOOK MODAL */}
       {bookPkg&&!bookConfirmed&&(
-        <Modal onClose={()=>setBookPkg(null)}>
-          <div style={{ fontSize:38, marginBottom:10 }}>{bookPkg.icon||"🎯"}</div>
-          <h3 style={mTitle}>Prenota — {bookPkg.label}</h3>
-          <p style={{ color:C.muted, fontSize:13, marginBottom:12 }}>Scegli data e orario preferiti. Il coach ti confermerà entro 24h.</p>
-          <input style={inp()} type="date" value={bookForm.date} onChange={e=>setBookForm({...bookForm,date:e.target.value})}/>
-          <input style={inp()} type="time" value={bookForm.time} onChange={e=>setBookForm({...bookForm,time:e.target.value})}/>
-          <textarea style={{...inp(),height:80,resize:"none"}} placeholder="Note per il coach (facoltativo)" value={bookForm.note} onChange={e=>setBookForm({...bookForm,note:e.target.value})}/>
-          <button style={{...btn(bookPkg.color),width:"100%",marginTop:16}} onClick={async()=>{
-            if(!bookForm.date||!bookForm.time){alert("Inserisci data e orario.");return;}
-            const ok = await sendBookingEmail(data.name, bookPkg.label, bookForm.date, bookForm.time, bookForm.note);
-            if(ok){setBookConfirmed(true);}else{alert("Errore nell'invio. Riprova.");}
-          }}>Invia richiesta →</button>
-        </Modal>
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.92)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, padding:20 }} onClick={()=>setBookPkg(null)}>
+          <div style={{ background:"#0E1318", border:`1px solid ${bookPkg.color}44`, borderRadius:20, width:"100%", maxWidth:920, height:"88vh", position:"relative", overflow:"hidden", display:"flex", flexDirection:"column" }} onClick={e=>e.stopPropagation()}>
+            <div style={{ padding:"16px 24px", borderBottom:"1px solid #1C2530", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
+              <div>
+                <div style={{ fontWeight:800, fontSize:16, color:"#E8EDF5" }}>📅 Prenota — {bookPkg.label}</div>
+                <div style={{ fontSize:12, color:"#6B7A8D", marginTop:2 }}>Scegli data e orario disponibile</div>
+              </div>
+              <button style={{ background:"none", border:"1px solid #1C2530", color:"#E8EDF5", borderRadius:8, padding:"6px 14px", cursor:"pointer", fontFamily:"inherit", fontSize:13 }} onClick={()=>setBookPkg(null)}>✕ Chiudi</button>
+            </div>
+            <iframe
+              src={(bookPkg.label||"").toLowerCase().includes("roleplay")
+                ? "https://cal.com/mindsell-aule-bovx1o/roleplay-settimanali"
+                : "https://cal.com/mindsell-aule-bovx1o/one-to-one"}
+              style={{ flex:1, border:"none", width:"100%", background:"#fff" }}
+              title="Prenota sessione"
+            />
+          </div>
+        </div>
       )}
       {bookPkg&&bookConfirmed&&(
         <Modal onClose={()=>{setBookPkg(null);setBookConfirmed(false);setBookForm({date:"",time:"",note:""});}}>
