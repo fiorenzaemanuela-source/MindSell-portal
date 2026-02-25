@@ -364,6 +364,7 @@ function AdminPanel({ adminUser }) {
           const mediaStelle = tutteNote.filter(n => n.stars > 0).length > 0
             ? (tutteNote.filter(n=>n.stars>0).reduce((a,n)=>a+n.stars,0) / tutteNote.filter(n=>n.stars>0).length).toFixed(1)
             : "—";
+          const totSessioni = studenti.reduce((a,s) => a + (s.packages||[]).reduce((b,p) => b + (p.total||0), 0), 0);
           const statCards = [
             { label: "Studenti totali", value: totStudenti, icon: "👥", color: C.purple },
             { label: "Studenti attivi", value: attivi, icon: "🟢", color: C.green },
@@ -371,6 +372,7 @@ function AdminPanel({ adminUser }) {
             { label: "Completamento medio", value: `${percCompletamento}%`, icon: "📈", color: C.green },
             { label: "Valutazione media lezioni", value: mediaStelle === "—" ? "—" : `${mediaStelle} ⭐`, icon: "⭐", color: "#F9A825" },
             { label: "Note totali scritte", value: tutteNote.length, icon: "📝", color: C.purple },
+            { label: "Sessioni totali acquistate", value: totSessioni, icon: "🎯", color: C.blue },
           ];
           return (
             <div>
@@ -385,6 +387,31 @@ function AdminPanel({ adminUser }) {
                   </div>
                 ))}
               </div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 14px 0" }}>🎁 Richieste offerte</h3>
+              {(() => {
+                const [richieste, setRichieste] = useState([]);
+                useEffect(() => {
+                  getDocs(collection(db, "richieste")).then(snap => {
+                    const r = [];
+                    snap.forEach(d => r.push({ id: d.id, ...d.data() }));
+                    r.sort((a,b) => (b.ts?.seconds||0) - (a.ts?.seconds||0));
+                    setRichieste(r);
+                  });
+                }, []);
+                return richieste.length === 0
+                  ? <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>Nessuna richiesta ancora.</p>
+                  : <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
+                    {richieste.map((r,i) => (
+                      <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 14 }}>{r.name}</div>
+                          <div style={{ fontSize: 12, color: C.muted }}>{r.offertaTitle} — {r.offertaPrice}</div>
+                        </div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{r.ts?.seconds ? new Date(r.ts.seconds*1000).toLocaleDateString("it-IT") : "—"}</div>
+                      </div>
+                    ))}
+                  </div>;
+              })()}
               <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 14px" }}>📚 Progressi per studente</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {studenti.map((s, i) => {
@@ -1315,7 +1342,19 @@ function StudentPortal({ userData }) {
                 </div>
                 <div style={{ fontWeight:800, fontSize:19, color:o.color, whiteSpace:"nowrap" }}>{o.price}</div>
               </div>
-              <button style={{ marginTop:10, background:`${o.color}22`, border:`1px solid ${o.color}66`, color:o.color, borderRadius:8, padding:"8px 16px", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit" }} onClick={()=>setShowPromo(false)}>Scopri →</button>
+              <button style={{ marginTop:10, background:`${o.color}22`, border:`1px solid ${o.color}66`, color:o.color, borderRadius:8, padding:"8px 16px", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit" }} onClick={async()=>{
+                try {
+                  const uid = auth.currentUser?.uid;
+                  if (!uid) return;
+                  await addDoc(collection(db, "richieste"), {
+                    uid, name: data.name, email: data.email,
+                    offertaId: o.id, offertaTitle: o.title, offertaPrice: o.price,
+                    ts: serverTimestamp()
+                  });
+                  showToast("✅ Richiesta inviata! Ti contatteremo presto.");
+                  setShowPromo(false);
+                } catch(e) { showToast("❌ Errore nell'invio."); }
+              }}>Sono interessato →</button>
             </div>
           ))}
         </Modal>
