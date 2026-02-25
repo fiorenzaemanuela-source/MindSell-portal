@@ -388,30 +388,7 @@ function AdminPanel({ adminUser }) {
                 ))}
               </div>
               <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 14px 0" }}>🎁 Richieste offerte</h3>
-              {(() => {
-                const [richieste, setRichieste] = useState([]);
-                useEffect(() => {
-                  getDocs(collection(db, "richieste")).then(snap => {
-                    const r = [];
-                    snap.forEach(d => r.push({ id: d.id, ...d.data() }));
-                    r.sort((a,b) => (b.ts?.seconds||0) - (a.ts?.seconds||0));
-                    setRichieste(r);
-                  });
-                }, []);
-                return richieste.length === 0
-                  ? <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>Nessuna richiesta ancora.</p>
-                  : <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
-                    {richieste.map((r,i) => (
-                      <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 14 }}>{r.name}</div>
-                          <div style={{ fontSize: 12, color: C.muted }}>{r.offertaTitle} — {r.offertaPrice}</div>
-                        </div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{r.ts?.seconds ? new Date(r.ts.seconds*1000).toLocaleDateString("it-IT") : "—"}</div>
-                      </div>
-                    ))}
-                  </div>;
-              })()}
+              <RichiesteOfferte />
               <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 14px" }}>📚 Progressi per studente</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {studenti.map((s, i) => {
@@ -892,6 +869,35 @@ function AdminPanel({ adminUser }) {
           }}>Aggiungi →</button>
         </Modal>
       )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RICHIESTE OFFERTE COMPONENT
+// ═══════════════════════════════════════════════════════════════
+function RichiesteOfferte() {
+  const [richieste, setRichieste] = useState([]);
+  useEffect(() => {
+    getDocs(collection(db, "richieste")).then(snap => {
+      const r = [];
+      snap.forEach(d => r.push({ id: d.id, ...d.data() }));
+      r.sort((a,b) => (b.ts?.seconds||0) - (a.ts?.seconds||0));
+      setRichieste(r);
+    });
+  }, []);
+  if (richieste.length === 0) return <p style={{ color: "#6B7A8D", fontSize: 13, marginBottom: 24 }}>Nessuna richiesta ancora.</p>;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
+      {richieste.map((r,i) => (
+        <div key={i} style={{ background: "#121820", border: "1px solid #1C2530", borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#E8EDF5" }}>{r.name}</div>
+            <div style={{ fontSize: 12, color: "#6B7A8D" }}>{r.offertaTitle} — {r.offertaPrice}</div>
+          </div>
+          <div style={{ fontSize: 11, color: "#6B7A8D" }}>{r.ts?.seconds ? new Date(r.ts.seconds*1000).toLocaleDateString("it-IT") : "—"}</div>
+        </div>
+      ))}
     </div>
   );
 }
