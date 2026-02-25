@@ -981,6 +981,7 @@ function StudentPortal({ userData }) {
                         <span style={{ color:col, fontSize:13, fontWeight:600 }}>Guarda →</span>
                       </div>
                     </div>
+                    );
                   })}
                 </div>
               );
