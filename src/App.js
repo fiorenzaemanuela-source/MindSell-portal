@@ -334,7 +334,7 @@ function AdminPanel({ adminUser }) {
           <img src="/logo_MindSell_definitivo_senza_sfondo.png" alt="" style={{ height: 30, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
           <span style={{ fontWeight: 800, fontSize: 18, background: `linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>MindSell Admin</span>
           <div style={{ display: "flex", gap: 4, marginLeft: 8, overflowX: "auto", maxWidth: "60vw" }}>
-            {[["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["chat", "💬 Messaggi"]].map(([id, label]) => (
+            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["chat", "💬 Messaggi"]].map(([id, label]) => (
               <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit" }}
                 onClick={() => { setSection(id); setView("lista"); }}>{label}</button>
             ))}
@@ -352,6 +352,68 @@ function AdminPanel({ adminUser }) {
       <div style={{ padding: "32px 40px", maxWidth: 1100, margin: "0 auto" }}>
 
         {/* CHAT */}
+        {section === "dashboard" && (() => {
+          const totStudenti = studenti.length;
+          const attivi = studenti.filter(s => (s.moduli||[]).some(m => (m.videolezioni||[]).some(v => v.progress > 0))).length;
+          const tuttiModuli = studenti.flatMap(s => s.moduli || []);
+          const tutteLezioni = tuttiModuli.flatMap(m => m.videolezioni || []);
+          const completate = tutteLezioni.filter(v => v.progress === 100).length;
+          const totLezioni = tutteLezioni.length;
+          const percCompletamento = totLezioni > 0 ? Math.round((completate / totLezioni) * 100) : 0;
+          const tutteNote = studenti.flatMap(s => Object.values(s.note || {}));
+          const mediaStelle = tutteNote.filter(n => n.stars > 0).length > 0
+            ? (tutteNote.filter(n=>n.stars>0).reduce((a,n)=>a+n.stars,0) / tutteNote.filter(n=>n.stars>0).length).toFixed(1)
+            : "—";
+          const statCards = [
+            { label: "Studenti totali", value: totStudenti, icon: "👥", color: C.purple },
+            { label: "Studenti attivi", value: attivi, icon: "🟢", color: C.green },
+            { label: "Lezioni completate", value: `${completate}/${totLezioni}`, icon: "✅", color: C.blue },
+            { label: "Completamento medio", value: `${percCompletamento}%`, icon: "📈", color: C.green },
+            { label: "Valutazione media lezioni", value: mediaStelle === "—" ? "—" : `${mediaStelle} ⭐`, icon: "⭐", color: "#F9A825" },
+            { label: "Note totali scritte", value: tutteNote.length, icon: "📝", color: C.purple },
+          ];
+          return (
+            <div>
+              <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 6px" }}>📊 Dashboard</h2>
+              <p style={{ color: C.muted, fontSize: 13, margin: "0 0 24px" }}>Panoramica generale del portale</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16, marginBottom: 32 }}>
+                {statCards.map((s, i) => (
+                  <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "20px 24px", borderLeft: `4px solid ${s.color}` }}>
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>{s.icon}</div>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: s.color }}>{s.value}</div>
+                    <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 14px" }}>📚 Progressi per studente</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {studenti.map((s, i) => {
+                  const lezioni = (s.moduli || []).flatMap(m => m.videolezioni || []);
+                  const tot = lezioni.length;
+                  const done = lezioni.filter(v => v.progress === 100).length;
+                  const perc = tot > 0 ? Math.round((done/tot)*100) : 0;
+                  const col = perc === 100 ? C.green : perc > 50 ? C.blue : C.purple;
+                  return (
+                    <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: "50%", background: `${col}33`, border: `2px solid ${col}55`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: col, flexShrink: 0 }}>{s.avatar || s.name?.slice(0,2).toUpperCase()}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{s.name}</div>
+                        <div style={{ fontSize: 12, color: C.muted }}>{s.plan}</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                        <div style={{ width: 120, height: 6, background: C.border, borderRadius: 4, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${perc}%`, background: col, borderRadius: 4 }}/>
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: col, minWidth: 38 }}>{perc}%</span>
+                        <span style={{ fontSize: 12, color: C.muted }}>{done}/{tot} lezioni</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
         {section === "chat" && <AdminChat />}
 
 
