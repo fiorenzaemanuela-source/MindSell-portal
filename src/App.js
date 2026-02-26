@@ -1050,6 +1050,7 @@ async function inviaNotifica(uid, { emoji, titolo, testo }) {
 // ═══════════════════════════════════════════════════════════════
 function StudentPortal({ userData }) {
   const [tab, setTab] = useState("moduli");
+  const uid = auth.currentUser?.uid;
   const [showPromo, setShowPromo] = useState(false);
   const [activeVideo, setActiveVideo] = useState(null);
   const [bookPkg, setBookPkg] = useState(null);
