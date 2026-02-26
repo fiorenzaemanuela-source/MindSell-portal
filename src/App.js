@@ -1017,6 +1017,21 @@ function NotificheBell({ uid }) {
     }
   };
 
+  const toggleImportante = async (n) => {
+    await setDoc(doc(db, "studenti", uid, "notifiche", n.id), { ...n, importante: !n.importante });
+  };
+
+  // Auto-cancella notifiche > 7 giorni non importanti
+  useEffect(() => {
+    if (!notifiche.length) return;
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    notifiche.forEach(n => {
+      if (!n.importante && n.ts?.seconds && n.ts.seconds * 1000 < cutoff) {
+        deleteDoc(doc(db, "studenti", uid, "notifiche", n.id));
+      }
+    });
+  }, [notifiche, uid]);
+
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button onClick={() => { setOpen(!open); if (!open) segnaLette(); }} style={{ background: "none", border: "1px solid #1C2530", borderRadius: 10, padding: "9px 14px", cursor: "pointer", fontSize: 18, position: "relative", color: "#E8EDF5" }}>
@@ -1037,6 +1052,7 @@ function NotificheBell({ uid }) {
                     <div style={{ fontSize: 12, color: "#6B7A8D" }}>{n.testo}</div>
                     {n.ts?.seconds && <div style={{ fontSize: 11, color: "#3D4F61", marginTop: 4 }}>{new Date(n.ts.seconds * 1000).toLocaleDateString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>}
                   </div>
+                  <button onClick={(e)=>{ e.stopPropagation(); toggleImportante(n); }} style={{ background:"none", border:"none", cursor:"pointer", fontSize:15, padding:0, flexShrink:0, opacity: n.importante ? 1 : 0.25, color: n.importante ? "#FFD700" : "#999" }} title={n.importante ? "Rimuovi importanza" : "Segna come importante"}>⭐</button>
                   {!n.letta && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#6DBF3E", flexShrink: 0, marginTop: 4 }} />}
                 </div>
               ))
@@ -1049,9 +1065,9 @@ function NotificheBell({ uid }) {
 }
 
 // helper per inviare notifica a uno studente
-async function inviaNotifica(uid, { emoji, titolo, testo }) {
+async function inviaNotifica(uid, { emoji, titolo, testo, importante = false }) {
   await addDoc(collection(db, "studenti", uid, "notifiche"), {
-    emoji, titolo, testo, letta: false, ts: serverTimestamp()
+    emoji, titolo, testo, letta: false, importante, ts: serverTimestamp()
   });
 }
 
@@ -1648,6 +1664,12 @@ function AdminChat({ selected }) {
   const [activeConv, setActiveConv] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
+  const [showNotifForm, setShowNotifForm] = useState(false);
+  const [notifEmoji, setNotifEmoji] = useState("📣");
+  const [notifTitolo, setNotifTitolo] = useState("");
+  const [notifTesto, setNotifTesto] = useState("");
+  const [notifImportante, setNotifImportante] = useState(false);
+  const [notifSending, setNotifSending] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "chat"), snap => {
@@ -1680,6 +1702,19 @@ function AdminChat({ selected }) {
     setText("");
   };
 
+  const sendNotifica = async () => {
+    if (!notifTitolo.trim() || !activeConv) return;
+    setNotifSending(true);
+    await inviaNotifica(activeConv.uid, {
+      emoji: notifEmoji || "📣",
+      titolo: notifTitolo.trim(),
+      testo: notifTesto.trim(),
+      importante: notifImportante,
+    });
+    setNotifTitolo(""); setNotifTesto(""); setNotifEmoji("📣"); setNotifImportante(false);
+    setShowNotifForm(false); setNotifSending(false);
+  };
+
   return (
     <div style={{ display:"flex", height:"calc(100vh - 58px)", background:C.bg }}>
       {/* Lista conversazioni */}
@@ -1707,9 +1742,26 @@ function AdminChat({ selected }) {
           </div>
         ) : (
           <>
-            <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}`, background:C.surface }}>
+            <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}`, background:C.surface, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div style={{ fontWeight:700, fontSize:15 }}>{activeConv.studentName}</div>
+              <button style={{ ...btn(showNotifForm ? C.purple : C.surface), border:`1px solid ${C.purple}66`, padding:"6px 14px", fontSize:12 }} onClick={()=>setShowNotifForm(!showNotifForm)}>🔔 Notifica</button>
             </div>
+            {showNotifForm && (
+              <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}`, background:C.purpleDim, display:"flex", flexDirection:"column", gap:8 }}>
+                <div style={{ display:"flex", gap:8 }}>
+                  <input style={{ ...inp(), width:60, padding:"8px 10px", fontSize:13, textAlign:"center" }} placeholder="😊" value={notifEmoji} onChange={e=>setNotifEmoji(e.target.value)} maxLength={2} />
+                  <input style={{ ...inp(), flex:1, padding:"8px 12px", fontSize:13 }} placeholder="Titolo notifica..." value={notifTitolo} onChange={e=>setNotifTitolo(e.target.value)} />
+                </div>
+                <input style={{ ...inp(), padding:"8px 12px", fontSize:13 }} placeholder="Testo (opzionale)..." value={notifTesto} onChange={e=>setNotifTesto(e.target.value)} />
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <label style={{ display:"flex", alignItems:"center", gap:6, fontSize:13, color:C.text, cursor:"pointer" }}>
+                    <input type="checkbox" checked={notifImportante} onChange={e=>setNotifImportante(e.target.checked)} style={{ accentColor:C.purple }} />
+                    ⭐ Segna come importante
+                  </label>
+                  <button style={{ ...btn(C.purple), padding:"8px 16px", fontSize:13, opacity: notifSending ? 0.6 : 1 }} onClick={sendNotifica} disabled={notifSending}>{notifSending ? "Invio..." : "Invia 🔔"}</button>
+                </div>
+              </div>
+            )}
             <div style={{ flex:1, overflowY:"auto", padding:"16px 20px", display:"flex", flexDirection:"column", gap:8 }}>
               {messages.map(m => (
                 <div key={m.id} style={{ display:"flex", justifyContent: m.from === "coach" ? "flex-end" : "flex-start" }}>
