@@ -1014,7 +1014,7 @@ function NotificheBell({ uid }) {
       {open && (
         <div style={{ position: "absolute", right: 0, top: 48, width: 380, background: "#0E1318", border: "1px solid #1C2530", borderRadius: 16, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 200, overflow: "hidden" }}>
           <div style={{ padding: "14px 18px", borderBottom: "1px solid #1C2530", fontWeight: 800, fontSize: 14, color: "#E8EDF5" }}>🔔 Notifiche</div>
-          <div style={{ maxHeight: 360, overflowY: "auto" }}>
+          <div style={{ maxHeight: 520, overflowY: "auto" }}>
             {notifiche.length === 0
               ? <div style={{ padding: 20, color: "#6B7A8D", fontSize: 13, textAlign: "center" }}>Nessuna notifica</div>
               : notifiche.map((n, i) => (
