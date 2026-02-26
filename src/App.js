@@ -527,8 +527,7 @@ function AdminPanel({ adminUser }) {
                         )}
                       </div>
                     );
-                })
-            }
+                })}
           </>
         )}
 
