@@ -1012,7 +1012,7 @@ function NotificheBell({ uid }) {
         {nonLette > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#FF4444", color: "#fff", borderRadius: "50%", fontSize: 10, fontWeight: 800, width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>{nonLette}</span>}
       </button>
       {open && (
-        <div style={{ position: "absolute", right: 0, top: 48, width: 380, background: "#0E1318", border: "1px solid #1C2530", borderRadius: 16, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 200, overflow: "hidden" }}>
+        <div style={{ position: "fixed", top: 64, right: 20, width: 400, background: "#0E1318", border: "1px solid #1C2530", borderRadius: 16, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 9999, overflow: "hidden" }}>
           <div style={{ padding: "14px 18px", borderBottom: "1px solid #1C2530", fontWeight: 800, fontSize: 14, color: "#E8EDF5" }}>🔔 Notifiche</div>
           <div style={{ maxHeight: 520, overflowY: "auto" }}>
             {notifiche.length === 0
