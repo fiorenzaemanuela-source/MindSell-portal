@@ -913,7 +913,7 @@ function SessioniCalendario({ email }) {
   useEffect(() => {
     if (!email) return;
     setLoading(true);
-    fetch(`/api/calendar?email=${encodeURIComponent(email)}`)
+    fetch('/api/calendar?email=' + encodeURIComponent(email))
       .then(r => r.json())
       .then(d => {
         if (d.error) { setError(d.error); setLoading(false); return; }
@@ -923,40 +923,53 @@ function SessioniCalendario({ email }) {
       .catch(e => { setError(e.message); setLoading(false); });
   }, [email]);
 
-  const getColor = (title) => {
-    const t = (title || "").toLowerCase();
-    if (t.includes("roleplay")) return { color: "#2B6CC4", bg: "#2B6CC422", label: "Roleplay" };
-    if (t.includes("aula")) return { color: "#B44FFF", bg: "#B44FFF22", label: "Aula" };
-    return { color: "#6DBF3E", bg: "#6DBF3E22", label: "1:1" };
+  const getType = (title) => {
+    const t = (title || '').toLowerCase();
+    if (t.includes('roleplay')) return 'roleplay';
+    if (t.includes('aula')) return 'aula';
+    return 'onetoone';
   };
 
-  if (loading) return <div style={{ color: "#6B7A8D", fontSize: 14, padding: 20 }}>⏳ Caricamento sessioni...</div>;
-  if (error) return <div style={{ color: "#FF5555", fontSize: 13, padding: 20 }}>❌ {error}</div>;
+  const categories = [
+    { key: 'aula', label: 'Aule Didattiche', emoji: '📚', color: '#B44FFF' },
+    { key: 'roleplay', label: 'Roleplay', emoji: '🎭', color: '#2B6CC4' },
+    { key: 'onetoone', label: 'One to One', emoji: '🎯', color: '#6DBF3E' },
+  ];
+
+  if (loading) return <div style={{ color: '#6B7A8D', fontSize: 14, padding: 20 }}>⏳ Caricamento sessioni...</div>;
+  if (error) return <div style={{ color: '#FF5555', fontSize: 13, padding: 20 }}>❌ {error}</div>;
   if (eventi.length === 0) return <EmptyState emoji="🎯" text="Nessuna sessione futura." sub="Prenota una sessione dal tuo pacchetto." />;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {eventi.map((e, i) => {
-        const { color, bg, label } = getColor(e.summary);
-        const start = e.start?.dateTime ? new Date(e.start.dateTime) : null;
-        const end = e.end?.dateTime ? new Date(e.end.dateTime) : null;
-        const meetUrl = e.hangoutLink || (e.conferenceData?.entryPoints?.find(ep => ep.entryPointType === "video")?.uri);
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+      {categories.map(cat => {
+        const eventiCat = eventi.filter(e => getType(e.summary) === cat.key);
         return (
-          <div key={i} style={{ background: "#121820", border: `1px solid ${color}44`, borderLeft: `4px solid ${color}`, borderRadius: 14, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: bg, color: color }}>{label}</span>
-                <span style={{ fontWeight: 700, fontSize: 15, color: "#E8EDF5" }}>{e.summary}</span>
+          <div key={cat.key} style={{ background: '#0E1318', border: `1px solid ${cat.color}44`, borderTop: `3px solid ${cat.color}`, borderRadius: 16, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #1C2530', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 22 }}>{cat.emoji}</span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: '#E8EDF5' }}>{cat.label}</div>
+                <div style={{ fontSize: 12, color: cat.color }}>{eventiCat.length} sessioni in programma</div>
               </div>
-              {start && (
-                <div style={{ fontSize: 13, color: "#6B7A8D" }}>
-                  📅 {start.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })} &nbsp;⏰ {start.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} – {end?.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
-                </div>
-              )}
             </div>
-            {meetUrl && (
-              <a href={meetUrl} target="_blank" rel="noreferrer" style={{ background: `${color}22`, border: `1px solid ${color}66`, color: color, borderRadius: 10, padding: "9px 18px", fontWeight: 700, fontSize: 13, textDecoration: "none", whiteSpace: "nowrap" }}>▶ Entra</a>
-            )}
+            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 340, overflowY: 'auto' }}>
+              {eventiCat.length === 0
+                ? <div style={{ color: '#6B7A8D', fontSize: 13, padding: '8px 0' }}>Nessuna sessione programmata</div>
+                : eventiCat.map((ev, i) => {
+                    const s = ev.start && ev.start.dateTime ? new Date(ev.start.dateTime) : null;
+                    const en = ev.end && ev.end.dateTime ? new Date(ev.end.dateTime) : null;
+                    const meetUrl = ev.hangoutLink || (ev.conferenceData && ev.conferenceData.entryPoints && (ev.conferenceData.entryPoints.find(ep => ep.entryPointType === 'video') || {}).uri);
+                    return (
+                      <div key={i} style={{ background: '#121820', border: `1px solid ${cat.color}22`, borderRadius: 10, padding: '12px 14px' }}>
+                        {s && <div style={{ fontSize: 13, fontWeight: 700, color: '#E8EDF5', marginBottom: 4 }}>📅 {s.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}</div>}
+                        {s && <div style={{ fontSize: 12, color: '#6B7A8D', marginBottom: meetUrl ? 8 : 0 }}>⏰ {s.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} – {en ? en.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : ''}</div>}
+                        {meetUrl && <a href={meetUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', background: cat.color + '22', border: '1px solid ' + cat.color + '55', color: cat.color, borderRadius: 8, padding: '5px 12px', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}>▶ Entra</a>}
+                      </div>
+                    );
+                  })
+              }
+            </div>
           </div>
         );
       })}
