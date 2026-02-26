@@ -170,6 +170,9 @@ function AdminPanel({ adminUser }) {
   const [loadingData, setLoadingData] = useState(true);
   const [adminTab, setAdminTab] = useState("moduli");
   const [expLibMod, setExpLibMod] = useState(null);
+  const [expStudMod, setExpStudMod] = useState(null);
+  const [modalAssegnaLezione, setModalAssegnaLezione] = useState(false);
+  const [assegnaLezModIdx, setAssegnaLezModIdx] = useState(null);
   const [toast, setToast] = useState("");
 
   const [modalStudent, setModalStudent] = useState(false);
@@ -572,8 +575,9 @@ function AdminPanel({ adminUser }) {
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{ width: 50, height: 50, borderRadius: "50%", background: `linear-gradient(135deg,${C.green},${C.blue})`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{selected.avatar}</div>
                 <div>
-                  <input style={{ background: "none", border: "none", fontSize: 18, fontWeight: 700, color: C.text, width: 280, outline: "none", fontFamily: "inherit" }} value={selected.name || ""} onChange={e => upd(s => s.name = e.target.value)} />
-                  <input style={{ background: "none", border: "none", fontSize: 13, color: C.muted, width: 320, outline: "none", fontFamily: "inherit", display: "block", marginTop: 2 }} placeholder="Piano / percorso" value={selected.plan || ""} onChange={e => upd(s => s.plan = e.target.value)} />
+                  <input style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "5px 10px", fontSize: 18, fontWeight: 700, color: C.text, width: 280, outline: "none", fontFamily: "inherit" }} value={selected.name || ""} onChange={e => upd(s => s.name = e.target.value)} title="Modifica nome" />
+                  <input style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 10px", fontSize: 13, color: C.muted, width: 320, outline: "none", fontFamily: "inherit", display: "block", marginTop: 4 }} placeholder="Piano / percorso" value={selected.plan || ""} onChange={e => upd(s => s.plan = e.target.value)} title="Modifica piano" />
+                  <input style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 10px", fontSize: 12, color: C.muted, width: 280, outline: "none", fontFamily: "inherit", display: "block", marginTop: 4 }} placeholder="Email" value={selected.email || ""} onChange={e => upd(s => s.email = e.target.value)} title="Modifica email" />
                 </div>
               </div>
               <button style={{ ...btn(C.green), padding: "11px 28px" }} onClick={saveStudent}>💾 Salva tutto</button>
@@ -601,19 +605,26 @@ function AdminPanel({ adminUser }) {
                   ? <EmptyState emoji="📚" text="Nessun modulo assegnato." sub="Clicca '+ Assegna dalla libreria' per aggiungere moduli." />
                   : selected.moduli.map((m, mIdx) => {
                     const col = [C.green, C.blue, C.purple][mIdx % 3];
+                    const tot = m.videolezioni?.length || 0;
+                    const done = m.videolezioni?.filter(v => v.progress === 100).length || 0;
+                    const openM = expStudMod === mIdx;
                     return (
-                      <div key={mIdx} style={{ background: C.card, border: `1px solid ${col}33`, borderRadius: 14, padding: "18px 22px", marginBottom: 12 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div key={mIdx} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
+                        <div style={{ padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderLeft: `4px solid ${col}` }} onClick={() => setExpStudMod(openM ? null : mIdx)}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                             <span style={{ fontSize: 22 }}>{m.emoji}</span>
                             <div>
                               <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{m.title}</div>
-                              <div style={{ fontSize: 12, color: C.muted }}>{m.videolezioni?.length || 0} videolezioni</div>
+                              <div style={{ fontSize: 12, color: C.muted }}>{done}/{tot} lezioni completate</div>
                             </div>
                           </div>
-                          <button style={{ ...btn(C.red), padding: "6px 12px", fontSize: 13 }} onClick={() => upd(s => s.moduli.splice(mIdx, 1))}>Rimuovi</button>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 12, color: col, fontWeight: 600, background: col + "22", borderRadius: 20, padding: "3px 10px" }}>{tot} lezioni</span>
+                            <button style={{ ...btn(C.red), padding: "5px 10px", fontSize: 12 }} onClick={(e) => { e.stopPropagation(); upd(s => s.moduli.splice(mIdx, 1)); }}>Rimuovi</button>
+                            <span style={{ fontSize: 18, color: C.muted, transform: openM ? "rotate(180deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
+                          </div>
                         </div>
-                        {m.videolezioni?.map((v, vIdx) => (
+                        {openM && m.videolezioni?.map((v, vIdx) => (
                           <div key={vIdx} style={{ background: C.surface, borderRadius: 8, padding: "10px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 10 }}>
                             <span style={{ fontSize: 16 }}>{v.emoji || "🎬"}</span>
                             <div style={{ flex: 1, fontSize: 14, color: C.text }}>{v.title}</div>
@@ -820,8 +831,49 @@ function AdminPanel({ adminUser }) {
             })
           }
           {selectedLibModuli.length > 0 && (
-            <button style={{...btn(C.green),width:"100%",marginTop:12}} onClick={assegnaModuli}>Assegna {selectedLibModuli.length} modulo/i →</button>
+            <div style={{ marginTop: 14, background: C.surface, borderRadius: 10, padding: "12px 16px", border: `1px solid ${C.border}` }}>
+              <p style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>Come vuoi assegnare i moduli selezionati?</p>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button style={{ ...btn(C.green), flex: 1 }} onClick={assegnaModuli}>📚 Tutto il modulo</button>
+                <button style={{ ...btn(C.blue), flex: 1 }} onClick={() => { setModalAssegna(false); setModalAssegnaLezione(true); }}>🎬 Scegli singola lezione</button>
+              </div>
+            </div>
           )}
+        </Modal>
+      )}
+
+      {modalAssegnaLezione && selectedLibModuli.length > 0 && (
+        <Modal onClose={() => setModalAssegnaLezione(false)} title="🎬 Scegli singola lezione">
+          <p style={{ color: C.muted, fontSize: 13, marginBottom: 12 }}>Scegli quale lezione assegnare da ogni modulo selezionato:</p>
+          {libreria.filter(m => selectedLibModuli.includes(m.id)).map(m => (
+            <div key={m.id} style={{ marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                <span>{m.emoji}</span>{m.title}
+              </div>
+              {(m.videolezioni || []).map((v, vIdx) => {
+                const già = selected?.moduli?.some(sm => sm.libId === m.id && sm.videolezioni?.some(sv => sv.title === v.title));
+                return (
+                  <div key={vIdx} style={{ background: già ? C.greenDim : C.surface, border: `1px solid ${già ? C.green + "44" : C.border}`, borderRadius: 8, padding: "9px 14px", marginBottom: 5, display: "flex", alignItems: "center", gap: 10, cursor: già ? "default" : "pointer", opacity: già ? 0.6 : 1 }}
+                    onClick={() => {
+                      if (già) return;
+                      const s = JSON.parse(JSON.stringify(selected));
+                      if (!s.moduli) s.moduli = [];
+                      let mod = s.moduli.find(sm => sm.libId === m.id);
+                      if (!mod) { mod = { libId: m.id, title: m.title, emoji: m.emoji, videolezioni: [] }; s.moduli.push(mod); }
+                      mod.videolezioni.push({ ...v, progress: 0 });
+                      setSelected(s);
+                      showToast(`✅ Lezione aggiunta! Ricorda di salvare.`);
+                    }}>
+                    <span style={{ fontSize: 15 }}>{v.emoji || "🎬"}</span>
+                    <div style={{ flex: 1, fontSize: 13, color: C.text }}>{v.title}</div>
+                    <span style={{ fontSize: 11, color: C.muted }}>{v.duration}</span>
+                    {già ? <span style={{ fontSize: 11, color: C.green }}>✓ già assegnata</span> : <span style={{ fontSize: 11, color: C.purple }}>+ aggiungi</span>}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+          <button style={{ ...btn(C.green), width: "100%", marginTop: 8 }} onClick={() => { setModalAssegnaLezione(false); setSelectedLibModuli([]); showToast("✅ Lezioni assegnate! Ricorda di salvare."); }}>Fatto ✓</button>
         </Modal>
       )}
 
