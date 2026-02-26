@@ -985,10 +985,17 @@ function RichiesteOfferte() {
 // ═══════════════════════════════════════════════════════════════
 // SESSIONI CALENDARIO COMPONENT
 // ═══════════════════════════════════════════════════════════════
-function SessioniCalendario({ email }) {
+function SessioniCalendario({ email, uid, packages = [], onPackagesUpdated }) {
   const [eventi, setEventi] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const getType = (title) => {
+    const t = (title || '').toLowerCase();
+    if (t.includes('roleplay')) return 'roleplay';
+    if (t.includes('aula')) return 'aula';
+    return 'onetoone';
+  };
 
   useEffect(() => {
     if (!email) return;
@@ -997,18 +1004,45 @@ function SessioniCalendario({ email }) {
       .then(r => r.json())
       .then(d => {
         if (d.error) { setError(d.error); setLoading(false); return; }
-        setEventi(d.events || []);
+        const all = d.events || [];
+        setEventi(all);
         setLoading(false);
+
+        // Auto-incrementa "used" per le sessioni passate
+        if (uid && packages.length > 0 && onPackagesUpdated) {
+          const now = new Date();
+          const passate = all.filter(e => {
+            const dt = e.start?.dateTime || e.start?.date;
+            return dt && new Date(dt) < now;
+          });
+          // Conta passate per tipo
+          const conteggioPassate = { aula: 0, roleplay: 0, onetoone: 0 };
+          passate.forEach(e => { conteggioPassate[getType(e.summary)]++; });
+
+          // Aggiorna packages solo se il valore used è diverso
+          let aggiornato = false;
+          const pkgsNew = packages.map(p => {
+            const label = (p.label || '').toLowerCase();
+            let tipo = null;
+            if (label.includes('roleplay')) tipo = 'roleplay';
+            else if (label.includes('aula')) tipo = 'aula';
+            else if (label.includes('one') || label.includes('1to1') || label.includes('1 to 1')) tipo = 'onetoone';
+            if (!tipo) return p;
+            const nuovoUsed = Math.min(conteggioPassate[tipo], p.total || 0);
+            if (nuovoUsed !== p.used) { aggiornato = true; return { ...p, used: nuovoUsed }; }
+            return p;
+          });
+          if (aggiornato) onPackagesUpdated(pkgsNew);
+        }
       })
       .catch(e => { setError(e.message); setLoading(false); });
   }, [email]);
 
-  const getType = (title) => {
-    const t = (title || '').toLowerCase();
-    if (t.includes('roleplay')) return 'roleplay';
-    if (t.includes('aula')) return 'aula';
-    return 'onetoone';
-  };
+  const now = new Date();
+  const eventiFuturi = eventi.filter(e => {
+    const dt = e.start?.dateTime || e.start?.date;
+    return dt && new Date(dt) >= now;
+  });
 
   const categories = [
     { key: 'aula', label: 'Aule Didattiche', emoji: '📚', color: '#B44FFF' },
@@ -1018,12 +1052,12 @@ function SessioniCalendario({ email }) {
 
   if (loading) return <div style={{ color: '#6B7A8D', fontSize: 14, padding: 20 }}>⏳ Caricamento sessioni...</div>;
   if (error) return <div style={{ color: '#FF5555', fontSize: 13, padding: 20 }}>❌ {error}</div>;
-  if (eventi.length === 0) return <EmptyState emoji="🎯" text="Nessuna sessione futura." sub="Prenota una sessione dal tuo pacchetto." />;
+  if (eventiFuturi.length === 0) return <EmptyState emoji="🎯" text="Nessuna sessione futura." sub="Prenota una sessione dal tuo pacchetto." />;
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
       {categories.map(cat => {
-        const eventiCat = eventi.filter(e => getType(e.summary) === cat.key);
+        const eventiCat = eventiFuturi.filter(e => getType(e.summary) === cat.key);
         return (
           <div key={cat.key} style={{ background: '#0E1318', border: `1px solid ${cat.color}44`, borderTop: `3px solid ${cat.color}`, borderRadius: 16, overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #1C2530', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1399,7 +1433,7 @@ function StudentPortal({ userData }) {
         {tab==="sessioni"&&(
           <div>
             <h3 style={{ fontSize:16, fontWeight:800, margin:"0 0 16px", color:C.text }}>📅 Le tue prossime sessioni</h3>
-            <SessioniCalendario email={data.email} />
+            <SessioniCalendario email={data.email} uid={uid} packages={data.packages || []} onPackagesUpdated={(pkgs) => { const ref = doc(db, "studenti", uid); setDoc(ref, { ...data, packages: pkgs }, { merge: true }); }} />
             <h3 style={{ fontSize:16, fontWeight:800, margin:"28px 0 16px", color:C.text }}>🎯 I tuoi pacchetti</h3>
           {(!data.packages||data.packages.length===0)
             ?<EmptyState emoji="🎯" text="Nessuna sessione disponibile." sub="Acquista un pacchetto per iniziare."/>
