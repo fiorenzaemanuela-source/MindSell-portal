@@ -984,6 +984,7 @@ function SessioniCalendario({ email }) {
 function NotificheBell({ uid }) {
   const [notifiche, setNotifiche] = useState([]);
   const [open, setOpen] = useState(false);
+  const ref = React.useRef(null);
 
   useEffect(() => {
     if (!uid) return;
@@ -996,6 +997,17 @@ function NotificheBell({ uid }) {
     return () => unsub();
   }, [uid]);
 
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
   const nonLette = notifiche.filter(n => !n.letta).length;
 
   const segnaLette = async () => {
@@ -1006,7 +1018,7 @@ function NotificheBell({ uid }) {
   };
 
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={ref} style={{ position: "relative" }}>
       <button onClick={() => { setOpen(!open); if (!open) segnaLette(); }} style={{ background: "none", border: "1px solid #1C2530", borderRadius: 10, padding: "9px 14px", cursor: "pointer", fontSize: 18, position: "relative", color: "#E8EDF5" }}>
         🔔
         {nonLette > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#FF4444", color: "#fff", borderRadius: "50%", fontSize: 10, fontWeight: 800, width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>{nonLette}</span>}
