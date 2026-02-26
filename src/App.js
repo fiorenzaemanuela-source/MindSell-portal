@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { auth, db } from "./firebase";
 import {
   signInWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -984,7 +984,7 @@ function SessioniCalendario({ email }) {
 function NotificheBell({ uid }) {
   const [notifiche, setNotifiche] = useState([]);
   const [open, setOpen] = useState(false);
-  const ref = React.useRef(null);
+  const ref = useRef(null);
 
   useEffect(() => {
     if (!uid) return;
