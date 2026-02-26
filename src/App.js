@@ -787,9 +787,10 @@ function AdminPanel({ adminUser }) {
       {/* MODALI ADMIN */}
       {modalStudent && (
         <Modal onClose={() => setModalStudent(false)} title="👤 Nuovo studente">
-          {[["name","Nome e cognome *","text"],["email","Email *","email"],["password","Password temporanea *","password"],["plan","Piano es. Percorso Vendita Base","text"]].map(([k,ph,t]) => (
-            <input key={k} style={inp()} placeholder={ph} type={t} value={fStudent[k]} onChange={e => setFStudent({...fStudent,[k]:e.target.value})} />
-          ))}
+          <input style={inp()} placeholder="Nome e cognome *" type="text" autoComplete="off" value={fStudent.name} onChange={e => setFStudent({...fStudent, name: e.target.value})} />
+          <input style={inp()} placeholder="Email *" type="email" autoComplete="new-password" value={fStudent.email} onChange={e => setFStudent({...fStudent, email: e.target.value})} />
+          <input style={inp()} placeholder="Password temporanea *" type="password" autoComplete="new-password" value={fStudent.password} onChange={e => setFStudent({...fStudent, password: e.target.value})} />
+          <input style={inp()} placeholder="Piano es. Percorso Vendita Base" type="text" autoComplete="off" value={fStudent.plan} onChange={e => setFStudent({...fStudent, plan: e.target.value})} />
           <button style={{...btn(C.green),width:"100%",marginTop:8}} onClick={addStudent}>Crea studente →</button>
         </Modal>
       )}
