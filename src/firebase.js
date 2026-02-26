@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyBNllVcN4d8Juuji2U7-WJLKcqrteWDdVo",
   authDomain: "mindsell-portal.firebaseapp.com",
   projectId: "mindsell-portal",

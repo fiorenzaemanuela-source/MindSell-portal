@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { auth, db } from "./firebase";
+import { auth, db, firebaseConfig } from "./firebase";
+import { initializeApp, getApps } from "firebase/app";
+import { getAuth } from "firebase/auth";
+
+// Seconda istanza Firebase per creare studenti senza cambiare auth admin
+const secondaryApp = getApps().find(a => a.name === "secondary") || initializeApp(firebaseConfig, "secondary");
+const secondaryAuth = getAuth(secondaryApp);
 import {
   signInWithEmailAndPassword, signOut, onAuthStateChanged,
   createUserWithEmailAndPassword, sendPasswordResetEmail,
@@ -225,7 +231,8 @@ function AdminPanel({ adminUser }) {
   const addStudent = async () => {
     if (!fStudent.name || !fStudent.email || !fStudent.password) { showToast("⚠️ Compila tutti i campi."); return; }
     try {
-      const cred = await createUserWithEmailAndPassword(auth, fStudent.email, fStudent.password);
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, fStudent.email, fStudent.password);
+      await secondaryAuth.signOut();
       await setDoc(doc(db, "studenti", cred.user.uid), {
         name: fStudent.name, plan: fStudent.plan, email: fStudent.email,
         avatar: fStudent.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase(),
@@ -540,7 +547,7 @@ function AdminPanel({ adminUser }) {
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Studenti ({studenti.length})</h2>
-              <button style={btn(C.green)} onClick={() => setModalStudent(true)}>＋ Nuovo studente</button>
+              <button style={btn(C.green)} onClick={() => { setFStudent({ name: "", email: "", password: "", plan: "" }); setModalStudent(true); }}>＋ Nuovo studente</button>
             </div>
             <input style={{ width:"100%", padding:"10px 16px", borderRadius:10, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:14, outline:"none", boxSizing:"border-box", marginBottom:12 }} placeholder="🔍 Cerca per nome o email..." value={searchStudenti} onChange={e=>setSearchStudenti(e.target.value)} />
             {loadingData ? <p style={{ color: C.muted }}>Caricamento...</p> : (
@@ -1934,7 +1941,7 @@ function Splash() {
 
 function Modal({ children, onClose, title }) {
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.88)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, padding:20 }} onClick={onClose}>
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.88)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, padding:20 }} onMouseDown={(e) => { if(e.target === e.currentTarget) onClose(); }}>
       <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:20, padding:32, width:"100%", maxWidth:500, position:"relative", maxHeight:"90vh", overflowY:"auto", display:"flex", flexDirection:"column", gap:10 }} onClick={e=>e.stopPropagation()}>
         <button style={{ position:"absolute", top:14, right:14, background:C.surface, border:`1px solid ${C.border}`, color:C.muted, width:28, height:28, borderRadius:"50%", cursor:"pointer", fontSize:12, fontFamily:"inherit" }} onClick={onClose}>✕</button>
         {title&&<h3 style={{...mTitle,marginBottom:4}}>{title}</h3>}
