@@ -1234,6 +1234,7 @@ function StudentPortal({ userData }) {
                 <p style={{ color:C.muted, fontSize:13, margin:8 }}>Aggiungi sessioni</p>
               </div>
             </div>
+          </div>
         )}
 
         {/* REGISTRAZIONI */}
