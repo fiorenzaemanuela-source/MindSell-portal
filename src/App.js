@@ -866,6 +866,7 @@ function AdminPanel({ adminUser }) {
           <button style={{...btn(C.green),width:"100%",marginTop:8}} onClick={() => {
             upd(s => { if(!s.contents)s.contents=[]; s.contents.push({...fContent}); });
             setFContent({title:"",type:"PDF",size:"",emoji:"📄",url:""}); setModalContent(false);
+            try { getDocs(collection(db, "studenti")).then(snap => { snap.forEach(d => inviaNotifica(d.id, { emoji:"📎", titolo:"Nuovo materiale disponibile!", testo:"Il coach ha caricato nuovo materiale." })); }); } catch(e) {}
           }}>Aggiungi →</button>
         </Modal>
       )}
@@ -978,6 +979,71 @@ function SessioniCalendario({ email }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// NOTIFICHE COMPONENT
+// ═══════════════════════════════════════════════════════════════
+function NotificheBell({ uid }) {
+  const [notifiche, setNotifiche] = useState([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!uid) return;
+    const q = query(collection(db, "studenti", uid, "notifiche"), orderBy("ts", "desc"));
+    const unsub = onSnapshot(q, snap => {
+      const n = [];
+      snap.forEach(d => n.push({ id: d.id, ...d.data() }));
+      setNotifiche(n);
+    });
+    return () => unsub();
+  }, [uid]);
+
+  const nonLette = notifiche.filter(n => !n.letta).length;
+
+  const segnaLette = async () => {
+    const batch = notifiche.filter(n => !n.letta);
+    for (const n of batch) {
+      await setDoc(doc(db, "studenti", uid, "notifiche", n.id), { ...n, letta: true });
+    }
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button onClick={() => { setOpen(!open); if (!open) segnaLette(); }} style={{ background: "none", border: "1px solid #1C2530", borderRadius: 10, padding: "9px 14px", cursor: "pointer", fontSize: 18, position: "relative", color: "#E8EDF5" }}>
+        🔔
+        {nonLette > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#FF4444", color: "#fff", borderRadius: "50%", fontSize: 10, fontWeight: 800, width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>{nonLette}</span>}
+      </button>
+      {open && (
+        <div style={{ position: "absolute", right: 0, top: 48, width: 320, background: "#0E1318", border: "1px solid #1C2530", borderRadius: 16, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 200, overflow: "hidden" }}>
+          <div style={{ padding: "14px 18px", borderBottom: "1px solid #1C2530", fontWeight: 800, fontSize: 14, color: "#E8EDF5" }}>🔔 Notifiche</div>
+          <div style={{ maxHeight: 360, overflowY: "auto" }}>
+            {notifiche.length === 0
+              ? <div style={{ padding: 20, color: "#6B7A8D", fontSize: 13, textAlign: "center" }}>Nessuna notifica</div>
+              : notifiche.map((n, i) => (
+                <div key={i} style={{ padding: "12px 18px", borderBottom: "1px solid #1C2530", background: n.letta ? "transparent" : "#1C2530", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 20, flexShrink: 0 }}>{n.emoji || "🔔"}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#E8EDF5", marginBottom: 2 }}>{n.titolo}</div>
+                    <div style={{ fontSize: 12, color: "#6B7A8D" }}>{n.testo}</div>
+                    {n.ts?.seconds && <div style={{ fontSize: 11, color: "#3D4F61", marginTop: 4 }}>{new Date(n.ts.seconds * 1000).toLocaleDateString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>}
+                  </div>
+                  {!n.letta && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#6DBF3E", flexShrink: 0, marginTop: 4 }} />}
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// helper per inviare notifica a uno studente
+async function inviaNotifica(uid, { emoji, titolo, testo }) {
+  await addDoc(collection(db, "studenti", uid, "notifiche"), {
+    emoji, titolo, testo, letta: false, ts: serverTimestamp()
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
 // SESSIONI CALENDARIO COMPONENT
 // ═══════════════════════════════════════════════════════════════
 // STUDENT PORTAL
@@ -1077,6 +1143,7 @@ function StudentPortal({ userData }) {
       }));
       if (updated) {
         await setDoc(ref, { ...studentData, moduli });
+        await inviaNotifica(uid, { emoji:"🎉", titolo:"Lezione completata!", testo:"Ottimo lavoro! Hai completato una lezione del tuo percorso." });
         setActiveVideo(prev => prev ? { ...prev, progress: 100 } : null);
         showToast('✅ Lezione completata!');
       }
@@ -1154,7 +1221,10 @@ function StudentPortal({ userData }) {
             </h2>
             <p style={{ color:C.muted, fontSize:13, margin:"4px 0 0" }}>{new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
           </div>
-          <button style={{ background:`linear-gradient(135deg,${C.purple},${C.blue})`, border:"none", borderRadius:10, color:"#fff", padding:"10px 20px", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit", whiteSpace:"nowrap" }} onClick={()=>setShowPromo(true)}>✦ Scopri le offerte</button>
+          <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+            <NotificheBell uid={uid} />
+            <button style={{ background:`linear-gradient(135deg,${C.purple},${C.blue})`, border:"none", borderRadius:10, color:"#fff", padding:"10px 20px", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit", whiteSpace:"nowrap" }} onClick={()=>setShowPromo(true)}>✦ Scopri le offerte</button>
+          </div>
         </div>
 
         {/* MODULI — accordion */}
