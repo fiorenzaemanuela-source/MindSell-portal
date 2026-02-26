@@ -903,6 +903,130 @@ function RichiesteOfferte() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// SESSIONI CALENDARIO COMPONENT
+// ═══════════════════════════════════════════════════════════════
+function SessioniCalendario({ email }) {
+  const [eventi, setEventi] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!email) return;
+    setLoading(true);
+    fetch(`/api/calendar?email=${encodeURIComponent(email)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { setError(d.error); setLoading(false); return; }
+        setEventi(d.events || []);
+        setLoading(false);
+      })
+      .catch(e => { setError(e.message); setLoading(false); });
+  }, [email]);
+
+  const getColor = (title) => {
+    const t = (title || "").toLowerCase();
+    if (t.includes("roleplay")) return { color: "#2B6CC4", bg: "#2B6CC422", label: "Roleplay" };
+    if (t.includes("aula")) return { color: "#B44FFF", bg: "#B44FFF22", label: "Aula" };
+    return { color: "#6DBF3E", bg: "#6DBF3E22", label: "1:1" };
+  };
+
+  if (loading) return <div style={{ color: "#6B7A8D", fontSize: 14, padding: 20 }}>⏳ Caricamento sessioni...</div>;
+  if (error) return <div style={{ color: "#FF5555", fontSize: 13, padding: 20 }}>❌ {error}</div>;
+  if (eventi.length === 0) return <EmptyState emoji="🎯" text="Nessuna sessione futura." sub="Prenota una sessione dal tuo pacchetto." />;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {eventi.map((e, i) => {
+        const { color, bg, label } = getColor(e.summary);
+        const start = e.start?.dateTime ? new Date(e.start.dateTime) : null;
+        const end = e.end?.dateTime ? new Date(e.end.dateTime) : null;
+        const meetUrl = e.hangoutLink || (e.conferenceData?.entryPoints?.find(ep => ep.entryPointType === "video")?.uri);
+        return (
+          <div key={i} style={{ background: "#121820", border: `1px solid ${color}44`, borderLeft: `4px solid ${color}`, borderRadius: 14, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: bg, color: color }}>{label}</span>
+                <span style={{ fontWeight: 700, fontSize: 15, color: "#E8EDF5" }}>{e.summary}</span>
+              </div>
+              {start && (
+                <div style={{ fontSize: 13, color: "#6B7A8D" }}>
+                  📅 {start.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })} &nbsp;⏰ {start.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} – {end?.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+                </div>
+              )}
+            </div>
+            {meetUrl && (
+              <a href={meetUrl} target="_blank" rel="noreferrer" style={{ background: `${color}22`, border: `1px solid ${color}66`, color: color, borderRadius: 10, padding: "9px 18px", fontWeight: 700, fontSize: 13, textDecoration: "none", whiteSpace: "nowrap" }}>▶ Entra</a>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SESSIONI CALENDARIO COMPONENT
+// ═══════════════════════════════════════════════════════════════
+function SessioniCalendario({ email }) {
+  const [eventi, setEventi] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!email) return;
+    setLoading(true);
+    fetch(`/api/calendar?email=${encodeURIComponent(email)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { setError(d.error); setLoading(false); return; }
+        setEventi(d.events || []);
+        setLoading(false);
+      })
+      .catch(e => { setError(e.message); setLoading(false); });
+  }, [email]);
+
+  const getColor = (title) => {
+    const t = (title || "").toLowerCase();
+    if (t.includes("roleplay")) return { color: "#2B6CC4", bg: "#2B6CC422", label: "Roleplay" };
+    if (t.includes("aula")) return { color: "#B44FFF", bg: "#B44FFF22", label: "Aula" };
+    return { color: "#6DBF3E", bg: "#6DBF3E22", label: "1:1" };
+  };
+
+  if (loading) return <div style={{ color: "#6B7A8D", fontSize: 14, padding: 20 }}>⏳ Caricamento sessioni...</div>;
+  if (error) return <div style={{ color: "#FF5555", fontSize: 13, padding: 20 }}>❌ {error}</div>;
+  if (eventi.length === 0) return <EmptyState emoji="🎯" text="Nessuna sessione futura." sub="Prenota una sessione dal tuo pacchetto." />;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {eventi.map((e, i) => {
+        const { color, bg, label } = getColor(e.summary);
+        const start = e.start?.dateTime ? new Date(e.start.dateTime) : null;
+        const end = e.end?.dateTime ? new Date(e.end.dateTime) : null;
+        const meetUrl = e.hangoutLink || (e.conferenceData?.entryPoints?.find(ep => ep.entryPointType === "video")?.uri);
+        return (
+          <div key={i} style={{ background: "#121820", border: `1px solid ${color}44`, borderLeft: `4px solid ${color}`, borderRadius: 14, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: bg, color: color }}>{label}</span>
+                <span style={{ fontWeight: 700, fontSize: 15, color: "#E8EDF5" }}>{e.summary}</span>
+              </div>
+              {start && (
+                <div style={{ fontSize: 13, color: "#6B7A8D" }}>
+                  📅 {start.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })} &nbsp;⏰ {start.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} – {end?.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+                </div>
+              )}
+            </div>
+            {meetUrl && (
+              <a href={meetUrl} target="_blank" rel="noreferrer" style={{ background: `${color}22`, border: `1px solid ${color}66`, color: color, borderRadius: 10, padding: "9px 18px", fontWeight: 700, fontSize: 13, textDecoration: "none", whiteSpace: "nowrap" }}>▶ Entra</a>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // STUDENT PORTAL
 // ═══════════════════════════════════════════════════════════════
 function StudentPortal({ userData }) {
@@ -1142,7 +1266,11 @@ function StudentPortal({ userData }) {
 
         {/* SESSIONI */}
         {tab==="sessioni"&&(
-          (!data.packages||data.packages.length===0)
+          <div>
+            <h3 style={{ fontSize:16, fontWeight:800, margin:"0 0 16px", color:C.text }}>📅 Le tue prossime sessioni</h3>
+            <SessioniCalendario email={data.email} />
+            <h3 style={{ fontSize:16, fontWeight:800, margin:"28px 0 16px", color:C.text }}>🎯 I tuoi pacchetti</h3>
+          {(!data.packages||data.packages.length===0)
             ?<EmptyState emoji="🎯" text="Nessuna sessione disponibile." sub="Acquista un pacchetto per iniziare."/>
             :<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(230px,1fr))", gap:20 }}>
               {data.packages.map((p,idx)=>{
@@ -1166,6 +1294,7 @@ function StudentPortal({ userData }) {
                 <p style={{ color:C.muted, fontSize:13, margin:8 }}>Aggiungi sessioni</p>
               </div>
             </div>
+          </div>
         )}
 
         {/* REGISTRAZIONI */}
