@@ -1010,28 +1010,34 @@ function SessioniCalendario({ email, uid, packages = [], onPackagesUpdated }) {
 
         // Auto-incrementa "used" per le sessioni passate
         if (uid && packages.length > 0 && onPackagesUpdated) {
-          const now = new Date();
+          const nowCheck = new Date();
           const passate = all.filter(e => {
             const dt = e.start?.dateTime || e.start?.date;
-            return dt && new Date(dt) < now;
+            return dt && new Date(dt) < nowCheck;
           });
-          // Conta passate per tipo
+          // Conta passate per tipo (basato su titolo evento Calendar)
           const conteggioPassate = { aula: 0, roleplay: 0, onetoone: 0 };
           passate.forEach(e => { conteggioPassate[getType(e.summary)]++; });
 
-          // Aggiorna packages solo se il valore used è diverso
+          console.log('[MindSell] Sessioni totali da Calendar:', all.length);
+          console.log('[MindSell] Sessioni passate:', passate.length, conteggioPassate);
+          console.log('[MindSell] Packages studente:', packages.map(p => ({ label: p.label, used: p.used, total: p.total })));
+
+          // Aggiorna packages — match flessibile sul label
           let aggiornato = false;
           const pkgsNew = packages.map(p => {
             const label = (p.label || '').toLowerCase();
             let tipo = null;
             if (label.includes('roleplay')) tipo = 'roleplay';
-            else if (label.includes('aula')) tipo = 'aula';
-            else if (label.includes('one') || label.includes('1to1') || label.includes('1 to 1')) tipo = 'onetoone';
+            else if (label.includes('aula') || label.includes('didatt')) tipo = 'aula';
+            else if (label.includes('one') || label.includes('1to1') || label.includes('1 to 1') || label.includes('individ') || label.includes('personal') || label.includes('coaching')) tipo = 'onetoone';
+            console.log('[MindSell] Package "' + p.label + '" → tipo: ' + tipo);
             if (!tipo) return p;
             const nuovoUsed = Math.min(conteggioPassate[tipo], p.total || 0);
             if (nuovoUsed !== p.used) { aggiornato = true; return { ...p, used: nuovoUsed }; }
             return p;
           });
+          console.log('[MindSell] Aggiornamento necessario:', aggiornato);
           if (aggiornato) onPackagesUpdated(pkgsNew);
         }
       })
