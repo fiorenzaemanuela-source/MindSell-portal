@@ -478,38 +478,59 @@ function AdminPanel({ adminUser }) {
             {loadingData ? <p style={{ color: C.muted }}>Caricamento...</p> : (
               libreria.length === 0
                 ? <EmptyState emoji="📚" text="Nessun modulo in libreria." sub="Crea il primo modulo didattico." />
-                : libreria.map((m, mIdx) => (
-                  <div key={m.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "20px 24px", marginBottom: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1 }}>
-                        <input style={{ background: "none", border: "none", fontSize: 26, width: 38, outline: "none", fontFamily: "inherit", color: C.text, flexShrink: 0 }} value={m.emoji} onChange={e => { const l = [...libreria]; l[mIdx].emoji = e.target.value; setLibreria(l); }} />
-                        <div style={{ flex: 1 }}>
-                          <input style={{ background: "none", border: `1px solid ${C.border}`, color: C.text, fontWeight: 700, fontSize: 15, borderRadius: 8, padding: "7px 14px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" }} value={m.title} onChange={e => { const l = [...libreria]; l[mIdx].title = e.target.value; setLibreria(l); }} />
-                          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{m.videolezioni?.length || 0} videolezioni</div>
+                : (() => {
+                  const [expMod, setExpMod] = React.useState(null);
+                  return libreria.map((m, mIdx) => {
+                    const col = [C.green, C.blue, C.purple][mIdx % 3];
+                    const tot = m.videolezioni?.length || 0;
+                    const open = expMod === mIdx;
+                    return (
+                      <div key={m.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, marginBottom: 14, overflow: "hidden" }}>
+                        <div style={{ padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderLeft: `4px solid ${col}` }} onClick={() => setExpMod(open ? null : mIdx)}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <span style={{ fontSize: 26 }}>{m.emoji || "📘"}</span>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{m.title}</div>
+                              <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{tot} videolezioni</div>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 12, color: col, fontWeight: 600, background: col + "22", borderRadius: 20, padding: "3px 10px" }}>{tot} lezioni</span>
+                            <span style={{ fontSize: 18, color: C.muted, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
+                          </div>
                         </div>
+                        {open && (
+                          <div style={{ padding: "0 24px 20px", borderTop: `1px solid ${C.border}` }}>
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "14px 0 12px" }}>
+                              <button style={{ ...btn(C.green), padding: "7px 14px", fontSize: 13 }} onClick={(e) => { e.stopPropagation(); saveModuloLib(m); }}>💾 Salva</button>
+                              <button style={{ ...btn(C.blue), padding: "7px 14px", fontSize: 13 }} onClick={(e) => { e.stopPropagation(); setModalVideoLib({ open: true, mIdx }); }}>＋ Videolezione</button>
+                              <button style={{ ...btn(C.red), padding: "7px 12px", fontSize: 13 }} onClick={(e) => { e.stopPropagation(); deleteModuloLib(m.id); }}>🗑</button>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                              <input style={{ background: "none", border: "none", fontSize: 26, width: 38, outline: "none", fontFamily: "inherit", color: C.text }} value={m.emoji} onChange={e => { const l = [...libreria]; l[mIdx].emoji = e.target.value; setLibreria(l); }} />
+                              <input style={{ background: "none", border: `1px solid ${C.border}`, color: C.text, fontWeight: 700, fontSize: 15, borderRadius: 8, padding: "7px 14px", outline: "none", fontFamily: "inherit", flex: 1, boxSizing: "border-box" }} value={m.title} onChange={e => { const l = [...libreria]; l[mIdx].title = e.target.value; setLibreria(l); }} />
+                            </div>
+                            {tot === 0 && <p style={{ color: C.muted, fontSize: 13 }}>Nessuna videolezione. Aggiungine una.</p>}
+                            {m.videolezioni?.map((v, vIdx) => (
+                              <div key={vIdx} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "11px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, background: C.border, borderRadius: 4, padding: "2px 7px", flexShrink: 0 }}>{vIdx+1}</span>
+                                <input style={{ background: "none", border: `1px solid ${C.border}44`, color: C.text, fontSize: 14, fontWeight: 600, width: 60, outline: "none", fontFamily: "inherit", borderRadius: 6, padding: "3px 8px" }} value={v.emoji} onChange={e => { const l = [...libreria]; l[mIdx].videolezioni[vIdx].emoji = e.target.value; setLibreria(l); }} />
+                                <div style={{ flex: 1 }}>
+                                  <input style={{ background: "none", border: `1px solid ${C.border}44`, color: C.text, fontSize: 14, fontWeight: 600, width: "100%", outline: "none", fontFamily: "inherit", borderRadius: 6, padding: "3px 8px", marginBottom: 3 }} value={v.title} onChange={e => { const l = [...libreria]; l[mIdx].videolezioni[vIdx].title = e.target.value; setLibreria(l); }} />
+                                  <input style={{ background: "none", border: `1px solid ${C.border}44`, color: C.muted, fontSize: 12, width: "100%", outline: "none", fontFamily: "inherit", borderRadius: 6, padding: "3px 8px" }} placeholder="URL iframe Bunny es. https://iframe.mediadelivery.net/embed/..." value={extractBunnyUrl(v.url)} onChange={e => { const l = [...libreria]; l[mIdx].videolezioni[vIdx].url = e.target.value; setLibreria(l); }} />
+                                </div>
+                                <span style={{ color: C.muted, fontSize: 12 }}>{v.duration}</span>
+                                <button style={{ background: "none", border: `1px solid ${C.green}55`, color: C.green, cursor: "pointer", fontSize: 11, borderRadius: 6, padding: "3px 7px", marginRight: 4, fontFamily: "inherit" }} onClick={() => saveModuloLib(libreria[mIdx])}>💾</button>
+                                <button style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 16 }} onClick={() => { const l = [...libreria]; l[mIdx].videolezioni.splice(vIdx, 1); setLibreria(l); saveModuloLib(l[mIdx]); }}>🗑</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button style={{ ...btn(C.green), padding: "7px 14px", fontSize: 13 }} onClick={() => saveModuloLib(m)}>💾 Salva</button>
-                        <button style={{ ...btn(C.blue), padding: "7px 14px", fontSize: 13 }} onClick={() => setModalVideoLib({ open: true, mIdx })}>＋ Videolezione</button>
-                        <button style={{ ...btn(C.red), padding: "7px 12px", fontSize: 13 }} onClick={() => deleteModuloLib(m.id)}>🗑</button>
-                      </div>
-                    </div>
-                    {m.videolezioni?.length === 0 && <p style={{ color: C.muted, fontSize: 13 }}>Nessuna videolezione. Aggiungine una.</p>}
-                    {m.videolezioni?.map((v, vIdx) => (
-                      <div key={vIdx} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "11px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, background: C.border, borderRadius: 4, padding: "2px 7px", flexShrink: 0 }}>{vIdx+1}</span>
-                        <input style={{ background: "none", border: `1px solid ${C.border}44`, color: C.text, fontSize: 14, fontWeight: 600, width: 160, outline: "none", fontFamily: "inherit", borderRadius: 6, padding: "3px 8px" }} value={v.emoji} onChange={e => { const l = [...libreria]; l[mIdx].videolezioni[vIdx].emoji = e.target.value; setLibreria(l); }} />
-                        <div style={{ flex: 1 }}>
-                          <input style={{ background: "none", border: `1px solid ${C.border}44`, color: C.text, fontSize: 14, fontWeight: 600, width: "100%", outline: "none", fontFamily: "inherit", borderRadius: 6, padding: "3px 8px", marginBottom: 3 }} value={v.title} onChange={e => { const l = [...libreria]; l[mIdx].videolezioni[vIdx].title = e.target.value; setLibreria(l); }} />
-                          <input style={{ background: "none", border: `1px solid ${C.border}44`, color: C.muted, fontSize: 12, width: "100%", outline: "none", fontFamily: "inherit", borderRadius: 6, padding: "3px 8px" }} placeholder="URL iframe Bunny es. https://iframe.mediadelivery.net/embed/..." value={extractBunnyUrl(v.url)} onChange={e => { const l = [...libreria]; l[mIdx].videolezioni[vIdx].url = e.target.value; setLibreria(l); }} />
-                        </div>
-                        <span style={{ color: C.muted, fontSize: 12 }}>{v.duration}</span>
-                        <button style={{ background: "none", border: `1px solid ${C.green}55`, color: C.green, cursor: "pointer", fontSize: 11, borderRadius: 6, padding: "3px 7px", marginRight: 4, fontFamily: "inherit" }} onClick={() => saveModuloLib(libreria[mIdx])}>💾</button><button style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 16 }} onClick={() => { const l = [...libreria]; l[mIdx].videolezioni.splice(vIdx, 1); setLibreria(l); saveModuloLib(l[mIdx]); }}>🗑</button>
-                      </div>
-                    ))}
-                  </div>
-                ))
-            )}
+                    );
+                  });
+                })()
+            }
           </>
         )}
 
