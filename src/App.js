@@ -169,6 +169,7 @@ function AdminPanel({ adminUser }) {
   const [selected, setSelected] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
   const [adminTab, setAdminTab] = useState("moduli");
+  const [expLibMod, setExpLibMod] = useState(null);
   const [toast, setToast] = useState("");
 
   const [modalStudent, setModalStudent] = useState(false);
@@ -478,15 +479,13 @@ function AdminPanel({ adminUser }) {
             {loadingData ? <p style={{ color: C.muted }}>Caricamento...</p> : (
               libreria.length === 0
                 ? <EmptyState emoji="📚" text="Nessun modulo in libreria." sub="Crea il primo modulo didattico." />
-                : (() => {
-                  const [expMod, setExpMod] = React.useState(null);
-                  return libreria.map((m, mIdx) => {
+                : libreria.map((m, mIdx) => {
                     const col = [C.green, C.blue, C.purple][mIdx % 3];
                     const tot = m.videolezioni?.length || 0;
-                    const open = expMod === mIdx;
+                    const open = expLibMod === mIdx;
                     return (
                       <div key={m.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, marginBottom: 14, overflow: "hidden" }}>
-                        <div style={{ padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderLeft: `4px solid ${col}` }} onClick={() => setExpMod(open ? null : mIdx)}>
+                        <div style={{ padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderLeft: `4px solid ${col}` }} onClick={() => setExpLibMod(expLibMod === mIdx ? null : mIdx)}>
                           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                             <span style={{ fontSize: 26 }}>{m.emoji || "📘"}</span>
                             <div>
@@ -528,8 +527,7 @@ function AdminPanel({ adminUser }) {
                         )}
                       </div>
                     );
-                  });
-                })()
+                })
             }
           </>
         )}
