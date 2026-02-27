@@ -1000,7 +1000,7 @@ function SessioniCalendario({ email, uid, packages = [], onPackagesUpdated }) {
   useEffect(() => {
     if (!email) return;
     setLoading(true);
-    fetch('/api/calendar?email=' + encodeURIComponent(email))
+    fetch('/api/calendar?email=' + encodeURIComponent(email) + '&includePast=true')
       .then(r => r.json())
       .then(d => {
         if (d.error) { setError(d.error); setLoading(false); return; }
