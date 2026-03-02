@@ -176,6 +176,7 @@ function AdminPanel({ adminUser }) {
   const [loadingData, setLoadingData] = useState(true);
   const [adminTab, setAdminTab] = useState("moduli");
   const [expLibMod, setExpLibMod] = useState(null);
+  const [modalAcquisto, setModalAcquisto] = useState(false);
   const [expStudMod, setExpStudMod] = useState(null);
   const [modalAssegnaLezione, setModalAssegnaLezione] = useState(false);
   const [assegnaLezModIdx, setAssegnaLezModIdx] = useState(null);
@@ -693,7 +694,43 @@ function AdminPanel({ adminUser }) {
               </div>
             )}
 
-            {/* REGISTRAZIONI */}
+            {modalAcquisto && (
+          <Modal onClose={()=>setModalAcquisto(false)} title="💳 Acquista sessioni">
+            <p style={{ color:C.muted, fontSize:13, marginBottom:16 }}>Scegli il tipo di sessione e procedi con il bonifico. Dopo il pagamento avvisa il coach via chat.</p>
+            {[
+              { tipo:"📚 Aula Didattica", prezzo:"59€", desc:"1 sessione di formazione in gruppo" },
+              { tipo:"🎯 One to One", prezzo:"149€", desc:"1 sessione individuale con il coach" },
+              { tipo:"🎭 Roleplay", prezzo:"149€", desc:"1 sessione di simulazione pratica" },
+            ].map((s,i)=>(
+              <div key={i} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:15 }}>{s.tipo}</div>
+                    <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{s.desc}</div>
+                  </div>
+                  <div style={{ fontWeight:800, fontSize:22, color:C.green }}>{s.prezzo}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{ background:C.purpleDim, border:`1px solid ${C.purple}44`, borderRadius:12, padding:"16px", marginTop:8 }}>
+              <div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>🏦 Dati per il bonifico</div>
+              {[
+                ["Intestatario","Angelo Fiorenza"],
+                ["IBAN","LT153250039188228137"],
+                ["BIC","CHASDEFX"],
+                ["Causale",`Sessioni ${data.name||""}`],
+              ].map(([k,v])=>(
+                <div key={k} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                  <span style={{ fontSize:12, color:C.muted }}>{k}</span>
+                  <span style={{ fontSize:13, fontWeight:600, fontFamily:"monospace", color:C.text, userSelect:"all", cursor:"text" }}>{v}</span>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize:12, color:C.muted, marginTop:10, textAlign:"center" }}>Dopo il pagamento invia la ricevuta via chat 💬</p>
+          </Modal>
+        )}
+
+        {/* REGISTRAZIONI */}
             {adminTab === "registrazioni" && (
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -1384,9 +1421,10 @@ function StudentPortal({ userData }) {
               const tot=m.videolezioni?.length||0;
               const done=m.videolezioni?.filter(v=>v.progress===100).length||0;
               const open=expandedModulo===mIdx;
+              const sbloccatoMod = mIdx===0 || (data.moduli[mIdx-1]?.videolezioni||[]).every(v=>v.progress===100);
               return(
                 <div key={mIdx} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, marginBottom:14, overflow:"hidden" }}>
-                  <div style={{ padding:"20px 24px", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer", borderLeft:`4px solid ${col}` }} onClick={()=>setExpandedModulo(open?null:mIdx)}>
+                  <div style={{ padding:"20px 24px", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:sbloccatoMod?"pointer":"not-allowed", borderLeft:`4px solid ${sbloccatoMod?col:C.muted}`, opacity:sbloccatoMod?1:0.5 }} onClick={()=>{ if(sbloccatoMod) setExpandedModulo(open?null:mIdx); }}>
                     <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                       <span style={{ fontSize:26 }}>{m.emoji}</span>
                       <div>
@@ -1460,9 +1498,9 @@ function StudentPortal({ userData }) {
                   </div>
                 );
               })}
-              <div style={{ background:C.card, border:`2px dashed ${C.border}`, borderRadius:16, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:180, cursor:"pointer" }} onClick={()=>setShowPromo(true)}>
+              <div style={{ background:C.card, border:`2px dashed ${C.border}`, borderRadius:16, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:180, cursor:"pointer" }} onClick={()=>setModalAcquisto(true)}>
                 <span style={{ fontSize:30, color:C.muted }}>＋</span>
-                <p style={{ color:C.muted, fontSize:13, margin:8 }}>Aggiungi sessioni</p>
+                <p style={{ color:C.muted, fontSize:13, margin:8 }}>Acquista sessioni</p>
               </div>
             </div>
           }
