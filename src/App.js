@@ -1320,7 +1320,7 @@ function StudentPortal({ userData }) {
   const [bookForm, setBookForm] = useState({ date: "", time: "", note: "" });
   const [expandedModulo, setExpandedModulo] = useState(null);
   const [modalAcquisto, setModalAcquisto] = useState(false);
-  const [localData, setLocalData] = useState(null);
+  const [localData, setLocalData] = useState(() => userData || null);
   const [studentToast, setStudentToast] = useState("");
   const [noteModal, setNoteModal] = useState(null); // { mIdx, vIdx, v }
   const [noteText, setNoteText] = useState("");
@@ -1330,10 +1330,8 @@ function StudentPortal({ userData }) {
 
   const showToast = (msg) => { setStudentToast(msg); setTimeout(() => setStudentToast(""), 3000); };
 
-  // Sync localData when userData changes from parent - also init on first render
-  useEffect(() => { if (userData) setLocalData(ud => ud || userData); }, [userData]);
-  // Initialize immediately on first render
-  if (!localData && userData) { setTimeout(() => setLocalData(userData), 0); }
+  // Sync localData when userData changes from parent
+  useEffect(() => { if (userData) setLocalData(userData); }, [userData]);
 
   const getNota = (mIdx, vIdx) => {
     return localNote?.[mIdx + "_" + vIdx] || null;
