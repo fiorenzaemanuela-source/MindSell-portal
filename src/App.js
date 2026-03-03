@@ -1289,6 +1289,9 @@ function StudentPortal({ userData }) {
 
   const showToast = (msg) => { setStudentToast(msg); setTimeout(() => setStudentToast(""), 3000); };
 
+  // Sync localData when userData changes from parent
+  useEffect(() => { if (userData) setLocalData(userData); }, [userData]);
+
   const getNota = (mIdx, vIdx) => {
     return localNote?.[mIdx + "_" + vIdx] || null;
   };
@@ -1341,8 +1344,6 @@ function StudentPortal({ userData }) {
   };
 
   const data = localData || userData || {};
-  // Sync localData when userData changes from parent
-  React.useEffect(() => { if (userData) setLocalData(userData); }, [userData]);
 
   // Segna video come completato al 100% su Firestore
   const markVideoComplete = async (videoUrl) => {
