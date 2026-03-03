@@ -1081,7 +1081,7 @@ function ModalAcquisto({ studentName, onClose }) {
         </div>
         <p style={{ fontSize:13, color:C.muted, textAlign:"center", lineHeight:1.6, margin:"0 0 10px" }}>
           Dopo il pagamento invia la ricevuta su WhatsApp al numero<br/>
-          <a href="https://wa.me/393513238711" target="_blank" rel="noreferrer" style={{ color:C.green, fontWeight:700, textDecoration:"none" }}>📱 351 323 8711</a>
+          <a href="https://wa.me/393513238711" target="_blank" rel="noreferrer" style={{ color:C.green, fontWeight:700, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:6 }}><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" style={{width:18,height:18}} alt="WhatsApp"/> 351 323 8711</a>
         </p>
         <button style={{ background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:8, padding:"8px 16px", cursor:"pointer", fontSize:12, fontFamily:"inherit" }} onClick={()=>setStep(1)}>← Modifica selezione</button>
       </>)}
