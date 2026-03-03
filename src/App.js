@@ -1461,7 +1461,7 @@ function StudentPortal({ userData }) {
       <aside className="ms-sidebar" style={{ width:248, background:C.surface, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", justifyContent:"space-between", padding:"24px 0", position:"sticky", top:0, height:"100vh" }}>
         <div>
           <div style={{ display:"flex", alignItems:"center", gap:10, padding:"0 20px 24px", borderBottom:`1px solid ${C.border}` }}>
-            <img src="/logo_mindsell.png" alt="" style={{ height:36, objectFit:"contain" }} onError={e=>e.target.style.display="none"} />
+            <img src="/logo_mindsell.png" alt="MindSell" style={{ height:70, objectFit:"contain" }} onError={e=>e.target.style.display="none"} />
             <div>
               <div style={{ fontWeight:800, fontSize:17, background:`linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>MindSell</div>
               <div style={{ fontSize:10, color:C.muted }}>Academy</div>
