@@ -72,11 +72,7 @@ const C = {
 };
 const glow = (c, px = 12) => `0 0 ${px}px ${c}44, 0 0 ${px * 2}px ${c}22`;
 
-const defaultPromos = [
-  { id: 1, title: "3 Sessioni Roleplay Extra", desc: "Intensifica la pratica con roleplay guidati.", price: "€ 149", badge: "🔥 Più richiesto", color: C.green },
-  { id: 2, title: "Modulo Avanzato – Leadership", desc: "Sblocca il percorso su leadership e team.", price: "€ 299", badge: "✨ Nuovo", color: C.purple },
-  { id: 3, title: "One to One Premium – 4 sessioni", desc: "Lavora direttamente col tuo coach.", price: "€ 399", badge: "⭐ Consigliato", color: C.blue },
-];
+const defaultPromos = [];
 
 // ═══════════════════════════════════════════════════════════════
 // ROOT
@@ -135,7 +131,7 @@ function LoginPage() {
       <div style={{ position: "absolute", width: 300, height: 300, borderRadius: "50%", background: C.green, opacity: 0.05, bottom: -80, left: -80, filter: "blur(60px)" }} />
       <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: "48px 40px", width: 380, boxShadow: `0 40px 100px rgba(0,0,0,0.7),${glow(C.purple, 20)}` }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <img src="/logo_MindSell_definitivo_senza_sfondo.png" alt="MindSell" style={{ height: 68, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
+          <img src="/logo_mindsell.png" alt="MindSell" style={{ height: 68, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
           <div style={{ fontWeight: 800, fontSize: 26, background: `linear-gradient(90deg,${C.green},${C.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginTop: 8 }}>MindSell</div>
           <p style={{ color: C.muted, fontSize: 14, margin: "4px 0 0" }}>Accedi alla tua area personale</p>
         </div>
@@ -353,7 +349,7 @@ function AdminPanel({ adminUser }) {
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Segoe UI',sans-serif", color: C.text }}>
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "14px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <img src="/logo_MindSell_definitivo_senza_sfondo.png" alt="" style={{ height: 30, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
+          <img src="/logo_mindsell.png" alt="" style={{ height: 30, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
           <span style={{ fontWeight: 800, fontSize: 18, background: `linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>MindSell Admin</span>
           <div style={{ display: "flex", gap: 4, marginLeft: 8, overflowX: "auto", maxWidth: "60vw" }}>
             {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["chat", "💬 Messaggi"]].map(([id, label]) => (
@@ -1465,7 +1461,7 @@ function StudentPortal({ userData }) {
       <aside className="ms-sidebar" style={{ width:248, background:C.surface, borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column", justifyContent:"space-between", padding:"24px 0", position:"sticky", top:0, height:"100vh" }}>
         <div>
           <div style={{ display:"flex", alignItems:"center", gap:10, padding:"0 20px 24px", borderBottom:`1px solid ${C.border}` }}>
-            <img src="/logo_MindSell_definitivo_senza_sfondo.png" alt="" style={{ height:36, objectFit:"contain" }} onError={e=>e.target.style.display="none"} />
+            <img src="/logo_mindsell.png" alt="" style={{ height:36, objectFit:"contain" }} onError={e=>e.target.style.display="none"} />
             <div>
               <div style={{ fontWeight:800, fontSize:17, background:`linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>MindSell</div>
               <div style={{ fontSize:10, color:C.muted }}>Academy</div>
