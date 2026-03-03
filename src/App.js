@@ -168,7 +168,17 @@ function LoginPage() {
 // ═══════════════════════════════════════════════════════════════
 function AdminPanel({ adminUser }) {
   const [section, setSection] = useState("studenti");
+  const [unreadChats, setUnreadChats] = useState(0);
   const [view, setView] = useState("lista");
+
+  // Conta chat con messaggi non letti
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "chat"), snap => {
+      const count = snap.docs.filter(d => d.data().hasUnread === true).length;
+      setUnreadChats(count);
+    });
+    return unsub;
+  }, []);
   const [studenti, setStudenti] = useState([]);
   const [libreria, setLibreria] = useState([]);
   const [offerteGlobali, setOfferteGlobali] = useState([]);
@@ -347,8 +357,8 @@ function AdminPanel({ adminUser }) {
           <span style={{ fontWeight: 800, fontSize: 18, background: `linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>MindSell Admin</span>
           <div style={{ display: "flex", gap: 4, marginLeft: 8, overflowX: "auto", maxWidth: "60vw" }}>
             {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["chat", "💬 Messaggi"]].map(([id, label]) => (
-              <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit" }}
-                onClick={() => { setSection(id); setView("lista"); }}>{label}</button>
+              <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit", position: "relative" }}
+                onClick={() => { setSection(id); setView("lista"); }}>{id === "chat" && unreadChats > 0 ? <span style={{ position:"relative" }}>{label}<span style={{ position:"absolute", top:-8, right:-14, background:"#FF4444", color:"#fff", borderRadius:"50%", width:16, height:16, fontSize:10, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{unreadChats}</span></span> : label}</button>
             ))}
           </div>
           {view === "dettaglio" && section === "studenti" && (
