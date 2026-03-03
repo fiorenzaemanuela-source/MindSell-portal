@@ -1279,6 +1279,8 @@ function StudentPortal({ userData }) {
   const [activeRec, setActiveRec] = useState(null);
   const [bookForm, setBookForm] = useState({ date: "", time: "", note: "" });
   const [expandedModulo, setExpandedModulo] = useState(null);
+  const [modalAcquisto, setModalAcquisto] = useState(false);
+  const [localData, setLocalData] = useState(null);
   const [studentToast, setStudentToast] = useState("");
   const [noteModal, setNoteModal] = useState(null); // { mIdx, vIdx, v }
   const [noteText, setNoteText] = useState("");
@@ -1339,7 +1341,9 @@ function StudentPortal({ userData }) {
     w.print();
   };
 
-  const data = userData || {};
+  const data = localData || userData || {};
+  // Sync localData when userData changes from parent
+  React.useEffect(() => { if (userData) setLocalData(userData); }, [userData]);
 
   // Segna video come completato al 100% su Firestore
   const markVideoComplete = async (videoUrl) => {
@@ -1367,6 +1371,18 @@ function StudentPortal({ userData }) {
         await setDoc(ref, { ...studentData, moduli });
         await inviaNotifica(uid, { emoji:"🎉", titolo:"Lezione completata!", testo:"Ottimo lavoro! Hai completato una lezione del tuo percorso." });
         setActiveVideo(prev => prev ? { ...prev, progress: 100 } : null);
+        setLocalData(prev => {
+          if (!prev) return prev;
+          const moduli = (prev.moduli || []).map(m => ({
+            ...m,
+            videolezioni: (m.videolezioni || []).map(v => {
+              const vUrl = (v.url || '').split('?')[0];
+              const targetUrl = (videoUrl || '').split('?')[0];
+              return vUrl === targetUrl ? { ...v, progress: 100 } : v;
+            })
+          }));
+          return { ...prev, moduli };
+        });
         showToast('✅ Lezione completata!');
       }
     } catch(e) { console.error('Errore salvataggio progresso:', e); }
