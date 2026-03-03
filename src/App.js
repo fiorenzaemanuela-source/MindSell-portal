@@ -730,42 +730,6 @@ function AdminPanel({ adminUser }) {
           </Modal>
         )}
 
-        {modalAcquisto && (
-          <Modal onClose={()=>setModalAcquisto(false)} title="💳 Acquista sessioni">
-            <p style={{ color:C.muted, fontSize:13, marginBottom:16 }}>Scegli il tipo di sessione e procedi con il bonifico. Dopo il pagamento avvisa il coach via chat.</p>
-            {[
-              { tipo:"📚 Aula Didattica", prezzo:"59€", desc:"1 sessione di formazione in gruppo" },
-              { tipo:"🎯 One to One", prezzo:"149€", desc:"1 sessione individuale con il coach" },
-              { tipo:"🎭 Roleplay", prezzo:"149€", desc:"1 sessione di simulazione pratica" },
-            ].map((s,i)=>(
-              <div key={i} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <div>
-                    <div style={{ fontWeight:700, fontSize:15 }}>{s.tipo}</div>
-                    <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{s.desc}</div>
-                  </div>
-                  <div style={{ fontWeight:800, fontSize:22, color:C.green }}>{s.prezzo}</div>
-                </div>
-              </div>
-            ))}
-            <div style={{ background:C.purpleDim, border:`1px solid ${C.purple}44`, borderRadius:12, padding:"16px", marginTop:8 }}>
-              <div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>🏦 Dati per il bonifico</div>
-              {[
-                ["Intestatario","Angelo Fiorenza"],
-                ["IBAN","LT153250039188228137"],
-                ["BIC","CHASDEFX"],
-                ["Causale",`Sessioni ${data?.name||""}`],
-              ].map(([k,v])=>(
-                <div key={k} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:`1px solid ${C.border}44` }}>
-                  <span style={{ fontSize:12, color:C.muted }}>{k}</span>
-                  <span style={{ fontSize:13, fontWeight:700, fontFamily:"monospace", color:C.text, userSelect:"all", cursor:"text" }}>{v}</span>
-                </div>
-              ))}
-            </div>
-            <p style={{ fontSize:12, color:C.muted, marginTop:12, textAlign:"center" }}>Dopo il pagamento invia la ricevuta via chat 💬</p>
-          </Modal>
-        )}
-
         {/* REGISTRAZIONI */}
             {adminTab === "registrazioni" && (
               <div>
@@ -1289,8 +1253,10 @@ function StudentPortal({ userData }) {
 
   const showToast = (msg) => { setStudentToast(msg); setTimeout(() => setStudentToast(""), 3000); };
 
-  // Sync localData when userData changes from parent
-  useEffect(() => { if (userData) setLocalData(userData); }, [userData]);
+  // Sync localData when userData changes from parent - also init on first render
+  useEffect(() => { if (userData) setLocalData(ud => ud || userData); }, [userData]);
+  // Initialize immediately on first render
+  if (!localData && userData) { setTimeout(() => setLocalData(userData), 0); }
 
   const getNota = (mIdx, vIdx) => {
     return localNote?.[mIdx + "_" + vIdx] || null;
@@ -1372,8 +1338,9 @@ function StudentPortal({ userData }) {
         await inviaNotifica(uid, { emoji:"🎉", titolo:"Lezione completata!", testo:"Ottimo lavoro! Hai completato una lezione del tuo percorso." });
         setActiveVideo(prev => prev ? { ...prev, progress: 100 } : null);
         setLocalData(prev => {
-          if (!prev) return prev;
-          const moduli = (prev.moduli || []).map(m => ({
+          const base = prev || studentData;
+          if (!base) return prev;
+          const moduli = (base.moduli || []).map(m => ({
             ...m,
             videolezioni: (m.videolezioni || []).map(v => {
               const vUrl = (v.url || '').split('?')[0];
@@ -1381,7 +1348,7 @@ function StudentPortal({ userData }) {
               return vUrl === targetUrl ? { ...v, progress: 100 } : v;
             })
           }));
-          return { ...prev, moduli };
+          return { ...base, moduli };
         });
         showToast('✅ Lezione completata!');
       }
@@ -1559,6 +1526,42 @@ function StudentPortal({ userData }) {
             </div>
           }
           </div>
+        )}
+
+        {modalAcquisto && (
+          <Modal onClose={()=>setModalAcquisto(false)} title="💳 Acquista sessioni">
+            <p style={{ color:C.muted, fontSize:13, marginBottom:16 }}>Scegli il tipo di sessione e procedi con il bonifico. Dopo il pagamento avvisa il coach via chat.</p>
+            {[
+              { tipo:"📚 Aula Didattica", prezzo:"59€", desc:"1 sessione di formazione in gruppo" },
+              { tipo:"🎯 One to One", prezzo:"149€", desc:"1 sessione individuale con il coach" },
+              { tipo:"🎭 Roleplay", prezzo:"149€", desc:"1 sessione di simulazione pratica" },
+            ].map((s,i)=>(
+              <div key={i} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:15 }}>{s.tipo}</div>
+                    <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{s.desc}</div>
+                  </div>
+                  <div style={{ fontWeight:800, fontSize:22, color:C.green }}>{s.prezzo}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{ background:C.purpleDim, border:`1px solid ${C.purple}44`, borderRadius:12, padding:"16px", marginTop:8 }}>
+              <div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>🏦 Dati per il bonifico</div>
+              {[
+                ["Intestatario","Angelo Fiorenza"],
+                ["IBAN","LT153250039188228137"],
+                ["BIC","CHASDEFX"],
+                ["Causale",`Sessioni ${data?.name||""}`],
+              ].map(([k,v])=>(
+                <div key={k} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:`1px solid ${C.border}44` }}>
+                  <span style={{ fontSize:12, color:C.muted }}>{k}</span>
+                  <span style={{ fontSize:13, fontWeight:700, fontFamily:"monospace", color:C.text, userSelect:"all", cursor:"text" }}>{v}</span>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize:12, color:C.muted, marginTop:12, textAlign:"center" }}>Dopo il pagamento invia la ricevuta via chat 💬</p>
+          </Modal>
         )}
 
         {/* REGISTRAZIONI */}
