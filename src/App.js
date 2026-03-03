@@ -1585,10 +1585,14 @@ function StudentPortal({ userData }) {
                   </div>
                 );
               })}
-              <div style={{ background:C.card, border:`2px dashed ${C.border}`, borderRadius:16, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:180, cursor:"pointer" }} onClick={()=>setModalAcquisto(true)}>
-                <span style={{ fontSize:34, marginBottom:4 }}>💳</span>
-                <span style={{ fontWeight:700, fontSize:14, color:C.text }}>Acquista sessioni</span>
-                <span style={{ fontSize:12, color:C.muted, marginTop:4, textAlign:"center", padding:"0 8px" }}>Aule · Roleplay · One to One</span>
+              <div style={{ background:C.card, border:`1px solid ${C.green}44`, borderRadius:16, display:"flex", flexDirection:"column", alignItems:"flex-start", justifyContent:"space-between", minHeight:180, cursor:"pointer", padding:"24px 22px" }} onClick={()=>setModalAcquisto(true)}>
+                <div style={{ fontSize:34, marginBottom:10 }}>➕</div>
+                <div style={{ fontSize:12, color:C.muted, marginBottom:4 }}>Aggiungi sessioni</div>
+                <div style={{ fontWeight:800, fontSize:22, color:C.green, lineHeight:1 }}>Acquista <span style={{ fontSize:13, color:C.muted, fontWeight:400 }}>ora</span></div>
+                <div style={{ display:"flex", gap:6, margin:"14px 0 8px" }}>
+                  {[1,2,3].map(i=><div key={i} style={{ flex:1, height:6, borderRadius:4, background:C.green+"44", maxWidth:40 }}/>)}
+                </div>
+                <p style={{ fontSize:12, color:C.muted, margin:0 }}>Aule · One to One · Roleplay</p>
               </div>
             </div>
           }
