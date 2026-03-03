@@ -1275,7 +1275,6 @@ function StudentPortal({ userData }) {
   const [activeVideo, setActiveVideo] = useState(null);
   const [bookPkg, setBookPkg] = useState(null);
   const [bookConfirmed, setBookConfirmed] = useState(false);
-  const [modalAcquisto, setModalAcquisto] = useState(false);
   const [activeRec, setActiveRec] = useState(null);
   const [bookForm, setBookForm] = useState({ date: "", time: "", note: "" });
   const [expandedModulo, setExpandedModulo] = useState(null);
