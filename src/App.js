@@ -730,6 +730,42 @@ function AdminPanel({ adminUser }) {
           </Modal>
         )}
 
+        {modalAcquisto && (
+          <Modal onClose={()=>setModalAcquisto(false)} title="💳 Acquista sessioni">
+            <p style={{ color:C.muted, fontSize:13, marginBottom:16 }}>Scegli il tipo di sessione e procedi con il bonifico. Dopo il pagamento avvisa il coach via chat.</p>
+            {[
+              { tipo:"📚 Aula Didattica", prezzo:"59€", desc:"1 sessione di formazione in gruppo" },
+              { tipo:"🎯 One to One", prezzo:"149€", desc:"1 sessione individuale con il coach" },
+              { tipo:"🎭 Roleplay", prezzo:"149€", desc:"1 sessione di simulazione pratica" },
+            ].map((s,i)=>(
+              <div key={i} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:15 }}>{s.tipo}</div>
+                    <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{s.desc}</div>
+                  </div>
+                  <div style={{ fontWeight:800, fontSize:22, color:C.green }}>{s.prezzo}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{ background:C.purpleDim, border:`1px solid ${C.purple}44`, borderRadius:12, padding:"16px", marginTop:8 }}>
+              <div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>🏦 Dati per il bonifico</div>
+              {[
+                ["Intestatario","Angelo Fiorenza"],
+                ["IBAN","LT153250039188228137"],
+                ["BIC","CHASDEFX"],
+                ["Causale",`Sessioni ${data?.name||""}`],
+              ].map(([k,v])=>(
+                <div key={k} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:`1px solid ${C.border}44` }}>
+                  <span style={{ fontSize:12, color:C.muted }}>{k}</span>
+                  <span style={{ fontSize:13, fontWeight:700, fontFamily:"monospace", color:C.text, userSelect:"all", cursor:"text" }}>{v}</span>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize:12, color:C.muted, marginTop:12, textAlign:"center" }}>Dopo il pagamento invia la ricevuta via chat 💬</p>
+          </Modal>
+        )}
+
         {/* REGISTRAZIONI */}
             {adminTab === "registrazioni" && (
               <div>
@@ -1239,6 +1275,7 @@ function StudentPortal({ userData }) {
   const [activeVideo, setActiveVideo] = useState(null);
   const [bookPkg, setBookPkg] = useState(null);
   const [bookConfirmed, setBookConfirmed] = useState(false);
+  const [modalAcquisto, setModalAcquisto] = useState(false);
   const [activeRec, setActiveRec] = useState(null);
   const [bookForm, setBookForm] = useState({ date: "", time: "", note: "" });
   const [expandedModulo, setExpandedModulo] = useState(null);
@@ -1499,8 +1536,9 @@ function StudentPortal({ userData }) {
                 );
               })}
               <div style={{ background:C.card, border:`2px dashed ${C.border}`, borderRadius:16, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:180, cursor:"pointer" }} onClick={()=>setModalAcquisto(true)}>
-                <span style={{ fontSize:30, color:C.muted }}>＋</span>
-                <p style={{ color:C.muted, fontSize:13, margin:8 }}>Acquista sessioni</p>
+                <span style={{ fontSize:34, marginBottom:4 }}>💳</span>
+                <span style={{ fontWeight:700, fontSize:14, color:C.text }}>Acquista sessioni</span>
+                <span style={{ fontSize:12, color:C.muted, marginTop:4, textAlign:"center", padding:"0 8px" }}>Aule · Roleplay · One to One</span>
               </div>
             </div>
           }
