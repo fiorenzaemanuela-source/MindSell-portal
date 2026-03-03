@@ -1022,6 +1022,73 @@ function RichiesteOfferte() {
 // ═══════════════════════════════════════════════════════════════
 // SESSIONI CALENDARIO COMPONENT
 // ═══════════════════════════════════════════════════════════════
+function ModalAcquisto({ studentName, onClose }) {
+  const prezzi = { aula: 59, onetoone: 149, roleplay: 149 };
+  const tipi = [
+    { key:"aula", label:"📚 Aula Didattica", desc:"Sessione di formazione in gruppo" },
+    { key:"onetoone", label:"🎯 One to One", desc:"Sessione individuale con il coach" },
+    { key:"roleplay", label:"🎭 Roleplay", desc:"Sessione di simulazione pratica" },
+  ];
+  const [step, setStep] = useState(1);
+  const [sel, setSel] = useState({});
+  const totale = Object.entries(sel).reduce((sum,[k,q])=>sum+(prezzi[k]||0)*q,0);
+  const riepilogo = Object.entries(sel).filter(([,q])=>q>0).map(([k,q])=>`${q} ${tipi.find(t=>t.key===k)?.label||k}`).join(', ');
+  const cognome = (studentName||'').split(' ').slice(-1)[0];
+  const causale = `${riepilogo} - ${cognome}`;
+  return (
+    <Modal onClose={onClose} title="💳 Acquista sessioni">
+      {step===1 && (<>
+        <p style={{ color:C.muted, fontSize:13, marginBottom:16 }}>Scegli il tipo e il numero di sessioni.</p>
+        {tipi.map(s=>(
+          <div key={s.key} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <div>
+                <div style={{ fontWeight:700, fontSize:15 }}>{s.label}</div>
+                <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{s.desc} — <strong style={{color:C.green}}>{prezzi[s.key]}€/sessione</strong></div>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <button onClick={()=>setSel(p=>({...p,[s.key]:Math.max(0,(p[s.key]||0)-1)}))} style={{ background:C.surface, border:`1px solid ${C.border}`, color:C.text, borderRadius:6, width:32, height:32, cursor:"pointer", fontSize:18, fontFamily:"inherit" }}>−</button>
+                <span style={{ fontWeight:800, fontSize:18, minWidth:24, textAlign:"center" }}>{sel[s.key]||0}</span>
+                <button onClick={()=>setSel(p=>({...p,[s.key]:(p[s.key]||0)+1}))} style={{ background:C.green+"22", border:`1px solid ${C.green}55`, color:C.green, borderRadius:6, width:32, height:32, cursor:"pointer", fontSize:18, fontFamily:"inherit" }}>+</button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {totale>0 && (
+          <div style={{ marginTop:8 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <span style={{ color:C.muted, fontSize:13 }}>Totale</span>
+              <span style={{ fontWeight:800, fontSize:26, color:C.green }}>{totale}€</span>
+            </div>
+            <button style={{ width:"100%", background:C.green, border:"none", color:"#000", borderRadius:10, padding:"13px 0", fontWeight:800, fontSize:15, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>setStep(2)}>Procedi al pagamento →</button>
+          </div>
+        )}
+      </>)}
+      {step===2 && (<>
+        <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", marginBottom:16 }}>
+          <div style={{ fontSize:12, color:C.muted, marginBottom:4 }}>Riepilogo ordine</div>
+          <div style={{ fontWeight:700, fontSize:14 }}>{riepilogo}</div>
+          <div style={{ fontWeight:800, fontSize:30, color:C.green, marginTop:4 }}>{totale}€</div>
+        </div>
+        <div style={{ background:C.purpleDim, border:`1px solid ${C.purple}44`, borderRadius:12, padding:"16px", marginBottom:16 }}>
+          <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>🏦 Dati per il bonifico</div>
+          {[["Intestatario","Angelo Fiorenza"],["IBAN","LT153250039188228137"],["BIC","CHASDEFX"],["Importo",totale+"€"],["Causale",causale]].map(([k,v])=>(
+            <div key={k} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 0", borderBottom:`1px solid ${C.border}33` }}>
+              <span style={{ fontSize:12, color:C.muted, flexShrink:0 }}>{k}</span>
+              <span style={{ fontSize:13, fontWeight:700, fontFamily:"monospace", color:C.text, userSelect:"all", cursor:"text", textAlign:"right", marginLeft:12 }}>{v}</span>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize:13, color:C.muted, textAlign:"center", lineHeight:1.6, margin:"0 0 10px" }}>
+          Dopo il pagamento invia la ricevuta su WhatsApp al numero<br/>
+          <a href="https://wa.me/393513238711" target="_blank" rel="noreferrer" style={{ color:C.green, fontWeight:700, textDecoration:"none" }}>📱 351 323 8711</a>
+        </p>
+        <button style={{ background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:8, padding:"8px 16px", cursor:"pointer", fontSize:12, fontFamily:"inherit" }} onClick={()=>setStep(1)}>← Modifica selezione</button>
+      </>)}
+    </Modal>
+  );
+}
+
 function SessioniCalendario({ email, uid, packages = [], onPackagesUpdated }) {
   const [eventi, setEventi] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1528,77 +1595,7 @@ function StudentPortal({ userData }) {
           </div>
         )}
 
-        {modalAcquisto && (() => {
-          const prezzi = { aula: 59, onetoone: 149, roleplay: 149 };
-          const tipi = [
-            { key:"aula", label:"📚 Aula Didattica", desc:"Sessione di formazione in gruppo" },
-            { key:"onetoone", label:"🎯 One to One", desc:"Sessione individuale con il coach" },
-            { key:"roleplay", label:"🎭 Roleplay", desc:"Sessione di simulazione pratica" },
-          ];
-          const [acquStep, setAcquStep] = React.useState(1);
-          const [acquSel, setAcquSel] = React.useState({});
-          const totale = Object.entries(acquSel).reduce((sum,[k,q])=>sum+(prezzi[k]||0)*q,0);
-          const riepilogo = Object.entries(acquSel).filter(([,q])=>q>0).map(([k,q])=>`${q} ${tipi.find(t=>t.key===k)?.label||k}`).join(', ');
-          const causale = `${riepilogo} - ${(data?.name||'').split(' ').slice(-1)[0]}`;
-          return (
-            <Modal onClose={()=>{setModalAcquisto(false);setAcquStep(1);setAcquSel({});}} title="💳 Acquista sessioni">
-              {acquStep===1 && (<>
-                <p style={{ color:C.muted, fontSize:13, marginBottom:16 }}>Scegli il tipo e il numero di sessioni.</p>
-                {tipi.map(s=>(
-                  <div key={s.key} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                      <div>
-                        <div style={{ fontWeight:700, fontSize:15 }}>{s.label}</div>
-                        <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{s.desc} — <strong style={{color:C.green}}>{prezzi[s.key]}€/sessione</strong></div>
-                      </div>
-                      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                        <button onClick={()=>setAcquSel(p=>({...p,[s.key]:Math.max(0,(p[s.key]||0)-1)}))} style={{ background:C.surface, border:`1px solid ${C.border}`, color:C.text, borderRadius:6, width:30, height:30, cursor:"pointer", fontSize:16, fontFamily:"inherit" }}>−</button>
-                        <span style={{ fontWeight:800, fontSize:18, minWidth:20, textAlign:"center" }}>{acquSel[s.key]||0}</span>
-                        <button onClick={()=>setAcquSel(p=>({...p,[s.key]:(p[s.key]||0)+1}))} style={{ background:C.green+"22", border:`1px solid ${C.green}55`, color:C.green, borderRadius:6, width:30, height:30, cursor:"pointer", fontSize:16, fontFamily:"inherit" }}>+</button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {totale>0 && (
-                  <div style={{ marginTop:8 }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-                      <span style={{ color:C.muted, fontSize:13 }}>Totale</span>
-                      <span style={{ fontWeight:800, fontSize:24, color:C.green }}>{totale}€</span>
-                    </div>
-                    <button style={{ width:"100%", background:C.green, border:"none", color:"#000", borderRadius:10, padding:"12px 0", fontWeight:800, fontSize:15, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>setAcquStep(2)}>Procedi al pagamento →</button>
-                  </div>
-                )}
-              </>)}
-              {acquStep===2 && (<>
-                <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", marginBottom:16 }}>
-                  <div style={{ fontSize:13, color:C.muted, marginBottom:4 }}>Riepilogo ordine</div>
-                  <div style={{ fontWeight:700, fontSize:14 }}>{riepilogo}</div>
-                  <div style={{ fontWeight:800, fontSize:28, color:C.green, marginTop:4 }}>{totale}€</div>
-                </div>
-                <div style={{ background:C.purpleDim, border:`1px solid ${C.purple}44`, borderRadius:12, padding:"16px", marginBottom:16 }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>🏦 Dati per il bonifico</div>
-                  {[
-                    ["Intestatario","Angelo Fiorenza"],
-                    ["IBAN","LT153250039188228137"],
-                    ["BIC","CHASDEFX"],
-                    ["Importo",totale+"€"],
-                    ["Causale",causale],
-                  ].map(([k,v])=>(
-                    <div key={k} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 0", borderBottom:`1px solid ${C.border}33` }}>
-                      <span style={{ fontSize:12, color:C.muted, flexShrink:0 }}>{k}</span>
-                      <span style={{ fontSize:13, fontWeight:700, fontFamily:"monospace", color:C.text, userSelect:"all", cursor:"text", textAlign:"right", marginLeft:12 }}>{v}</span>
-                    </div>
-                  ))}
-                </div>
-                <p style={{ fontSize:13, color:C.muted, textAlign:"center", lineHeight:1.5 }}>
-                  Dopo il pagamento invia la ricevuta su WhatsApp al numero<br/>
-                  <a href="https://wa.me/393513238711" target="_blank" rel="noreferrer" style={{ color:C.green, fontWeight:700, textDecoration:"none" }}>📱 351 323 8711</a>
-                </p>
-                <button style={{ marginTop:8, background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:8, padding:"8px 16px", cursor:"pointer", fontSize:12, fontFamily:"inherit" }} onClick={()=>setAcquStep(1)}>← Modifica selezione</button>
-              </>)}
-            </Modal>
-          );
-        })()}
+        {modalAcquisto && <ModalAcquisto studentName={data?.name||""} onClose={()=>setModalAcquisto(false)} />}
 
         {/* REGISTRAZIONI */}
         {tab==="registrazioni"&&(
