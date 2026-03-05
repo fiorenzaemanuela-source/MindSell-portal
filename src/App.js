@@ -1098,88 +1098,132 @@ function ModalAcquisto({ studentName, onClose }) {
 
 function BachecaStudente({ uid, studentName }) {
   const [annunci, setAnnunci] = useState([]);
-  const [domande, setDomande] = useState([]);
-  const [nuovaDomanda, setNuovaDomanda] = useState("");
+  const [thread, setThread] = useState([]);
+  const [testo, setTesto] = useState("");
+  const [file, setFile] = useState(null);
   const [invio, setInvio] = useState(false);
+  const bottomRef = useRef(null);
 
   useEffect(() => {
     const u1 = onSnapshot(query(collection(db, "annunci"), orderBy("ts", "desc")), snap => {
       setAnnunci(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
-    const u2 = onSnapshot(query(collection(db, "domande"), orderBy("ts", "desc")), snap => {
-      setDomande(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const u2 = onSnapshot(query(collection(db, "domande"), orderBy("ts", "asc")), snap => {
+      setThread(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
     return () => { u1(); u2(); };
   }, []);
 
-  const inviaDomanda = async () => {
-    if (!nuovaDomanda.trim()) return;
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [thread]);
+
+  const invia = async () => {
+    if (!testo.trim() && !file) return;
     setInvio(true);
+    let fileUrl = null, fileName = null;
+    if (file) {
+      // Upload su Firebase Storage
+      try {
+        const { getStorage, ref: storageRef, uploadBytes, getDownloadURL } = await import('firebase/storage');
+        const storage = getStorage();
+        const ref = storageRef(storage, `bacheca/${Date.now()}_${file.name}`);
+        await uploadBytes(ref, file);
+        fileUrl = await getDownloadURL(ref);
+        fileName = file.name;
+      } catch(e) { console.error('Upload failed:', e); }
+    }
     await addDoc(collection(db, "domande"), {
-      testo: nuovaDomanda.trim(),
-      studentName, studentUid: uid,
-      ts: serverTimestamp(), risposta: null
+      testo: testo.trim(), fileUrl, fileName,
+      studentName, studentUid: uid, isCoach: false,
+      ts: serverTimestamp()
     });
-    setNuovaDomanda("");
-    setInvio(false);
+    setTesto(""); setFile(null); setInvio(false);
   };
 
-  return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 4px" }}>
-      {/* ANNUNCI */}
-      <h3 style={{ fontSize: 16, fontWeight: 800, margin: "0 0 16px", color: C.text }}>📢 Annunci</h3>
-      {annunci.length === 0 && <div style={{ background: C.card, borderRadius: 12, padding: "20px", color: C.muted, fontSize: 13, marginBottom: 28 }}>Nessun annuncio al momento.</div>}
-      {annunci.map(a => (
-        <div key={a.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "18px 20px", marginBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <span style={{ fontSize: 22 }}>{a.emoji || "📣"}</span>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 15 }}>{a.titolo}</div>
-              <div style={{ fontSize: 11, color: C.muted }}>{a.ts?.toDate?.()?.toLocaleDateString("it-IT") || ""}</div>
-            </div>
-          </div>
-          <p style={{ color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }}>{a.testo}</p>
-        </div>
-      ))}
+  const isCoachMsg = (msg) => msg.isCoach === true;
 
-      {/* Q&A */}
-      <h3 style={{ fontSize: 16, fontWeight: 800, margin: "28px 0 16px", color: C.text }}>❓ Domande & Risposte</h3>
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px", marginBottom: 20 }}>
-        <textarea
-          value={nuovaDomanda}
-          onChange={e => setNuovaDomanda(e.target.value)}
-          placeholder="Fai una domanda al coach... (visibile a tutti gli studenti)"
-          rows={3}
-          style={{ width: "100%", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
-        />
-        <button
-          onClick={inviaDomanda}
-          disabled={invio || !nuovaDomanda.trim()}
-          style={{ marginTop: 10, background: C.green, border: "none", color: "#000", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: invio || !nuovaDomanda.trim() ? 0.5 : 1 }}
-        >
-          {invio ? "Invio..." : "Invia domanda →"}
-        </button>
-      </div>
-      {domande.length === 0 && <div style={{ color: C.muted, fontSize: 13 }}>Nessuna domanda ancora.</div>}
-      {domande.map(d => (
-        <div key={d.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 20px", marginBottom: 10 }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: d.risposta ? 12 : 0 }}>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: C.purple + "33", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
-              {(d.studentName || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
+  return (
+    <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", height: "calc(100vh - 140px)" }}>
+      {/* ANNUNCI */}
+      {annunci.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>📢 Annunci</div>
+          {annunci.map(a => (
+            <div key={a.id} style={{ background: `${C.green}11`, border: `1px solid ${C.green}33`, borderRadius: 12, padding: "14px 18px", marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 18 }}>{a.emoji || "📣"}</span>
+                <span style={{ fontWeight: 800, fontSize: 14 }}>{a.titolo}</span>
+                <span style={{ fontSize: 11, color: C.muted, marginLeft: "auto" }}>{a.ts?.toDate?.()?.toLocaleDateString("it-IT") || ""}</span>
+              </div>
+              <p style={{ color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }}>{a.testo}</p>
             </div>
-            <div>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{d.studentName} · {d.ts?.toDate?.()?.toLocaleDateString("it-IT") || ""}</div>
-              <div style={{ fontSize: 14, color: C.text }}>{d.testo}</div>
-            </div>
-          </div>
-          {d.risposta && (
-            <div style={{ background: C.green + "11", border: `1px solid ${C.green}33`, borderRadius: 10, padding: "12px 14px", marginTop: 10 }}>
-              <div style={{ fontSize: 11, color: C.green, fontWeight: 700, marginBottom: 6 }}>💬 Risposta del Coach</div>
-              <div style={{ fontSize: 13, color: C.text }}>{d.risposta}</div>
-            </div>
-          )}
+          ))}
         </div>
-      ))}
+      )}
+
+      {/* THREAD Q&A stile Discord */}
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>❓ Domande & Risposte</div>
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, paddingRight: 4 }}>
+        {thread.length === 0 && (
+          <div style={{ color: C.muted, fontSize: 13, textAlign: "center", marginTop: 40 }}>Nessun messaggio ancora. Fai la prima domanda! 👇</div>
+        )}
+        {thread.map((msg, i) => {
+          const coach = isCoachMsg(msg);
+          const prevMsg = thread[i - 1];
+          const sameAuthor = prevMsg && isCoachMsg(prevMsg) === coach;
+          return (
+            <div key={msg.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: sameAuthor ? "2px 10px 2px 52px" : "10px 10px 2px 10px" }}>
+              {!sameAuthor && (
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: coach ? C.green + "33" : C.purple + "33", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, flexShrink: 0, color: coach ? C.green : C.purple }}>
+                  {coach ? "🎓" : (msg.studentName || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <div style={{ flex: 1 }}>
+                {!sameAuthor && (
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: coach ? C.green : C.text }}>{coach ? "Coach" : msg.studentName}</span>
+                    <span style={{ fontSize: 11, color: C.muted }}>{msg.ts?.toDate?.()?.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} {msg.ts?.toDate?.()?.toLocaleDateString("it-IT")}</span>
+                  </div>
+                )}
+                {msg.testo && <div style={{ fontSize: 14, color: C.text, lineHeight: 1.5 }}>{msg.testo}</div>}
+                {msg.fileUrl && (
+                  <a href={msg.fileUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 6, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", color: C.text, textDecoration: "none", fontSize: 13 }}>
+                    📎 {msg.fileName || "Allegato"}
+                  </a>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* INPUT */}
+      <div style={{ marginTop: 12, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 14px" }}>
+        {file && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, background: C.surface, borderRadius: 8, padding: "6px 10px" }}>
+            <span style={{ fontSize: 13 }}>📎 {file.name}</span>
+            <button onClick={() => setFile(null)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16, marginLeft: "auto" }}>✕</button>
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <label style={{ cursor: "pointer", color: C.muted, fontSize: 20, flexShrink: 0, paddingBottom: 2 }}>
+            📎
+            <input type="file" style={{ display: "none" }} onChange={e => setFile(e.target.files[0])} />
+          </label>
+          <textarea
+            value={testo}
+            onChange={e => setTesto(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); invia(); } }}
+            placeholder="Scrivi una domanda... (Invio per inviare)"
+            rows={1}
+            style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: 14, fontFamily: "inherit", resize: "none", lineHeight: 1.5 }}
+          />
+          <button onClick={invia} disabled={invio || (!testo.trim() && !file)}
+            style={{ background: C.green, border: "none", color: "#000", borderRadius: 8, padding: "7px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", opacity: invio ? 0.5 : 1, flexShrink: 0 }}>
+            {invio ? "..." : "→"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1697,7 +1741,6 @@ function StudentPortal({ userData }) {
 
         {tab==="bacheca" && <BachecaStudente uid={uid} studentName={data?.name||""} />}
 
-        {tab==="bacheca" && <BachecaStudente uid={uid} studentName={data?.name||""} />}
 
         {/* REGISTRAZIONI */}
         {tab==="registrazioni"&&(
