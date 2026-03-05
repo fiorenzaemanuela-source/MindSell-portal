@@ -1133,7 +1133,7 @@ function MaterialiStudente({ uid, moduli }) {
             {m.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{m.descrizione}</div>}
             <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>📎 {m.fileName}</div>
           </div>
-          <div style={{ color: C.green, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>⬇ Scarica</div>
+          <div style={{ color: C.green, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{m.isLink ? "🔗 Apri" : "⬇ Scarica"}</div>
         </a>
       ))}
     </div>
@@ -1147,6 +1147,7 @@ function BachecaStudente({ uid, studentName }) {
   const [file, setFile] = useState(null);
   const [invio, setInvio] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
+  const [linkUrl, setLinkUrl] = useState("");
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -1178,11 +1179,12 @@ function BachecaStudente({ uid, studentName }) {
     }
     await addDoc(collection(db, "domande"), {
       testo: testo.trim(), fileUrl, fileName,
+      linkUrl: linkUrl || null,
       studentName, studentUid: uid, isCoach: false,
       replyTo: replyTo ? { id: replyTo.id, testo: replyTo.testo, autore: replyTo.isCoach ? "Coach" : replyTo.studentName } : null,
       ts: serverTimestamp()
     });
-    setTesto(""); setFile(null); setReplyTo(null); setInvio(false);
+    setTesto(""); setFile(null); setReplyTo(null); setLinkUrl(""); setInvio(false);
   };
 
   const isCoachMsg = (msg) => msg.isCoach === true;
@@ -1241,6 +1243,11 @@ function BachecaStudente({ uid, studentName }) {
                     📎 {msg.fileName || "Allegato"}
                   </a>
                 )}
+                {msg.linkUrl && (
+                  <a href={msg.linkUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 6, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", color: C.blue, textDecoration: "none", fontSize: 13 }}>
+                    🔗 {msg.linkUrl.length > 50 ? msg.linkUrl.slice(0,50)+"..." : msg.linkUrl}
+                  </a>
+                )}
                 <button onClick={() => setReplyTo(msg)} style={{ background: "none", border: "none", color: C.muted, fontSize: 11, cursor: "pointer", marginTop: 3, padding: "2px 6px", borderRadius: 4, fontFamily: "inherit", opacity: 0.7 }}>↩ Rispondi</button>
               </div>
             </div>
@@ -1251,6 +1258,12 @@ function BachecaStudente({ uid, studentName }) {
 
       {/* INPUT */}
       <div style={{ marginTop: 12, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 14px" }}>
+        {linkUrl && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, background: C.surface, borderRadius: 8, padding: "6px 10px", borderLeft: `3px solid ${C.blue}` }}>
+            <span style={{ fontSize: 12, color: C.muted, flex: 1 }}>🔗 {linkUrl.slice(0,60)}{linkUrl.length>60?"...":""}</span>
+            <button onClick={() => setLinkUrl("")} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16 }}>✕</button>
+          </div>
+        )}
         {replyTo && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, background: C.surface, borderRadius: 8, padding: "6px 10px", borderLeft: `3px solid ${C.green}` }}>
             <span style={{ fontSize: 12, color: C.muted, flex: 1 }}>↩ <strong>{replyTo.isCoach ? "Coach" : replyTo.studentName}</strong>: {replyTo.testo?.slice(0,60)}{replyTo.testo?.length>60?"...":""}</span>
@@ -1268,6 +1281,7 @@ function BachecaStudente({ uid, studentName }) {
             📎
             <input type="file" style={{ display: "none" }} onChange={e => setFile(e.target.files[0])} />
           </label>
+          <button onClick={() => { const url = prompt("Incolla un link (YouTube, Drive, sito...):"); if(url?.trim()) setLinkUrl(url.trim()); }} style={{ background: "none", border: "none", color: C.muted, fontSize: 20, cursor: "pointer", flexShrink: 0, paddingBottom: 2 }}>🔗</button>
           <textarea
             value={testo}
             onChange={e => setTesto(e.target.value)}
@@ -2192,6 +2206,9 @@ function AdminMateriali() {
             </select>
           )}
         </div>
+        <input value={form.url || ""} onChange={e => setForm(p => ({ ...p, url: e.target.value }))}
+          placeholder="Oppure incolla un link (YouTube, Drive, sito...)"
+          style={{ width: "100%", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", marginBottom: 10, boxSizing: "border-box" }} />
         {uploading ? (
           <div style={{ background: C.surface, borderRadius: 8, padding: "12px", marginTop: 4 }}>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Caricamento in corso... {progress}%</div>
@@ -2204,6 +2221,19 @@ function AdminMateriali() {
             📎 Scegli file e carica
             <input type="file" style={{ display: "none" }} onChange={e => uploadFile(e.target.files[0])} />
           </label>
+          {form.url?.trim() && (
+            <button onClick={async () => {
+              if (!form.titolo.trim()) { alert("Inserisci un titolo"); return; }
+              await addDoc(collection(db, "materiali"), {
+                titolo: form.titolo.trim(), descrizione: form.descrizione.trim(), emoji: form.emoji,
+                tipo: form.tipo, studenteUid: form.tipo === "studente" ? form.studenteUid : null,
+                moduloId: form.tipo === "modulo" ? form.moduloId : null,
+                fileUrl: form.url.trim(), fileName: null, storagePath: null, isLink: true,
+                ts: serverTimestamp()
+              });
+              setForm({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "🔗", url: "" });
+            }} style={{ background: C.blue, border: "none", color: "#fff", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>🔗 Salva link</button>
+          )}
         )}
       </div>
 
@@ -2217,7 +2247,7 @@ function AdminMateriali() {
             {m.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{m.descrizione}</div>}
             <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{tipoLabel(m)} · {m.fileName}</div>
           </div>
-          <a href={m.fileUrl} target="_blank" rel="noreferrer" style={{ color: C.green, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>⬇ Scarica</a>
+          <a href={m.fileUrl} target="_blank" rel="noreferrer" style={{ color: C.green, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>{m.isLink ? "🔗 Apri" : "⬇ Scarica"}</a>
           <button onClick={() => elimina(m)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 18 }}>🗑</button>
         </div>
       ))}
@@ -2258,7 +2288,7 @@ function AdminBacheca() {
   const rispondi = async (d) => {
     const r = risposte[d.id]?.trim();
     if (!r) return;
-    await setDoc(doc(db, "domande", d.id), { ...d, risposta: r, rispostaTs: serverTimestamp() });
+    await setDoc(doc(db, "domande", d.id), { ...d, risposta: r, rispostaLink: risposte[d.id+"_link"]||null, rispostaTs: serverTimestamp() });
     setRisposte(p => ({ ...p, [d.id]: "" }));
   };
 
@@ -2321,12 +2351,14 @@ function AdminBacheca() {
             <div style={{ background: C.green + "11", border: `1px solid ${C.green}33`, borderRadius: 10, padding: "10px 14px", marginTop: 12 }}>
               <div style={{ fontSize: 11, color: C.green, fontWeight: 700, marginBottom: 4 }}>✅ Risposta inviata</div>
               <div style={{ fontSize: 13 }}>{d.risposta}</div>
+              {d.rispostaLink && <a href={d.rispostaLink} target="_blank" rel="noreferrer" style={{ display:"inline-flex", alignItems:"center", gap:6, marginTop:6, color:C.blue, fontSize:13 }}>🔗 {d.rispostaLink.slice(0,50)}{d.rispostaLink.length>50?"...":""}</a>}
             </div>
           ) : (
             <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
               <input value={risposte[d.id] || ""} onChange={e => setRisposte(p => ({ ...p, [d.id]: e.target.value }))}
                 placeholder="Scrivi la risposta..."
                 style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit" }} />
+              <button onClick={() => { const url = prompt("Aggiungi un link (opzionale):"); if(url) setRisposte(p=>({...p,[d.id+"_link"]:url})); }} style={{ background: C.blue, border: "none", color: "#fff", borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>🔗</button>
               <button onClick={() => rispondi(d)} style={{ background: C.green, border: "none", color: "#000", borderRadius: 8, padding: "8px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Rispondi</button>
             </div>
           )}
