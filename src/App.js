@@ -14,6 +14,8 @@ import {
   doc, getDoc, setDoc, collection, getDocs, deleteDoc,
   addDoc, query, orderBy, onSnapshot, serverTimestamp
 } from "firebase/firestore";
+import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
+const storage = getStorage();
 
 const ADMIN_EMAIL = "emanuela@mindsell.it";
 
@@ -352,7 +354,7 @@ function AdminPanel({ adminUser }) {
           <img src="/logo_mindsell.png" alt="" style={{ height: 30, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
           <span style={{ fontWeight: 800, fontSize: 18, background: `linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>MindSell Admin</span>
           <div style={{ display: "flex", gap: 4, marginLeft: 8, overflowX: "auto", maxWidth: "60vw" }}>
-            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"]].map(([id, label]) => (
+            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"]].map(([id, label]) => (
               <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit", position: "relative" }}
                 onClick={() => { setSection(id); setView("lista"); }}>{id === "chat" && unreadChats > 0 ? <span style={{ position:"relative" }}>{label}<span style={{ position:"absolute", top:-8, right:-14, background:"#FF4444", color:"#fff", borderRadius:"50%", width:16, height:16, fontSize:10, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{unreadChats}</span></span> : label}</button>
             ))}
@@ -436,7 +438,8 @@ function AdminPanel({ adminUser }) {
             </div>
           );
         })()}
-        {section==="bacheca" && <AdminBacheca />}
+        {section==="materiali" && <AdminMateriali />}
+      {section==="bacheca" && <AdminBacheca />}
       {section === "chat" && <AdminChat />}
 
 
@@ -1093,6 +1096,47 @@ function ModalAcquisto({ studentName, onClose }) {
         <button style={{ background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:8, padding:"8px 16px", cursor:"pointer", fontSize:12, fontFamily:"inherit" }} onClick={()=>setStep(1)}>← Modifica selezione</button>
       </>)}
     </Modal>
+  );
+}
+
+function MaterialiStudente({ uid, moduli }) {
+  const [materiali, setMateriali] = useState([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(query(collection(db, "materiali"), orderBy("ts", "desc")), snap => {
+      const moduliIds = (moduli || []).map(m => m.libId);
+      const tutti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const visibili = tutti.filter(m => {
+        if (m.tipo === "generale") return true;
+        if (m.tipo === "studente" && m.studenteUid === uid) return true;
+        if (m.tipo === "modulo" && moduliIds.includes(m.moduloId)) return true;
+        return false;
+      });
+      setMateriali(visibili);
+    });
+    return unsub;
+  }, [uid, moduli]);
+
+  return (
+    <div style={{ maxWidth: 720, margin: "0 auto" }}>
+      <h3 style={{ fontSize: 16, fontWeight: 800, margin: "0 0 20px" }}>📎 Materiali</h3>
+      {materiali.length === 0 && (
+        <div style={{ background: C.card, borderRadius: 12, padding: "30px", color: C.muted, fontSize: 13, textAlign: "center" }}>
+          Nessun materiale disponibile al momento.
+        </div>
+      )}
+      {materiali.map(m => (
+        <a key={m.id} href={m.fileUrl} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 14, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: 10, textDecoration: "none", color: C.text }}>
+          <span style={{ fontSize: 28 }}>{m.emoji}</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>{m.titolo}</div>
+            {m.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{m.descrizione}</div>}
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>📎 {m.fileName}</div>
+          </div>
+          <div style={{ color: C.green, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>⬇ Scarica</div>
+        </a>
+      ))}
+    </div>
   );
 }
 
@@ -1780,20 +1824,7 @@ function StudentPortal({ userData }) {
         )}
 
         {/* MATERIALI */}
-        {tab==="materiali"&&(
-          (!data.contents||data.contents.length===0)
-            ?<EmptyState emoji="📎" text="Nessun materiale." sub="I PDF e le risorse appariranno qui."/>
-            :<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))", gap:16 }}>
-              {data.contents.map((c,i)=>(
-                <div key={i} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:14, padding:"20px 16px", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", gap:8 }}>
-                  <div style={{ fontSize:34 }}>{c.emoji||"📄"}</div>
-                  <div style={{ fontWeight:700, fontSize:14, lineHeight:1.3 }}>{c.title}</div>
-                  <div style={{ fontSize:12, color:C.muted }}>{c.type} · {c.size}</div>
-                  <a href={c.url||"#"} target="_blank" rel="noreferrer" style={{ marginTop:6, background:C.greenDim, border:`1px solid ${C.green}44`, color:C.green, borderRadius:8, padding:"8px 18px", fontSize:13, fontWeight:600, textDecoration:"none" }}>↓ Scarica</a>
-                </div>
-              ))}
-            </div>
-        )}
+        {tab==="materiali" && <MaterialiStudente uid={uid} moduli={data?.moduli||[]} />}}
       </main>
 
       {/* ── VIDEO MODAL con player Bunny integrato ── */}
@@ -2065,6 +2096,135 @@ function ChatWidget({ studentUid, studentName }) {
 // ═══════════════════════════════════════════════════════════════
 // CHAT ADMIN — pannello messaggi
 // ═══════════════════════════════════════════════════════════════
+function AdminMateriali() {
+  const [materiali, setMateriali] = useState([]);
+  const [studenti, setStudenti] = useState([]);
+  const [libreria, setLibreria] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [form, setForm] = useState({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "📄" });
+
+  useEffect(() => {
+    const u1 = onSnapshot(query(collection(db, "materiali"), orderBy("ts", "desc")), snap => {
+      setMateriali(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    getDocs(collection(db, "studenti")).then(snap => setStudenti(snap.docs.map(d => ({ uid: d.id, ...d.data() }))));
+    getDocs(collection(db, "libreria")).then(snap => setLibreria(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    return u1;
+  }, []);
+
+  const uploadFile = async (file) => {
+    if (!file || !form.titolo.trim()) { alert("Inserisci un titolo prima di caricare il file"); return; }
+    setUploading(true); setProgress(0);
+    const ref = storageRef(storage, `materiali/${Date.now()}_${file.name}`);
+    const task = uploadBytesResumable(ref, file);
+    task.on("state_changed",
+      snap => setProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
+      err => { console.error(err); setUploading(false); },
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref);
+        await addDoc(collection(db, "materiali"), {
+          titolo: form.titolo.trim(),
+          descrizione: form.descrizione.trim(),
+          emoji: form.emoji,
+          tipo: form.tipo,
+          studenteUid: form.tipo === "studente" ? form.studenteUid : null,
+          moduloId: form.tipo === "modulo" ? form.moduloId : null,
+          fileName: file.name,
+          fileUrl: url,
+          storagePath: `materiali/${Date.now()}_${file.name}`,
+          ts: serverTimestamp()
+        });
+        setForm({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "📄" });
+        setUploading(false); setProgress(0);
+      }
+    );
+  };
+
+  const elimina = async (m) => {
+    if (!window.confirm("Eliminare questo materiale?")) return;
+    try { await deleteObject(storageRef(storage, m.storagePath)); } catch(e) {}
+    await deleteDoc(doc(db, "materiali", m.id));
+  };
+
+  const tipoLabel = (m) => {
+    if (m.tipo === "studente") { const s = studenti.find(s => s.uid === m.studenteUid); return `👤 ${s?.name || m.studenteUid}`; }
+    if (m.tipo === "modulo") { const mod = libreria.find(l => l.id === m.moduloId); return `📚 ${mod?.title || m.moduloId}`; }
+    return "🌐 Tutti";
+  };
+
+  return (
+    <div style={{ padding: "32px 40px", maxWidth: 800 }}>
+      <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 24px" }}>📎 Materiali</h2>
+
+      {/* Form upload */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: "20px 24px", marginBottom: 32 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>⬆️ Carica nuovo materiale</div>
+        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+          <input value={form.emoji} onChange={e => setForm(p => ({ ...p, emoji: e.target.value }))}
+            style={{ width: 50, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px", color: C.text, fontSize: 18, textAlign: "center", fontFamily: "inherit" }} />
+          <input value={form.titolo} onChange={e => setForm(p => ({ ...p, titolo: e.target.value }))}
+            placeholder="Titolo del materiale"
+            style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 14, fontFamily: "inherit" }} />
+        </div>
+        <input value={form.descrizione} onChange={e => setForm(p => ({ ...p, descrizione: e.target.value }))}
+          placeholder="Descrizione (opzionale)"
+          style={{ width: "100%", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", marginBottom: 10, boxSizing: "border-box" }} />
+        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+          <select value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value, studenteUid: "", moduloId: "" }))}
+            style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", flex: 1 }}>
+            <option value="generale">🌐 Tutti gli studenti</option>
+            <option value="studente">👤 Studente specifico</option>
+            <option value="modulo">📚 Modulo specifico</option>
+          </select>
+          {form.tipo === "studente" && (
+            <select value={form.studenteUid} onChange={e => setForm(p => ({ ...p, studenteUid: e.target.value }))}
+              style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", flex: 1 }}>
+              <option value="">Scegli studente...</option>
+              {studenti.map(s => <option key={s.uid} value={s.uid}>{s.name}</option>)}
+            </select>
+          )}
+          {form.tipo === "modulo" && (
+            <select value={form.moduloId} onChange={e => setForm(p => ({ ...p, moduloId: e.target.value }))}
+              style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", flex: 1 }}>
+              <option value="">Scegli modulo...</option>
+              {libreria.map(m => <option key={m.id} value={m.id}>{m.emoji} {m.title}</option>)}
+            </select>
+          )}
+        </div>
+        {uploading ? (
+          <div style={{ background: C.surface, borderRadius: 8, padding: "12px", marginTop: 4 }}>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Caricamento in corso... {progress}%</div>
+            <div style={{ background: C.border, borderRadius: 4, height: 6 }}>
+              <div style={{ background: C.green, height: 6, borderRadius: 4, width: `${progress}%`, transition: "width 0.3s" }} />
+            </div>
+          </div>
+        ) : (
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 8, background: C.green, border: "none", color: "#000", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            📎 Scegli file e carica
+            <input type="file" style={{ display: "none" }} onChange={e => uploadFile(e.target.files[0])} />
+          </label>
+        )}
+      </div>
+
+      {/* Lista materiali */}
+      {materiali.length === 0 && <div style={{ color: C.muted, fontSize: 13 }}>Nessun materiale caricato ancora.</div>}
+      {materiali.map(m => (
+        <div key={m.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: 8, display: "flex", alignItems: "center", gap: 14 }}>
+          <span style={{ fontSize: 24 }}>{m.emoji}</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>{m.titolo}</div>
+            {m.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{m.descrizione}</div>}
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{tipoLabel(m)} · {m.fileName}</div>
+          </div>
+          <a href={m.fileUrl} target="_blank" rel="noreferrer" style={{ color: C.green, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>⬇ Scarica</a>
+          <button onClick={() => elimina(m)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 18 }}>🗑</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AdminBacheca() {
   const [annunci, setAnnunci] = useState([]);
   const [domande, setDomande] = useState([]);
