@@ -2217,23 +2217,25 @@ function AdminMateriali() {
             </div>
           </div>
         ) : (
-          <label style={{ display: "inline-flex", alignItems: "center", gap: 8, background: C.green, border: "none", color: "#000", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-            📎 Scegli file e carica
-            <input type="file" style={{ display: "none" }} onChange={e => uploadFile(e.target.files[0])} />
-          </label>
-          {form.url?.trim() && (
-            <button onClick={async () => {
-              if (!form.titolo.trim()) { alert("Inserisci un titolo"); return; }
-              await addDoc(collection(db, "materiali"), {
-                titolo: form.titolo.trim(), descrizione: form.descrizione.trim(), emoji: form.emoji,
-                tipo: form.tipo, studenteUid: form.tipo === "studente" ? form.studenteUid : null,
-                moduloId: form.tipo === "modulo" ? form.moduloId : null,
-                fileUrl: form.url.trim(), fileName: null, storagePath: null, isLink: true,
-                ts: serverTimestamp()
-              });
-              setForm({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "🔗", url: "" });
-            }} style={{ background: C.blue, border: "none", color: "#fff", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>🔗 Salva link</button>
-          )}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 8, background: C.green, border: "none", color: "#000", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              📎 Scegli file e carica
+              <input type="file" style={{ display: "none" }} onChange={e => uploadFile(e.target.files[0])} />
+            </label>
+            {form.url?.trim() && (
+              <button onClick={async () => {
+                if (!form.titolo.trim()) { alert("Inserisci un titolo"); return; }
+                await addDoc(collection(db, "materiali"), {
+                  titolo: form.titolo.trim(), descrizione: form.descrizione.trim(), emoji: form.emoji,
+                  tipo: form.tipo, studenteUid: form.tipo === "studente" ? form.studenteUid : null,
+                  moduloId: form.tipo === "modulo" ? form.moduloId : null,
+                  fileUrl: form.url.trim(), fileName: null, storagePath: null, isLink: true,
+                  ts: serverTimestamp()
+                });
+                setForm({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "🔗", url: "" });
+              }} style={{ background: C.blue, border: "none", color: "#fff", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>🔗 Salva link</button>
+            )}
+          </div>
         )}
       </div>
 
