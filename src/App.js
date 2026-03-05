@@ -2234,6 +2234,7 @@ function AdminMateriali() {
               setForm({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "🔗", url: "" });
             }} style={{ background: C.blue, border: "none", color: "#fff", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>🔗 Salva link</button>
           )}
+        )}
       </div>
 
       {/* Lista materiali */}
