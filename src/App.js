@@ -1102,6 +1102,7 @@ function BachecaStudente({ uid, studentName }) {
   const [testo, setTesto] = useState("");
   const [file, setFile] = useState(null);
   const [invio, setInvio] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -1134,9 +1135,10 @@ function BachecaStudente({ uid, studentName }) {
     await addDoc(collection(db, "domande"), {
       testo: testo.trim(), fileUrl, fileName,
       studentName, studentUid: uid, isCoach: false,
+      replyTo: replyTo ? { id: replyTo.id, testo: replyTo.testo, autore: replyTo.isCoach ? "Coach" : replyTo.studentName } : null,
       ts: serverTimestamp()
     });
-    setTesto(""); setFile(null); setInvio(false);
+    setTesto(""); setFile(null); setReplyTo(null); setInvio(false);
   };
 
   const isCoachMsg = (msg) => msg.isCoach === true;
@@ -1184,12 +1186,18 @@ function BachecaStudente({ uid, studentName }) {
                     <span style={{ fontSize: 11, color: C.muted }}>{msg.ts?.toDate?.()?.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} {msg.ts?.toDate?.()?.toLocaleDateString("it-IT")}</span>
                   </div>
                 )}
+                {msg.replyTo && (
+                  <div style={{ borderLeft: `3px solid ${C.muted}`, paddingLeft: 8, marginBottom: 4, opacity: 0.6, fontSize: 12, color: C.muted }}>
+                    ↩ <strong>{msg.replyTo.autore}</strong>: {msg.replyTo.testo?.slice(0,80)}{msg.replyTo.testo?.length>80?"...":""}
+                  </div>
+                )}
                 {msg.testo && <div style={{ fontSize: 14, color: C.text, lineHeight: 1.5 }}>{msg.testo}</div>}
                 {msg.fileUrl && (
                   <a href={msg.fileUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 6, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", color: C.text, textDecoration: "none", fontSize: 13 }}>
                     📎 {msg.fileName || "Allegato"}
                   </a>
                 )}
+                <button onClick={() => setReplyTo(msg)} style={{ background: "none", border: "none", color: C.muted, fontSize: 11, cursor: "pointer", marginTop: 3, padding: "2px 6px", borderRadius: 4, fontFamily: "inherit", opacity: 0.7 }}>↩ Rispondi</button>
               </div>
             </div>
           );
@@ -1199,6 +1207,12 @@ function BachecaStudente({ uid, studentName }) {
 
       {/* INPUT */}
       <div style={{ marginTop: 12, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 14px" }}>
+        {replyTo && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, background: C.surface, borderRadius: 8, padding: "6px 10px", borderLeft: `3px solid ${C.green}` }}>
+            <span style={{ fontSize: 12, color: C.muted, flex: 1 }}>↩ <strong>{replyTo.isCoach ? "Coach" : replyTo.studentName}</strong>: {replyTo.testo?.slice(0,60)}{replyTo.testo?.length>60?"...":""}</span>
+            <button onClick={() => setReplyTo(null)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16 }}>✕</button>
+          </div>
+        )}
         {file && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, background: C.surface, borderRadius: 8, padding: "6px 10px" }}>
             <span style={{ fontSize: 13 }}>📎 {file.name}</span>
