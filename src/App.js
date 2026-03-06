@@ -1283,7 +1283,6 @@ function SetupStrumenti({ studentName, guideIds }) {
         </div>
       </div>
 
-      {guida?.aiEnabled && <div style={{ marginTop: 20, background: C.card, border: "1px solid " + C.purple + "44", borderRadius: 14, overflow: "hidden" }}>}
       <div style={{ marginTop: 20, background: C.card, border: "1px solid " + C.purple + "44", borderRadius: 14, overflow: "hidden", display: guida?.aiEnabled ? "block" : "none" }}>
         <div onClick={() => setAiOpen(!aiOpen)} style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg," + C.purple + "11,transparent)" }}>
           <span style={{ fontSize: 22 }}>🤖</span>
@@ -1326,7 +1325,7 @@ function SetupStrumenti({ studentName, guideIds }) {
           </div>
         )}
       </div>
-      </>}
+      </>
     </div>
   );
 }
