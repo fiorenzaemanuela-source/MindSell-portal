@@ -348,6 +348,7 @@ function AdminPanel({ adminUser }) {
     { id: "sessioni", label: "🎯 Sessioni" },
     { id: "registrazioni", label: "⏺ Registrazioni" },
     { id: "materiali", label: "📎 Materiali" },
+    { id: "guide", label: "⚙️ Guide Strumenti" },
   ];
 
   return (
@@ -800,6 +801,39 @@ function AdminPanel({ adminUser }) {
               </div>
             )}
 
+            {/* GUIDE STRUMENTI */}
+            {adminTab === "guide" && (
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>⚙️ Guide Strumenti assegnate</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Scegli quali guide strumenti può vedere questo studente</div>
+                  </div>
+                </div>
+                {guide.length === 0 ? (
+                  <div style={{ color: C.muted, fontSize: 13 }}>Nessuna guida creata. Vai su ⚙️ Guide Strumenti per crearne una.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {guide.map(g => {
+                      const assegnata = (selected.guide || []).includes(g.id);
+                      return (
+                        <div key={g.id} onClick={() => upd(s => { const curr = s.guide || []; s.guide = curr.includes(g.id) ? curr.filter(x => x !== g.id) : [...curr, g.id]; })} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", background: assegnata ? C.green + "11" : C.surface, border: "1px solid " + (assegnata ? C.green + "44" : C.border), borderRadius: 12, cursor: "pointer" }}>
+                          <div style={{ width: 22, height: 22, borderRadius: "50%", border: "2px solid " + (assegnata ? C.green : C.muted), background: assegnata ? C.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {assegnata && <span style={{ color: "#000", fontSize: 12, fontWeight: 700 }}>✓</span>}
+                          </div>
+                          <span style={{ fontSize: 20 }}>{g.emoji}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: 14 }}>{g.titolo}</div>
+                            {g.descrizione && <div style={{ fontSize: 12, color: C.muted }}>{g.descrizione}</div>}
+                            <div style={{ fontSize: 11, color: g.aiEnabled ? C.purpleGlow : C.muted, marginTop: 2 }}>{g.aiEnabled ? "🤖 AI attivo" : "🤖 AI disattivo"}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
             {/* OFFERTE */}
             {adminTab === "offerte" && (
               <div>
