@@ -217,7 +217,7 @@ function AdminPanel({ adminUser }) {
   const loadAll = async () => {
     setLoadingData(true);
     try {
-      const [snapS, snapL] = await Promise.all([
+      const [snapS, snapL, snapG] = await Promise.all([
         getDocs(collection(db, "studenti")),
         getDocs(collection(db, "libreria")),
         getDocs(collection(db, "guide")),
