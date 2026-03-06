@@ -1209,7 +1209,8 @@ function SetupStrumenti({ studentName, guideIds }) {
       )}
       {!guida && <div style={{ color: C.muted, fontSize: 13 }}>Caricamento...</div>}
       {guida && (
-      <div style={{ background: C.card, border: "1px solid " + C.border, borderRadius: 14, padding: "18px 22px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
+        <div>
+        <div style={{ background: C.card, border: "1px solid " + C.border, borderRadius: 14, padding: "18px 22px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>⚙️ Setup Strumenti del Corso</div>
           <div style={{ fontSize: 13, color: C.muted }}>Configura tutti gli strumenti per iniziare il percorso</div>
@@ -1325,6 +1326,7 @@ function SetupStrumenti({ studentName, guideIds }) {
           </div>
         )}
       </div>
+        </div>
       )}
     </div>
   );
