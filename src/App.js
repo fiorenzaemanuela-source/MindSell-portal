@@ -1325,7 +1325,7 @@ function SetupStrumenti({ studentName, guideIds }) {
           </div>
         )}
       </div>
-      </>
+
     </div>
   );
 }
