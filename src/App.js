@@ -179,6 +179,7 @@ function AdminPanel({ adminUser }) {
   }, []);
   const [studenti, setStudenti] = useState([]);
   const [libreria, setLibreria] = useState([]);
+  const [guide, setGuide] = useState([]);
   const [offerteGlobali, setOfferteGlobali] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
@@ -219,9 +220,11 @@ function AdminPanel({ adminUser }) {
       const [snapS, snapL] = await Promise.all([
         getDocs(collection(db, "studenti")),
         getDocs(collection(db, "libreria")),
+        getDocs(collection(db, "guide")),
       ]);
       setStudenti(snapS.docs.map(d => ({ uid: d.id, ...d.data() })));
       setLibreria(snapL.docs.map(d => ({ id: d.id, ...d.data() })));
+      setGuide(snapG?.docs?.map(d => ({ id: d.id, ...d.data() })) || []);
     } catch (e) { console.error(e); }
     setLoadingData(false);
   };
@@ -354,7 +357,7 @@ function AdminPanel({ adminUser }) {
           <img src="/logo_mindsell.png" alt="" style={{ height: 30, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
           <span style={{ fontWeight: 800, fontSize: 18, background: `linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>MindSell Admin</span>
           <div style={{ display: "flex", gap: 4, marginLeft: 8, overflowX: "auto", maxWidth: "60vw" }}>
-            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"]].map(([id, label]) => (
+            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["guide", "⚙️ Guide Strumenti"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"]].map(([id, label]) => (
               <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit", position: "relative" }}
                 onClick={() => { setSection(id); setView("lista"); }}>{id === "chat" && unreadChats > 0 ? <span style={{ position:"relative" }}>{label}<span style={{ position:"absolute", top:-8, right:-14, background:"#FF4444", color:"#fff", borderRadius:"50%", width:16, height:16, fontSize:10, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{unreadChats}</span></span> : label}</button>
             ))}
@@ -439,6 +442,7 @@ function AdminPanel({ adminUser }) {
           );
         })()}
         {section==="materiali" && <AdminMateriali />}
+      {section==="guide" && <AdminGuide guide={guide} studenti={studenti} onRefresh={loadAll} />}
       {section==="bacheca" && <AdminBacheca />}
       {section === "chat" && <AdminChat />}
 
@@ -1121,7 +1125,30 @@ const DEVICES = [
   { name: "Zoom H1n", price: "€110–140", note: "Qualità professionale. Il massimo della chiarezza per le trascrizioni AI." },
 ];
 
-function SetupStrumenti({ studentName }) {
+function SetupStrumenti({ studentName, guideIds }) {
+  const [guideData, setGuideData] = useState([]);
+  const [guidaAttiva, setGuidaAttiva] = useState(null);
+
+  useEffect(() => {
+    if (!guideIds || guideIds.length === 0) return;
+    Promise.all(guideIds.map(id => getDoc(doc(db, "guide", id)))).then(docs => {
+      const loaded = docs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() }));
+      setGuideData(loaded);
+      if (loaded.length > 0) setGuidaAttiva(loaded[0].id);
+    });
+  }, [guideIds]);
+
+  if (!guideIds || guideIds.length === 0) {
+    return (
+      <div style={{ maxWidth: 720, margin: "0 auto", textAlign: "center", padding: "60px 20px" }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>⚙️</div>
+        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Nessuna guida assegnata</div>
+        <div style={{ fontSize: 13, color: C.muted }}>Il coach non ha ancora assegnato guide strumenti al tuo percorso.</div>
+      </div>
+    );
+  }
+
+  const guida = guideData.find(g => g.id === guidaAttiva);
   const [checked, setChecked] = useState(() => Object.fromEntries(TOOLS.map(t => [t.id, []])));
   const [open, setOpen] = useState("google");
   const [aiOpen, setAiOpen] = useState(false);
@@ -1153,7 +1180,7 @@ function SetupStrumenti({ studentName }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          system: "Sei l'assistente AI del corso MindSell Academy, specializzato in vendita emotiva e strumenti AI. Gli strumenti del corso sono: Google Documenti/Fogli, ChatGPT, Otter.ai, HubSpot Free, Make/Integromat. Rispondi in italiano, in modo conciso e pratico.",
+          system: guida?.aiPrompt || "Sei l'assistente AI del corso MindSell Academy. Rispondi in italiano, in modo conciso e pratico.",
           messages: newMessages
         })
       });
@@ -1170,6 +1197,18 @@ function SetupStrumenti({ studentName }) {
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto" }}>
+      {guideData.length > 1 && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+          {guideData.map(g => (
+            <button key={g.id} onClick={() => setGuidaAttiva(g.id)}
+              style={{ background: guidaAttiva === g.id ? C.purpleDim : C.card, border: "1px solid " + (guidaAttiva === g.id ? C.purple + "66" : C.border), color: guidaAttiva === g.id ? C.purpleGlow : C.muted, borderRadius: 10, padding: "8px 16px", fontSize: 13, cursor: "pointer", fontFamily: "inherit", fontWeight: guidaAttiva === g.id ? 700 : 400 }}>
+              {g.emoji} {g.titolo}
+            </button>
+          ))}
+        </div>
+      )}
+      {!guida && <div style={{ color: C.muted, fontSize: 13 }}>Caricamento...</div>}
+      {guida && <>
       <div style={{ background: C.card, border: "1px solid " + C.border, borderRadius: 14, padding: "18px 22px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>⚙️ Setup Strumenti del Corso</div>
@@ -1244,7 +1283,8 @@ function SetupStrumenti({ studentName }) {
         </div>
       </div>
 
-      <div style={{ marginTop: 20, background: C.card, border: "1px solid " + C.purple + "44", borderRadius: 14, overflow: "hidden" }}>
+      {guida?.aiEnabled && <div style={{ marginTop: 20, background: C.card, border: "1px solid " + C.purple + "44", borderRadius: 14, overflow: "hidden" }}>}
+      <div style={{ marginTop: 20, background: C.card, border: "1px solid " + C.purple + "44", borderRadius: 14, overflow: "hidden", display: guida?.aiEnabled ? "block" : "none" }}>
         <div onClick={() => setAiOpen(!aiOpen)} style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg," + C.purple + "11,transparent)" }}>
           <span style={{ fontSize: 22 }}>🤖</span>
           <div style={{ flex: 1 }}>
@@ -1286,6 +1326,7 @@ function SetupStrumenti({ studentName }) {
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 }
@@ -2031,7 +2072,7 @@ function StudentPortal({ userData }) {
 
         {/* MATERIALI */}
         {tab==="materiali" && <MaterialiStudente uid={uid} moduli={data?.moduli||[]} />}
-        {tab==="strumenti" && <SetupStrumenti studentName={data?.name||""} />}}
+        {tab==="strumenti" && <SetupStrumenti studentName={data?.name||""} guideIds={data?.guide||[]} />}}
       </main>
 
       {/* ── VIDEO MODAL con player Bunny integrato ── */}
@@ -2303,6 +2344,136 @@ function ChatWidget({ studentUid, studentName }) {
 // ═══════════════════════════════════════════════════════════════
 // CHAT ADMIN — pannello messaggi
 // ═══════════════════════════════════════════════════════════════
+function AdminGuide({ guide, studenti, onRefresh }) {
+  const [form, setForm] = useState({ titolo: "", descrizione: "", emoji: "⚙️", aiEnabled: false, aiPrompt: "" });
+  const [editId, setEditId] = useState(null);
+  const [assegnaGuida, setAssegnaGuida] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const salva = async () => {
+    if (!form.titolo.trim()) { alert("Inserisci un titolo"); return; }
+    setLoading(true);
+    if (editId) {
+      await setDoc(doc(db, "guide", editId), { ...form, updatedAt: serverTimestamp() });
+    } else {
+      await addDoc(collection(db, "guide"), { ...form, createdAt: serverTimestamp() });
+    }
+    setForm({ titolo: "", descrizione: "", emoji: "⚙️", aiEnabled: false, aiPrompt: "" });
+    setEditId(null);
+    setLoading(false);
+    onRefresh();
+  };
+
+  const elimina = async (id) => {
+    if (!window.confirm("Eliminare questa guida?")) return;
+    await deleteDoc(doc(db, "guide", id));
+    onRefresh();
+  };
+
+  const toggleAssegna = async (studenteUid, guidaId) => {
+    const studente = studenti.find(s => s.uid === studenteUid);
+    if (!studente) return;
+    const guideAttuali = studente.guide || [];
+    const nuove = guideAttuali.includes(guidaId)
+      ? guideAttuali.filter(g => g !== guidaId)
+      : [...guideAttuali, guidaId];
+    await setDoc(doc(db, "studenti", studenteUid), { ...studente, guide: nuove });
+    onRefresh();
+  };
+
+  return (
+    <div style={{ padding: "32px 40px", maxWidth: 800 }}>
+      <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 24px" }}>⚙️ Guide Strumenti</h2>
+
+      {/* Form nuova guida */}
+      <div style={{ background: C.card, border: "1px solid " + C.border, borderRadius: 16, padding: "20px 24px", marginBottom: 28 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>{editId ? "✏️ Modifica guida" : "➕ Nuova guida"}</div>
+        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+          <input value={form.emoji} onChange={e => setForm(p => ({ ...p, emoji: e.target.value }))}
+            style={{ width: 50, background: C.surface, border: "1px solid " + C.border, borderRadius: 8, padding: "8px", color: C.text, fontSize: 18, textAlign: "center", fontFamily: "inherit" }} />
+          <input value={form.titolo} onChange={e => setForm(p => ({ ...p, titolo: e.target.value }))}
+            placeholder="Titolo della guida (es. AI Sales Tools - Corso Base)"
+            style={{ flex: 1, background: C.surface, border: "1px solid " + C.border, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 14, fontFamily: "inherit" }} />
+        </div>
+        <textarea value={form.descrizione} onChange={e => setForm(p => ({ ...p, descrizione: e.target.value }))}
+          placeholder="Descrizione della guida..."
+          rows={2}
+          style={{ width: "100%", background: C.surface, border: "1px solid " + C.border, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 10 }} />
+
+        {/* Toggle AI */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: form.aiEnabled ? 10 : 0 }}>
+          <span style={{ fontSize: 13, color: C.muted }}>🤖 Assistente AI</span>
+          <div onClick={() => setForm(p => ({ ...p, aiEnabled: !p.aiEnabled }))} style={{ width: 36, height: 20, borderRadius: 10, background: form.aiEnabled ? C.purple : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s" }}>
+            <div style={{ position: "absolute", top: 2, left: form.aiEnabled ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+          </div>
+          <span style={{ fontSize: 11, color: form.aiEnabled ? C.purpleGlow : C.muted, fontWeight: 700 }}>{form.aiEnabled ? "ON" : "OFF"}</span>
+        </div>
+        {form.aiEnabled && (
+          <textarea value={form.aiPrompt} onChange={e => setForm(p => ({ ...p, aiPrompt: e.target.value }))}
+            placeholder="Prompt di sistema per l'assistente AI (es. Sei l'assistente del corso MindSell Base. Aiuta lo studente con...)"
+            rows={3}
+            style={{ width: "100%", background: C.surface, border: "1px solid " + C.purple + "44", borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginTop: 10 }} />
+        )}
+
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button onClick={salva} disabled={loading}
+            style={{ background: C.green, border: "none", color: "#000", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+            {loading ? "Salvando..." : editId ? "Aggiorna" : "Crea guida"}
+          </button>
+          {editId && (
+            <button onClick={() => { setEditId(null); setForm({ titolo: "", descrizione: "", emoji: "⚙️", aiEnabled: false, aiPrompt: "" }); }}
+              style={{ background: "none", border: "1px solid " + C.border, color: C.muted, borderRadius: 8, padding: "9px 16px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+              Annulla
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Lista guide */}
+      {guide.length === 0 && <div style={{ color: C.muted, fontSize: 13 }}>Nessuna guida creata ancora.</div>}
+      {guide.map(g => (
+        <div key={g.id} style={{ background: C.card, border: "1px solid " + C.border, borderRadius: 14, marginBottom: 10, overflow: "hidden" }}>
+          <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+            <span style={{ fontSize: 24 }}>{g.emoji}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{g.titolo}</div>
+              {g.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{g.descrizione}</div>}
+              <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+                {g.aiEnabled ? <span style={{ color: C.purpleGlow }}>🤖 AI attivo</span> : <span>🤖 AI disattivo</span>}
+                {" · "}
+                {studenti.filter(s => (s.guide || []).includes(g.id)).length} studenti assegnati
+              </div>
+            </div>
+            <button onClick={() => { setEditId(g.id); setForm({ titolo: g.titolo, descrizione: g.descrizione || "", emoji: g.emoji, aiEnabled: g.aiEnabled || false, aiPrompt: g.aiPrompt || "" }); }}
+              style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16 }}>✏️</button>
+            <button onClick={() => setAssegnaGuida(assegnaGuida === g.id ? null : g.id)}
+              style={{ background: C.purple + "22", border: "1px solid " + C.purple + "44", color: C.purpleGlow, borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>
+              👥 Assegna
+            </button>
+            <button onClick={() => elimina(g.id)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16 }}>🗑</button>
+          </div>
+          {assegnaGuida === g.id && (
+            <div style={{ borderTop: "1px solid " + C.border, padding: "14px 20px" }}>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>Clicca uno studente per assegnare/rimuovere la guida:</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {studenti.map(s => {
+                  const assegnato = (s.guide || []).includes(g.id);
+                  return (
+                    <button key={s.uid} onClick={() => toggleAssegna(s.uid, g.id)}
+                      style={{ background: assegnato ? C.green + "22" : C.surface, border: "1px solid " + (assegnato ? C.green + "66" : C.border), color: assegnato ? C.green : C.muted, borderRadius: 8, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontFamily: "inherit", fontWeight: assegnato ? 700 : 400 }}>
+                      {assegnato ? "✓ " : ""}{s.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AdminMateriali() {
   const [materiali, setMateriali] = useState([]);
   const [studenti, setStudenti] = useState([]);
