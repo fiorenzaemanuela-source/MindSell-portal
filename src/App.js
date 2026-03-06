@@ -1208,7 +1208,7 @@ function SetupStrumenti({ studentName, guideIds }) {
         </div>
       )}
       {!guida && <div style={{ color: C.muted, fontSize: 13 }}>Caricamento...</div>}
-      {guida && <>
+      {guida && (
       <div style={{ background: C.card, border: "1px solid " + C.border, borderRadius: 14, padding: "18px 22px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>⚙️ Setup Strumenti del Corso</div>
@@ -1325,7 +1325,7 @@ function SetupStrumenti({ studentName, guideIds }) {
           </div>
         )}
       </div>
-
+      )}
     </div>
   );
 }
