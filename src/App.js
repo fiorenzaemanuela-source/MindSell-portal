@@ -595,6 +595,13 @@ function AdminPanel({ adminUser }) {
                 <div>
                   <input style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "5px 10px", fontSize: 18, fontWeight: 700, color: C.text, width: 280, outline: "none", fontFamily: "inherit" }} value={selected.name || ""} onChange={e => upd(s => s.name = e.target.value)} title="Modifica nome" />
                   <input style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 10px", fontSize: 13, color: C.muted, width: 320, outline: "none", fontFamily: "inherit", display: "block", marginTop: 4 }} placeholder="Piano / percorso" value={selected.plan || ""} onChange={e => upd(s => s.plan = e.target.value)} title="Modifica piano" />
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.surface, border: "1px solid " + C.border, borderRadius: 8, padding: "6px 12px" }}>
+                    <span style={{ fontSize: 12, color: C.muted }}>⚙️ Accesso Strumenti</span>
+                    <div onClick={() => upd(s => s.strumenti = !s.strumenti)} style={{ width: 36, height: 20, borderRadius: 10, background: selected.strumenti ? C.green : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                      <div style={{ position: "absolute", top: 2, left: selected.strumenti ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: selected.strumenti ? C.green : C.muted, fontWeight: 700 }}>{selected.strumenti ? "ON" : "OFF"}</span>
+                  </div>
                   <input style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 10px", fontSize: 12, color: C.muted, width: 280, outline: "none", fontFamily: "inherit", display: "block", marginTop: 4 }} placeholder="Email" value={selected.email || ""} onChange={e => upd(s => s.email = e.target.value)} title="Modifica email" />
                 </div>
               </div>
@@ -1843,7 +1850,7 @@ function StudentPortal({ userData }) {
     { id: "bacheca", label: "Bacheca", emoji: "📋" },
     { id: "registrazioni", label: "Registrazioni", emoji: "⏺" },
     { id: "materiali", label: "Materiali", emoji: "📎" },
-    { id: "strumenti", label: "Strumenti", emoji: "⚙️" },
+    ...(data?.strumenti ? [{ id: "strumenti", label: "Strumenti", emoji: "⚙️" }] : []),
   ];
 
   return (
