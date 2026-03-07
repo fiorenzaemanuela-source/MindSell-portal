@@ -1187,7 +1187,7 @@ function SetupStrumenti({ studentName, guideIds }) {
   }
 
   const guida = guideData.find(g => g.id === guidaAttiva);
-  const [checked, setChecked] = useState(() => Object.fromEntries((TOOLS_CONFIGS[guideIds?.[0]]?.tools || TOOLS_AI_VENDITA).map(t => [t.id, []])));
+  const [checked, setChecked] = useState(() => Object.fromEntries(TOOLS_AI_VENDITA.map(t => [t.id, []])));
   const [open, setOpen] = useState("google");
   const [aiOpen, setAiOpen] = useState(false);
   const [aiMessages, setAiMessages] = useState([]);
