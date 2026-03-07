@@ -1144,7 +1144,7 @@ function ModalAcquisto({ studentName, onClose }) {
   );
 }
 
-const TOOLS = [
+const TOOLS_AI_VENDITA = [
   { id: "google", emoji: "📄", name: "Google Documenti & Fogli", tag: "FACILE", tagColor: "#6DBF3E", url: "https://docs.google.com", cost: "Completamente gratuito", description: "Strumenti Google per creare documenti e fogli di calcolo. Li userai per la Libreria Prompt e la Mini-Dashboard KPI.", steps: [{ text: "Verifica di avere un account Google — se hai Gmail, sei già a posto." }, { text: "Apri docs.google.com per i documenti.", link: "https://docs.google.com" }, { text: "Crea un documento 'Libreria Prompt MindSell' con 5 sezioni: Analisi Conversazioni, Pitch, Obiezioni, Follow-up, KPI." }, { text: "Crea un foglio 'Dashboard KPI MindSell' con 7 colonne: Data, Prospect, B2B/B2C, Remoto/Presenza, Emozione, Obiezione, Esito." }] },
   { id: "chatgpt", emoji: "🤖", name: "ChatGPT", tag: "FACILE", tagColor: "#6DBF3E", url: "https://chat.openai.com", cost: "Piano gratuito disponibile", description: "Il motore AI principale del corso. Lo usi per analizzare conversazioni, costruire pitch personalizzati e fare call review.", steps: [{ text: "Vai su chat.openai.com e clicca 'Sign up'.", link: "https://chat.openai.com" }, { text: "Registrati con la tua email oppure tramite Google." }, { text: "Verifica l'email se richiesto e completa la registrazione." }, { text: "Inizia subito — nessuna installazione, funziona nel browser." }] },
   { id: "otter", emoji: "🎙️", name: "Otter.ai", tag: "MEDIO", tagColor: "#E67E22", url: "https://otter.ai", cost: "Piano gratuito: 300 min/mese", description: "Trascrive automaticamente le tue chiamate in testo. Si collega a Zoom, Google Meet e Teams.", steps: [{ text: "Vai su otter.ai e crea un account gratuito.", link: "https://otter.ai" }, { text: "Dopo il login vai su 'Apps' nel menu a sinistra." }, { text: "Cerca Zoom o Google Meet, clicca 'Connect' e autorizza l'accesso." }, { text: "Test: avvia una chiamata di prova. Otter parte automaticamente." }, { text: "Dopo la chiamata: 'My Conversations' → clicca → Ctrl+A → copia in ChatGPT." }, { text: "Per vendita in presenza: installa l'app Otter sul telefono e usa 'Import'." }] },
@@ -1158,6 +1158,10 @@ const DEVICES = [
   { name: "Sony ICD-UX570", price: "€70–90", note: "Design sottile, qualità eccellente. Importa l'audio in Otter per la trascrizione." },
   { name: "Zoom H1n", price: "€110–140", note: "Qualità professionale. Il massimo della chiarezza per le trascrizioni AI." },
 ];
+
+const TOOLS_CONFIGS = {
+  "ai_vendita": { label: "🤖 AI nella Vendita", tools: TOOLS_AI_VENDITA },
+};
 
 function SetupStrumenti({ studentName, guideIds }) {
   const [guideData, setGuideData] = useState([]);
@@ -1183,7 +1187,7 @@ function SetupStrumenti({ studentName, guideIds }) {
   }
 
   const guida = guideData.find(g => g.id === guidaAttiva);
-  const [checked, setChecked] = useState(() => Object.fromEntries(TOOLS.map(t => [t.id, []])));
+  const [checked, setChecked] = useState(() => Object.fromEntries((TOOLS_CONFIGS[guideIds?.[0]]?.tools || TOOLS_AI_VENDITA).map(t => [t.id, []])));
   const [open, setOpen] = useState("google");
   const [aiOpen, setAiOpen] = useState(false);
   const [aiMessages, setAiMessages] = useState([]);
@@ -1255,7 +1259,7 @@ function SetupStrumenti({ studentName, guideIds }) {
         </div>
       </div>
 
-      {TOOLS.map(tool => {
+      {(TOOLS_CONFIGS[guida?.tipo]?.tools || TOOLS_AI_VENDITA).map(tool => {
         const p = pct(tool);
         const isOpen = open === tool.id;
         return (
@@ -2380,7 +2384,7 @@ function ChatWidget({ studentUid, studentName }) {
 // CHAT ADMIN — pannello messaggi
 // ═══════════════════════════════════════════════════════════════
 function AdminGuide({ guide, studenti, onRefresh }) {
-  const [form, setForm] = useState({ titolo: "", descrizione: "", emoji: "⚙️", aiEnabled: false, aiPrompt: "" });
+  const [form, setForm] = useState({ titolo: "", descrizione: "", emoji: "⚙️", tipo: "ai_vendita", aiEnabled: false, aiPrompt: "" });
   const [editId, setEditId] = useState(null);
   const [assegnaGuida, setAssegnaGuida] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -2430,7 +2434,13 @@ function AdminGuide({ guide, studenti, onRefresh }) {
             placeholder="Titolo della guida (es. AI Sales Tools - Corso Base)"
             style={{ flex: 1, background: C.surface, border: "1px solid " + C.border, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 14, fontFamily: "inherit" }} />
         </div>
-        <textarea value={form.descrizione} onChange={e => setForm(p => ({ ...p, descrizione: e.target.value }))}
+        <select value={form.tipo||"ai_vendita"} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))}
+            style={{ width: "100%", background: C.surface, border: "1px solid " + C.border, borderRadius: 8, padding: "10px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", marginBottom: 8 }}>
+            {Object.entries(TOOLS_CONFIGS).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
+          <textarea value={form.descrizione} onChange={e => setForm(p => ({ ...p, descrizione: e.target.value }))}
           placeholder="Descrizione della guida..."
           rows={2}
           style={{ width: "100%", background: C.surface, border: "1px solid " + C.border, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 10 }} />
