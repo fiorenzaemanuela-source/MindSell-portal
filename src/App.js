@@ -1218,7 +1218,7 @@ function SetupStrumenti({ studentName, guideIds }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          system: guida?.aiPrompt || "Sei l'assistente AI del corso MindSell Academy. Rispondi in italiano, in modo conciso e pratico.",
+          system: (guida?.aiPrompt || "Sei l'assistente AI del corso MindSell Academy.") + " Rispondi SOLO a domande riguardanti gli strumenti e i contenuti di questa guida del corso. Se ti vengono poste domande su argomenti non correlati alla guida, rispondi gentilmente che puoi aiutare solo con gli strumenti e i contenuti del corso. Rispondi sempre in italiano, in modo conciso e pratico.",
           messages: newMessages
         })
       });
