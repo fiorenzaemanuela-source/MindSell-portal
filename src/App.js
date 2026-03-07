@@ -1926,7 +1926,7 @@ function StudentPortal({ userData }) {
     { id: "bacheca", label: "Bacheca", emoji: "📋" },
     { id: "registrazioni", label: "Registrazioni", emoji: "⏺" },
     { id: "materiali", label: "Materiali", emoji: "📎" },
-    ...(data?.strumenti ? [{ id: "strumenti", label: "Strumenti", emoji: "⚙️" }] : []),
+    ...((data?.guide?.length > 0 || data?.strumenti) ? [{ id: "strumenti", label: "Strumenti", emoji: "⚙️" }] : []),
   ];
 
   return (
