@@ -1202,7 +1202,7 @@ function SetupStrumenti({ studentName, guideIds }) {
   });
 
   const pct = tool => Math.round((checked[tool.id].length / tool.steps.length) * 100);
-  const totalSteps = TOOLS.reduce((a, t) => a + t.steps.length, 0);
+  const totalSteps = TOOLS_AI_VENDITA.reduce((a, t) => a + t.steps.length, 0);
   const totalChecked = Object.values(checked).reduce((a, v) => a + v.length, 0);
   const totalPct = Math.round((totalChecked / totalSteps) * 100);
 
