@@ -15,7 +15,7 @@ module.exports = async function handler(req, res) {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01"
       },
-      body: JSON.stringify({ model: "claude-3-haiku-20240307", max_tokens: 1024, system: system || "", messages })
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1024, system: system || "", messages })
     });
     const data = await response.json();
     res.status(200).json(data);
