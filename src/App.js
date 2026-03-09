@@ -205,7 +205,7 @@ function AdminPanel({ adminUser }) {
   const [fModuloLib, setFModuloLib] = useState({ title: "", emoji: "📚", descrizione: "" });
   const [fVideoLib, setFVideoLib] = useState({ title: "", duration: "", url: "", emoji: "🎬" });
   const [fSession, setFSession] = useState({ label: "", icon: "🎯", total: 1 });
-  const [fRec, setFRec] = useState({ title: "", date: "", duration: "", coach: "", url: "" });
+  const [fRec, setFRec] = useState({ title: "", date: "", duration: "", coach: "", url: "", tipo: "aula" });
   const [fContent, setFContent] = useState({ title: "", type: "PDF", size: "", emoji: "📄", url: "" });
   const [searchStudenti, setSearchStudenti] = useState("");
   const [selectedLibModuli, setSelectedLibModuli] = useState([]);
@@ -996,7 +996,7 @@ function AdminPanel({ adminUser }) {
           ))}
           <button style={{...btn(C.blue),width:"100%",marginTop:8}} onClick={() => {
             upd(s => { if(!s.recordings)s.recordings=[]; s.recordings.push({...fRec, url: extractBunnyUrl(fRec.url)}); });
-            setFRec({title:"",date:"",duration:"",coach:"",url:""}); setModalRec(false);
+            setFRec({title:"",date:"",duration:"",coach:"",url:"",tipo:"aula"}); setModalRec(false);
           }}>Aggiungi →</button>
         </Modal>
       )}
