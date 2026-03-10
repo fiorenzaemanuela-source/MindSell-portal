@@ -994,6 +994,12 @@ function AdminPanel({ adminUser }) {
           {[["title","Titolo"],["coach","Coach"],["date","Data es. 14 Feb 2026"],["duration","Durata es. 1:18:40"],["url","URL iframe Bunny"]].map(([k,ph]) => (
             <input key={k} style={inp()} placeholder={ph} value={fRec[k]} onChange={e => setFRec({...fRec,[k]:e.target.value})} />
           ))}
+          <select style={{...inp(), color: C.text}} value={fRec.tipo||"aula"} onChange={e => setFRec({...fRec, tipo: e.target.value})}>
+            <option value="aula">📚 Aule Didattiche</option>
+            <option value="roleplay">🎭 Roleplay</option>
+            <option value="onetoone">🎯 One to One</option>
+            <option value="onboarding">🚀 Onboarding / Storage</option>
+          </select>
           <button style={{...btn(C.blue),width:"100%",marginTop:8}} onClick={() => {
             upd(s => { if(!s.recordings)s.recordings=[]; s.recordings.push({...fRec, url: extractBunnyUrl(fRec.url)}); });
             setFRec({title:"",date:"",duration:"",coach:"",url:"",tipo:"aula"}); setModalRec(false);
