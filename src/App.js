@@ -205,7 +205,7 @@ function AdminPanel({ adminUser }) {
   const [fModuloLib, setFModuloLib] = useState({ title: "", emoji: "📚", descrizione: "" });
   const [fVideoLib, setFVideoLib] = useState({ title: "", duration: "", url: "", emoji: "🎬" });
   const [fSession, setFSession] = useState({ label: "", icon: "🎯", total: 1 });
-  const [fRec, setFRec] = useState({ title: "", date: "", duration: "", coach: "", url: "" });
+  const [fRec, setFRec] = useState({ title: "", date: "", duration: "", coach: "", url: "", tipo: "aula" });
   const [fContent, setFContent] = useState({ title: "", type: "PDF", size: "", emoji: "📄", url: "" });
   const [searchStudenti, setSearchStudenti] = useState("");
   const [selectedLibModuli, setSelectedLibModuli] = useState([]);
@@ -996,7 +996,7 @@ function AdminPanel({ adminUser }) {
           ))}
           <button style={{...btn(C.blue),width:"100%",marginTop:8}} onClick={() => {
             upd(s => { if(!s.recordings)s.recordings=[]; s.recordings.push({...fRec, url: extractBunnyUrl(fRec.url)}); });
-            setFRec({title:"",date:"",duration:"",coach:"",url:""}); setModalRec(false);
+            setFRec({title:"",date:"",duration:"",coach:"",url:"",tipo:"aula"}); setModalRec(false);
           }}>Aggiungi →</button>
         </Modal>
       )}
@@ -2090,23 +2090,7 @@ function StudentPortal({ userData }) {
         {tab==="registrazioni"&&(
           (!data.recordings||data.recordings.length===0)
             ?<EmptyState emoji="⏺" text="Nessuna registrazione." sub="Le sessioni live registrate appariranno qui."/>
-            :<div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-              {data.recordings.map((r,i)=>(
-                <div key={i} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:14, padding:"18px 22px", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer" }} onClick={()=>setActiveRec(r)}>
-                  <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-                    <div style={{ width:44, height:44, background:C.blueDim, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>⏺</div>
-                    <div>
-                      <div style={{ fontWeight:700, fontSize:15, marginBottom:3 }}>{r.title}</div>
-                      <div style={{ fontSize:13, color:C.muted }}>{r.coach} · {r.date}</div>
-                    </div>
-                  </div>
-                  <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}>
-                    <span style={{ color:C.muted, fontSize:13 }}>{r.duration}</span>
-                    <span style={{ color:C.blueLight, fontSize:13, fontWeight:600 }}>Guarda →</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+
         )}
 
         {/* MATERIALI */}
