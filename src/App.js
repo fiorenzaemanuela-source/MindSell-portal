@@ -2092,14 +2092,14 @@ function StudentPortal({ userData }) {
             ?<EmptyState emoji="⏺" text="Nessuna registrazione." sub="Le sessioni live registrate appariranno qui."/>
             :<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
               {[
-                { key:"aula", label:"Aule Didattiche", emoji:"ðŸ“š", color:"#B44FFF" },
-                { key:"roleplay", label:"Roleplay", emoji:"ðŸŽ­", color:"#2B6CC4" },
-                { key:"onetoone", label:"One to One", emoji:"ðŸŽ¯", color:"#6DBF3E" },
-                { key:"onboarding", label:"Onboarding / Storage", emoji:"ðŸš€", color:"#FF9500" },
+                { key:"aula", label:"Aule Didattiche", emoji:"📚", color:"#B44FFF" },
+                { key:"roleplay", label:"Roleplay", emoji:"🎭", color:"#2B6CC4" },
+                { key:"onetoone", label:"One to One", emoji:"🎯", color:"#6DBF3E" },
+                { key:"onboarding", label:"Onboarding / Storage", emoji:"🚀", color:"#FF9500" },
               ].map(cat => {
                 const recs = (data.recordings||[]).filter(r => (r.tipo||"aula") === cat.key);
                 return (
-                  <div key={cat.key} style={{ background:"#0E1318", border:1px solid 44, borderTop:3px solid , borderRadius:16, overflow:"hidden" }}>
+                  <div key={cat.key} style={{ background:"#0E1318", border:`1px solid ${cat.color}44`, borderTop:`3px solid ${cat.color}`, borderRadius:16, overflow:"hidden" }}>
                     <div style={{ padding:"16px 20px", borderBottom:"1px solid #1C2530", display:"flex", alignItems:"center", gap:10 }}>
                       <span style={{ fontSize:22 }}>{cat.emoji}</span>
                       <div>
@@ -2111,10 +2111,10 @@ function StudentPortal({ userData }) {
                       {recs.length===0
                         ?<div style={{ color:"#6B7A8D", fontSize:13, padding:"8px 0" }}>Nessuna registrazione</div>
                         :recs.map((r,i)=>(
-                          <div key={i} style={{ background:"#121820", border:1px solid 22, borderRadius:10, padding:"12px 14px" }}>
+                          <div key={i} style={{ background:"#121820", border:`1px solid ${cat.color}22`, borderRadius:10, padding:"12px 14px" }}>
                             <div style={{ fontWeight:700, fontSize:14, color:"#E8EDF5", marginBottom:3 }}>{r.title}</div>
-                            <div style={{ fontSize:12, color:"#6B7A8D", marginBottom:8 }}>{r.date} Â· {r.duration}</div>
-                            <button style={{ background:cat.color+"22", border:"1px solid "+cat.color+"55", color:cat.color, borderRadius:8, padding:"5px 14px", fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>setActiveRec(r)}>â–¶ Guarda</button>
+                            <div style={{ fontSize:12, color:"#6B7A8D", marginBottom:8 }}>{r.date} · {r.duration}</div>
+                            <button style={{ background:cat.color+"22", border:"1px solid "+cat.color+"55", color:cat.color, borderRadius:8, padding:"5px 14px", fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>setActiveRec(r)}>▶ Guarda</button>
                           </div>
                         ))
                       }
