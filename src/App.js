@@ -2090,7 +2090,39 @@ function StudentPortal({ userData }) {
         {tab==="registrazioni"&&(
           (!data.recordings||data.recordings.length===0)
             ?<EmptyState emoji="⏺" text="Nessuna registrazione." sub="Le sessioni live registrate appariranno qui."/>
-
+            :<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
+              {[
+                { key:"aula", label:"Aule Didattiche", emoji:"ðŸ“š", color:"#B44FFF" },
+                { key:"roleplay", label:"Roleplay", emoji:"ðŸŽ­", color:"#2B6CC4" },
+                { key:"onetoone", label:"One to One", emoji:"ðŸŽ¯", color:"#6DBF3E" },
+                { key:"onboarding", label:"Onboarding / Storage", emoji:"ðŸš€", color:"#FF9500" },
+              ].map(cat => {
+                const recs = (data.recordings||[]).filter(r => (r.tipo||"aula") === cat.key);
+                return (
+                  <div key={cat.key} style={{ background:"#0E1318", border:1px solid 44, borderTop:3px solid , borderRadius:16, overflow:"hidden" }}>
+                    <div style={{ padding:"16px 20px", borderBottom:"1px solid #1C2530", display:"flex", alignItems:"center", gap:10 }}>
+                      <span style={{ fontSize:22 }}>{cat.emoji}</span>
+                      <div>
+                        <div style={{ fontWeight:800, fontSize:15, color:"#E8EDF5" }}>{cat.label}</div>
+                        <div style={{ fontSize:12, color:cat.color }}>{recs.length} {recs.length===1?"registrazione":"registrazioni"}</div>
+                      </div>
+                    </div>
+                    <div style={{ padding:"12px 16px", display:"flex", flexDirection:"column", gap:10, maxHeight:340, overflowY:"auto" }}>
+                      {recs.length===0
+                        ?<div style={{ color:"#6B7A8D", fontSize:13, padding:"8px 0" }}>Nessuna registrazione</div>
+                        :recs.map((r,i)=>(
+                          <div key={i} style={{ background:"#121820", border:1px solid 22, borderRadius:10, padding:"12px 14px" }}>
+                            <div style={{ fontWeight:700, fontSize:14, color:"#E8EDF5", marginBottom:3 }}>{r.title}</div>
+                            <div style={{ fontSize:12, color:"#6B7A8D", marginBottom:8 }}>{r.date} Â· {r.duration}</div>
+                            <button style={{ background:cat.color+"22", border:"1px solid "+cat.color+"55", color:cat.color, borderRadius:8, padding:"5px 14px", fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>setActiveRec(r)}>â–¶ Guarda</button>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
         )}
 
         {/* MATERIALI */}
