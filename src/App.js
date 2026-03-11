@@ -2054,7 +2054,7 @@ function StudentPortal({ userData }) {
         {tab==="sessioni"&&(
           <div>
             <h3 style={{ fontSize:16, fontWeight:800, margin:"0 0 16px", color:C.text }}>📅 Le tue prossime sessioni</h3>
-            <SessioniCalendario email={data.email} uid={uid} packages={data.packages || []} onPackagesUpdated={(pkgs) => { const ref = doc(db, "studenti", uid); setDoc(ref, { packages: pkgs }, { merge: true }); }} />
+            <SessioniCalendario email={data?.email||""} uid={uid} packages={data.packages || []} onPackagesUpdated={(pkgs) => { const ref = doc(db, "studenti", uid); setDoc(ref, { packages: pkgs }, { merge: true }); }} />
             <h3 style={{ fontSize:16, fontWeight:800, margin:"28px 0 16px", color:C.text }}>🎯 I tuoi pacchetti</h3>
           {(!data.packages||data.packages.length===0)
             ?<EmptyState emoji="🎯" text="Nessuna sessione disponibile." sub="Acquista un pacchetto per iniziare."/>
@@ -2135,7 +2135,7 @@ function StudentPortal({ userData }) {
 
         {/* MATERIALI */}
         {tab==="materiali" && <MaterialiStudente uid={uid} moduli={data?.moduli||[]} />}
-        {tab==="strumenti" && <SetupStrumenti studentName={data?.name||""} guideIds={data?.guide||[]} />}}
+        {tab==="strumenti" && <SetupStrumenti studentName={data?.name||""} guideIds={data?.guide||[]} />}
       </main>
 
       {/* ── VIDEO MODAL con player Bunny integrato ── */}
