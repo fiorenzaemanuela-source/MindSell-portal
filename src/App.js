@@ -2380,6 +2380,7 @@ function ChatWidget({ studentUid, studentName }) {
                 <div key={m.id} style={{ display:"flex", justifyContent: m.from === "student" ? "flex-end" : "flex-start" }}>
                   <div style={{ maxWidth:"80%", background: m.from === "student" ? C.purple : C.surface, border:`1px solid ${m.from === "student" ? C.purple+"66" : C.border}`, borderRadius: m.from === "student" ? "16px 16px 4px 16px" : "16px 16px 16px 4px", padding:"10px 14px", fontSize:13, color:C.text, lineHeight:1.4 }}>
                     {m.text}
+                    {m.ts && <div style={{ fontSize:10, color: m.from === "student" ? "rgba(255,255,255,0.5)" : C.muted, marginTop:4, textAlign: m.from === "student" ? "right" : "left" }}>{new Date(m.ts.seconds ? m.ts.seconds*1000 : m.ts).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>}
                   </div>
                 </div>
               ))}
@@ -2911,6 +2912,7 @@ function AdminChat({ selected }) {
                 <div key={m.id} style={{ display:"flex", justifyContent: m.from === "coach" ? "flex-end" : "flex-start" }}>
                   <div style={{ maxWidth:"75%", background: m.from === "coach" ? C.blue : C.surface, border:`1px solid ${m.from === "coach" ? C.blue+"66" : C.border}`, borderRadius: m.from === "coach" ? "16px 16px 4px 16px" : "16px 16px 16px 4px", padding:"10px 14px", fontSize:13, color:C.text, lineHeight:1.4 }}>
                     {m.text}
+                    {m.ts && <div style={{ fontSize:10, color: m.from === "coach" ? "rgba(255,255,255,0.5)" : C.muted, marginTop:4, textAlign: m.from === "coach" ? "right" : "left" }}>{new Date(m.ts.seconds ? m.ts.seconds*1000 : m.ts).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>}
                   </div>
                 </div>
               ))}
