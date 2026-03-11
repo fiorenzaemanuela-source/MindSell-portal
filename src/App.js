@@ -1586,6 +1586,7 @@ function SessioniCalendario({ email, uid, packages = [], onPackagesUpdated }) {
     const t = (title || '').toLowerCase();
     if (t.includes('roleplay')) return 'roleplay';
     if (t.includes('aula')) return 'aula';
+    if (t.includes('onboarding') || t.includes('storage')) return 'onboarding';
     return 'onetoone';
   };
 
@@ -1608,7 +1609,7 @@ function SessioniCalendario({ email, uid, packages = [], onPackagesUpdated }) {
             return dt && new Date(dt) < nowCheck;
           });
           // Conta passate per tipo (basato su titolo evento Calendar)
-          const conteggioPassate = { aula: 0, roleplay: 0, onetoone: 0 };
+          const conteggioPassate = { aula: 0, roleplay: 0, onetoone: 0, onboarding: 0 };
           passate.forEach(e => { conteggioPassate[getType(e.summary)]++; });
 
           console.log('[MindSell] Sessioni totali da Calendar:', all.length);
@@ -1646,6 +1647,7 @@ function SessioniCalendario({ email, uid, packages = [], onPackagesUpdated }) {
     { key: 'aula', label: 'Aule Didattiche', emoji: '📚', color: '#B44FFF' },
     { key: 'roleplay', label: 'Roleplay', emoji: '🎭', color: '#2B6CC4' },
     { key: 'onetoone', label: 'One to One', emoji: '🎯', color: '#6DBF3E' },
+    { key: 'onboarding', label: 'Onboarding / Storage', emoji: '🚀', color: '#FF9500' },
   ];
 
   if (loading) return <div style={{ color: '#6B7A8D', fontSize: 14, padding: 20 }}>⏳ Caricamento sessioni...</div>;
