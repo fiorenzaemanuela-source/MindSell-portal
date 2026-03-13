@@ -456,6 +456,15 @@ export default function AICoach({ userData, uid }) {
     loadCoachData();
   }, [uid]);
 
+  // ── Salva memoria quando si lascia il tab o si chiude la finestra ──────────
+  useEffect(() => {
+    const handleUnload = () => {
+      if (messages.length >= 4) extractAndSaveMemory(messages, activeIntent?.id);
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [messages, activeIntent, extractAndSaveMemory]);
+
   // ── Scroll automatico ─────────────────────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -519,47 +528,57 @@ export default function AICoach({ userData, uid }) {
   }, [uid]);
 
   // ── Aggiorna memoria da JSON_UPDATE ──────────────────────────────────────
-  const applyMemoryUpdate = useCallback(async (update) => {
-    if (!uid || !update) return;
+  // ── Estrai e salva memoria a fine sessione via API dedicata ─────────────
+  const extractAndSaveMemory = useCallback(async (msgs, intentId) => {
+    if (!uid || !msgs || msgs.length < 4) return;
     try {
-      const { patterns_update, linguistic_update } = update;
+      const res = await fetch("/api/coach-memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: msgs, intentId }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.update) return;
 
-      if (patterns_update) {
-        const filtered = Object.fromEntries(
-          Object.entries(patterns_update).filter(([, v]) => v !== null)
-        );
+      const { patterns: p, linguistic: l, insight_coach, session_type } = data.update;
+
+      if (p) {
+        const filtered = Object.fromEntries(Object.entries(p).filter(([, v]) => v !== null));
         if (Object.keys(filtered).length > 0) {
           await setDoc(doc(db, "aiCoach", uid, "memoria", "patterns"), filtered, { merge: true });
           setPatterns(prev => ({ ...(prev || {}), ...filtered }));
         }
       }
 
-      if (linguistic_update) {
+      if (l) {
         const curr = linguistic || {};
         const updates = {};
-        if (linguistic_update.concetto_padroneggiato) {
-          updates.concetti_padroneggiati = [...(curr.concetti_padroneggiati || []), linguistic_update.concetto_padroneggiato];
-        }
-        if (linguistic_update.concetto_parziale) {
-          updates.concetti_parziali = [...(curr.concetti_parziali || []), linguistic_update.concetto_parziale];
-        }
-        if (linguistic_update.errore_concettuale) {
-          updates.errori_concettuali = [...(curr.errori_concettuali || []), linguistic_update.errore_concettuale];
-        }
-        if (linguistic_update.stile_nota) {
-          updates.stile_comunicativo = linguistic_update.stile_nota;
-        }
+        if (l.stile_comunicativo) updates.stile_comunicativo = l.stile_comunicativo;
+        if (l.stile_ragionamento) updates.stile_ragionamento = l.stile_ragionamento;
+        if (l.concetto_padroneggiato) updates.concetti_padroneggiati = [...(curr.concetti_padroneggiati || []), l.concetto_padroneggiato];
+        if (l.concetto_parziale) updates.concetti_parziali = [...(curr.concetti_parziali || []), l.concetto_parziale];
+        if (l.errore_concettuale) updates.errori_concettuali = [...(curr.errori_concettuali || []), l.errore_concettuale];
         if (Object.keys(updates).length > 0) {
           await setDoc(doc(db, "aiCoach", uid, "memoria", "linguistic"), updates, { merge: true });
           setLinguistic(prev => ({ ...(prev || {}), ...updates }));
         }
       }
+
+      if (insight_coach && currentSessionRef.current) {
+        await setDoc(
+          doc(db, "aiCoach", uid, "sessioni", currentSessionRef.current),
+          { insight: insight_coach, session_type },
+          { merge: true }
+        );
+      }
+
     } catch (e) {
-      console.error("Errore aggiornamento memoria:", e);
+      console.error("Errore estrazione memoria:", e);
     }
   }, [uid, linguistic]);
 
-  // ── Seleziona intenzione ──────────────────────────────────────────────────
+  // ── Seleziona intenzione  // ── Seleziona intenzione ──────────────────────────────────────────────────
   const selectIntent = (intent) => {
     setActiveIntent(intent);
     setMessages([{
@@ -572,6 +591,10 @@ export default function AICoach({ userData, uid }) {
 
   // ── Nuova sessione ────────────────────────────────────────────────────────
   const resetChat = () => {
+    // Estrai memoria dalla sessione corrente prima di resettare
+    if (messages.length >= 4) {
+      extractAndSaveMemory(messages, activeIntent?.id);
+    }
     setMessages([]);
     setActiveIntent(null);
     setInput("");
@@ -626,9 +649,7 @@ export default function AICoach({ userData, uid }) {
       const data = await res.json();
       const rawReply = data.content?.[0]?.text || "Risposta non disponibile.";
 
-      // Estrai aggiornamento memoria se presente
-      const { cleanText, update } = extractMemoryUpdate(rawReply);
-      if (update) applyMemoryUpdate(update);
+      const cleanText = rawReply;
 
       setMessages(prev => [...prev, {
         role: "assistant",
