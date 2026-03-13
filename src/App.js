@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 const storage = getStorage();
+import AICoach from "./AICoach";
 
 const ADMIN_EMAIL = "emanuela@mindsell.it";
 
@@ -606,6 +607,11 @@ function AdminPanel({ adminUser }) {
                       <div style={{ position: "absolute", top: 2, left: selected.strumenti ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
                     </div>
                     <span style={{ fontSize: 11, color: selected.strumenti ? C.green : C.muted, fontWeight: 700 }}>{selected.strumenti ? "ON" : "OFF"}</span>
+                    <span style={{ fontSize: 12, color: C.muted, marginLeft: 8 }}>🧠 AI Coach</span>
+                    <div onClick={() => upd(s => s.aiCoach = !s.aiCoach)} style={{ width: 36, height: 20, borderRadius: 10, background: selected.aiCoach ? C.purple : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                      <div style={{ position: "absolute", top: 2, left: selected.aiCoach ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: selected.aiCoach ? C.purple : C.muted, fontWeight: 700 }}>{selected.aiCoach ? "ON" : "OFF"}</span>
                   </div>
                   <input style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 10px", fontSize: 12, color: C.muted, width: 280, outline: "none", fontFamily: "inherit", display: "block", marginTop: 4 }} placeholder="Email" value={selected.email || ""} onChange={e => upd(s => s.email = e.target.value)} title="Modifica email" />
                 </div>
@@ -1939,6 +1945,7 @@ function StudentPortal({ userData }) {
     { id: "registrazioni", label: "Registrazioni", emoji: "⏺" },
     { id: "materiali", label: "Materiali", emoji: "📎" },
     ...((data?.guide?.length > 0 || data?.strumenti) ? [{ id: "strumenti", label: "Strumenti", emoji: "⚙️" }] : []),
+    ...(data?.aiCoach ? [{ id: "coach", label: "AI Coach", emoji: "🧠" }] : []),
   ];
 
   return (
@@ -1979,7 +1986,7 @@ function StudentPortal({ userData }) {
           <div>
             <h2 style={{ fontSize:24, fontWeight:800, margin:0, letterSpacing:"-0.5px" }}>
               {tab==="moduli"&&"I miei Corsi 🧠"}{tab==="sessioni"&&"Le mie Sessioni 🎯"}
-              {tab==="registrazioni"&&"Registrazioni Live ⏺"}{tab==="materiali"&&"Materiali Condivisi 📎"}
+              {tab==="registrazioni"&&"Registrazioni Live ⏺"}{tab==="materiali"&&"Materiali Condivisi 📎"}{tab==="coach"&&"AI Coach 🧠"}
             </h2>
             <p style={{ color:C.muted, fontSize:13, margin:"4px 0 0" }}>{new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
           </div>
@@ -2136,6 +2143,7 @@ function StudentPortal({ userData }) {
         {/* MATERIALI */}
         {tab==="materiali" && <MaterialiStudente uid={uid} moduli={data?.moduli||[]} />}
         {tab==="strumenti" && <SetupStrumenti studentName={data?.name||""} guideIds={data?.guide||[]} />}
+        {tab==="coach" && <AICoach userData={localData} uid={uid} />}
       </main>
 
       {/* ── VIDEO MODAL con player Bunny integrato ── */}
