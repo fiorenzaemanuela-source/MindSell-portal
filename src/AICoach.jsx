@@ -527,7 +527,6 @@ export default function AICoach({ userData, uid }) {
     }
   }, [uid]);
 
-  // ── Aggiorna memoria da JSON_UPDATE ──────────────────────────────────────
   // ── Estrai e salva memoria a fine sessione via API dedicata ─────────────
   const extractAndSaveMemory = useCallback(async (msgs, intentId) => {
     if (!uid || !msgs || msgs.length < 4) return;
