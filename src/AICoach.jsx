@@ -21,8 +21,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { db } from "./firebase";
 import {
-  doc, getDoc, setDoc, collection,
-  addDoc, serverTimestamp, onSnapshot, query, orderBy, limit,
+  doc, getDoc, setDoc, collection, getDocs,
+  addDoc, serverTimestamp, onSnapshot, query, orderBy, limit, where,
 } from "firebase/firestore";
 
 // ── Design system — identico ad App.js ───────────────────────────────────────
@@ -86,8 +86,71 @@ const INTENTS = [
   },
 ];
 
+// ── Ricerca lezioni rilevanti per RAG ────────────────────────────────────────
+async function searchRelevantLessons(db, userModuli, userMessage, intentHint) {
+  try {
+    // Estrai numeri moduli completati (almeno una lezione con progress 100)
+    const moduliCompletati = new Set();
+    for (const modulo of (userModuli || [])) {
+      const titleMatch = modulo.title?.match(/modulo\s*(\d+)/i);
+      if (!titleMatch) continue;
+      const moduloNum = parseInt(titleMatch[1]);
+      const hasCompleted = modulo.videolezioni?.some(v => v.progress === 100);
+      if (hasCompleted) moduliCompletati.add(moduloNum);
+    }
+
+    if (moduliCompletati.size === 0) return [];
+
+    // Recupera lezioni dei moduli completati
+    const lessonsRef = collection(db, "courses", "percorso-vendita", "lessons");
+    const snap = await getDocs(lessonsRef);
+    const lessons = [];
+    snap.forEach(d => {
+      const data = d.data();
+      if (moduliCompletati.has(data.modulo_num)) lessons.push(data);
+    });
+
+    if (lessons.length === 0) return [];
+
+    // Calcola rilevanza per messaggio + intent
+    const queryWords = (userMessage + " " + intentHint).toLowerCase()
+      .match(/\b[a-zàèéìòùì]{4,}\b/g) || [];
+
+    const scored = lessons.map(lesson => {
+      let score = 0;
+      const allText = (lesson.titolo + " " + lesson.tags?.join(" ") + " " + lesson.parole_chiave?.join(" ")).toLowerCase();
+      for (const word of queryWords) {
+        if (allText.includes(word)) score += 2;
+      }
+      // Bonus per tag che matchano l'intent
+      const intentTagMap = {
+        "trattativa": ["chiusura", "negoziazione", "figure-decisionali", "obiezioni"],
+        "pitch": ["pitch", "script-vendita", "valore", "analisi-bisogni"],
+        "followup": ["follow-up", "fiducia", "rapport"],
+        "kpi": ["kpi", "obiettivi", "crescita"],
+        "roleplay": ["obiezioni", "tecniche-domande", "chiusura", "neurochimica"],
+      };
+      const intentTags = intentTagMap[intentHint] || [];
+      for (const tag of (lesson.tags || [])) {
+        if (intentTags.includes(tag)) score += 3;
+      }
+      return { ...lesson, score };
+    });
+
+    // Ritorna top 3 più rilevanti con score > 0
+    return scored
+      .filter(l => l.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+  } catch (e) {
+    console.error("Errore ricerca lezioni:", e);
+    return [];
+  }
+}
+
 // ── Costruisce il system prompt dinamico ──────────────────────────────────────
-function buildSystemPrompt(intentHint, userData, patterns, linguistic, sessionCount) {
+function buildSystemPrompt(intentHint, userData, patterns, linguistic, sessionCount, lessonsContext = []) {
   const name = userData?.name || "lo studente";
   const firstName = name.split(" ")[0];
   const moduli = (userData?.moduli || []).map(m => m.title).filter(Boolean);
@@ -304,6 +367,17 @@ Alla fine di ogni sessione significativa, se emergono dati rilevanti, includi al
 
 Compila solo i campi rilevanti per questa sessione. Lascia null quelli senza dati sufficienti.`;
 
+  // ── Blocco lezioni rilevanti (RAG) ────────────────────────────────────────
+  const blocco_lezioni = lessonsContext.length > 0 ? `
+LEZIONI COMPLETATE RILEVANTI PER QUESTA SESSIONE:
+Queste sono lezioni che ${firstName} ha già studiato e che sono pertinenti alla sua domanda.
+Usale per collegare i tuoi consigli ai framework specifici che ha imparato.
+
+${lessonsContext.map((l, i) => `[Lezione ${i+1}: ${l.titolo} — Modulo ${l.modulo_num}]
+${l.corpo.slice(0, 800)}...`).join("\n\n")}
+
+IMPORTANTE: Quando citi un concetto da queste lezioni, fai riferimento esplicito alla lezione ("come hai visto nella lezione su X...") per rinforzare l'apprendimento.` : "";
+
   return [
     blocco_identita,
     blocco_profilo,
@@ -311,6 +385,7 @@ Compila solo i campi rilevanti per questa sessione. Lascia null quelli senza dat
     blocco_framework_ai,
     blocco_patterns,
     blocco_linguistic,
+    blocco_lezioni,
     blocco_confini,
     intentBlocks[intentHint] || "",
     blocco_memoria,
@@ -622,12 +697,21 @@ export default function AICoach({ userData, uid }) {
     }
 
     try {
+      // Cerca lezioni rilevanti (RAG)
+      const relevantLessons = await searchRelevantLessons(
+        db,
+        userData?.moduli,
+        input,
+        activeIntent?.systemHint || "libera"
+      );
+
       const systemPrompt = buildSystemPrompt(
         activeIntent?.systemHint || "libera",
         userData,
         patterns,
         linguistic,
-        sessionCount
+        sessionCount,
+        relevantLessons
       );
 
       const apiMessages = newMessages.map(m => ({
