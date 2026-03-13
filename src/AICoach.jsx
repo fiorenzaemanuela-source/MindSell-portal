@@ -456,15 +456,6 @@ export default function AICoach({ userData, uid }) {
     loadCoachData();
   }, [uid]);
 
-  // ── Salva memoria quando si lascia il tab o si chiude la finestra ──────────
-  useEffect(() => {
-    const handleUnload = () => {
-      if (messages.length >= 4) extractAndSaveMemory(messages, activeIntent?.id);
-    };
-    window.addEventListener("beforeunload", handleUnload);
-    return () => window.removeEventListener("beforeunload", handleUnload);
-  }, [messages, activeIntent, extractAndSaveMemory]);
-
   // ── Scroll automatico ─────────────────────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -576,6 +567,15 @@ export default function AICoach({ userData, uid }) {
       console.error("Errore estrazione memoria:", e);
     }
   }, [uid, linguistic]);
+
+  // ── Salva memoria quando si lascia il tab o si chiude la finestra ──────────
+  useEffect(() => {
+    const handleUnload = () => {
+      if (messages.length >= 4) extractAndSaveMemory(messages, activeIntent?.id);
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [messages, activeIntent, extractAndSaveMemory]);
 
   // ── Seleziona intenzione  // ── Seleziona intenzione ──────────────────────────────────────────────────
   const selectIntent = (intent) => {
