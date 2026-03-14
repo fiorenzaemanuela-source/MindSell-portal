@@ -150,7 +150,7 @@ async function searchRelevantLessons(db, userModuli, userMessage, intentHint) {
 }
 
 // ── Costruisce il system prompt dinamico ──────────────────────────────────────
-function buildSystemPrompt(intentHint, userData, patterns, linguistic, sessionCount, lessonsContext = []) {
+function buildSystemPrompt(intentHint, userData, patterns, linguistic, sessionCount, lessonsContext = [], roleplayInsights = null) {
   const name = userData?.name || "lo studente";
   const firstName = name.split(" ")[0];
   const moduli = (userData?.moduli || []).map(m => m.title).filter(Boolean);
@@ -262,6 +262,30 @@ ${linguistic.concetti_parziali?.length ? `- Concetti da rafforzare: ${linguistic
 ${linguistic.errori_concettuali?.length ? `- Errori concettuali attivi: ${linguistic.errori_concettuali.join(", ")}` : ""}
 
 Usa questi dati per calibrare il tono, gli esempi e la profondità. Se ha già padroneggiato un concetto, non rispiegarlo — vai oltre.` : "";
+
+  // ── Blocco 5b: Insight Roleplay ────────────────────────────────────────────
+  const hasRoleplay = roleplayInsights && roleplayInsights.length > 0;
+  const blocco_roleplay = hasRoleplay ? (() => {
+    const recenti = roleplayInsights.slice(0, 3);
+    const tuttiPuntiForza = [...new Set(recenti.flatMap(r => r.punti_di_forza || []))].slice(0, 3);
+    const tuttiErrori = [...new Set(recenti.flatMap(r => r.errori_ricorrenti || []))].slice(0, 3);
+    const tutteObiezioni = [...new Set(recenti.flatMap(r => r.obiezioni_non_gestite || []))].slice(0, 3);
+    const tuttiConcetti = [...new Set(recenti.flatMap(r => r.concetti_da_rinforzare || []))].slice(0, 3);
+    const ultimaRacc = recenti[0]?.raccomandazione_coach || "";
+    return `
+ANALISI DALLE SESSIONI REALI DI ${firstName.toUpperCase()} (da trascrizioni roleplay):
+${tuttiPuntiForza.length ? `PUNTI DI FORZA OSSERVATI:
+${tuttiPuntiForza.map(p => `- ${p}`).join("\n")}` : ""}
+${tuttiErrori.length ? `\nERRORI RICORRENTI OSSERVATI:
+${tuttiErrori.map(p => `- ${p}`).join("\n")}` : ""}
+${tutteObiezioni.length ? `\nOBIEZIONI CHE NON SA ANCORA GESTIRE:
+${tutteObiezioni.map(p => `- ${p}`).join("\n")}` : ""}
+${tuttiConcetti.length ? `\nCONCETTI DA RINFORZARE:
+${tuttiConcetti.map(p => `- ${p}`).join("\n")}` : ""}
+${ultimaRacc ? `\nFOCUS ATTUALE: ${ultimaRacc}` : ""}
+
+Usa questi dati per personalizzare ogni risposta. Quando vedi un errore ricorrente emergere nella conversazione, affrontalo direttamente.`;
+  })() : "";
 
   // ── Blocco 6: Confini ─────────────────────────────────────────────────────
   const blocco_confini = `
@@ -385,6 +409,7 @@ IMPORTANTE: Quando citi un concetto da queste lezioni, fai riferimento esplicito
     blocco_framework_ai,
     blocco_patterns,
     blocco_linguistic,
+    blocco_roleplay,
     blocco_lezioni,
     blocco_confini,
     intentBlocks[intentHint] || "",
@@ -481,6 +506,7 @@ export default function AICoach({ userData, uid }) {
   const [activeIntent, setActiveIntent] = useState(null);
   const [patterns, setPatterns] = useState(null);
   const [linguistic, setLinguistic] = useState(null);
+  const [roleplayInsights, setRoleplayInsights] = useState(null);
   const [sessionCount, setSessionCount] = useState(0);
   const [recentSessions, setRecentSessions] = useState([]);
   const [isFirstSession, setIsFirstSession] = useState(false);
@@ -513,6 +539,10 @@ export default function AICoach({ userData, uid }) {
         } else {
           setIsFirstSession(true);
         }
+
+        // Analisi roleplay
+        const rpSnap = await getDoc(doc(db, "aiCoach", uid, "memoria", "roleplay"));
+        if (rpSnap.exists()) setRoleplayInsights(rpSnap.data().analisi || []);
 
         // Sessioni recenti
         const sessionsRef = collection(db, "aiCoach", uid, "sessioni");
@@ -711,7 +741,8 @@ export default function AICoach({ userData, uid }) {
         patterns,
         linguistic,
         sessionCount,
-        relevantLessons
+        relevantLessons,
+        roleplayInsights
       );
 
       const apiMessages = newMessages.map(m => ({
