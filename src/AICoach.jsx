@@ -516,6 +516,7 @@ export default function AICoach({ userData, uid }) {
   const [patterns, setPatterns] = useState(null);
   const [linguistic, setLinguistic] = useState(null);
   const [roleplayInsights, setRoleplayInsights] = useState(null);
+  const [roleplayProgressione, setRoleplayProgressione] = useState(null);
   const [sessionCount, setSessionCount] = useState(0);
   const [recentSessions, setRecentSessions] = useState([]);
   const [isFirstSession, setIsFirstSession] = useState(false);
@@ -551,7 +552,10 @@ export default function AICoach({ userData, uid }) {
 
         // Analisi roleplay
         const rpSnap = await getDoc(doc(db, "aiCoach", uid, "memoria", "roleplay"));
-        if (rpSnap.exists()) setRoleplayInsights(rpSnap.data().analisi || []);
+        if (rpSnap.exists()) {
+          setRoleplayInsights(rpSnap.data().analisi || []);
+          setRoleplayProgressione(rpSnap.data().progressione || null);
+        }
 
         // Sessioni recenti
         const sessionsRef = collection(db, "aiCoach", uid, "sessioni");
