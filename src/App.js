@@ -287,6 +287,12 @@ function RoleplayAnalisiList({ uid }) {
                   {a.errori_ricorrenti.map((p, j) => <div key={j} style={{ fontSize: 12, color: CP.text, marginBottom: 4, paddingLeft: 8 }}>• {p}</div>)}
                 </div>
               )}
+              {a.criticita_sessione?.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#ff4757", marginBottom: 6 }}>🎯 CRITICITÀ RILEVATE</div>
+                  {a.criticita_sessione.map((p, j) => <div key={j} style={{ fontSize: 12, color: CP.text, marginBottom: 4, paddingLeft: 8, borderLeft: "2px solid #ff475744", paddingLeft: 10 }}>• {p}</div>)}
+                </div>
+              )}
               {a.obiezioni_non_gestite?.length > 0 && (
                 <div style={{ marginTop: 12 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#E67E22", marginBottom: 6 }}>🥊 OBIEZIONI NON GESTITE</div>

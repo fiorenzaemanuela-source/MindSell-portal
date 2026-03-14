@@ -87,6 +87,11 @@ Schema JSON esatto:
   }
 }
 
+REGOLE criticita_sessione:
+- Identifica i momenti PRECISI in cui la comunicazione ha fallito o il risultato è stato compromesso
+- Non confondere con errori generici — deve essere una criticità concreta e specifica di questa sessione
+- Massimo 3 elementi, solo se evidenti dalla trascrizione
+
 REGOLE score_aree:
 - Valuta ogni area da 0 a 100 basandoti SOLO su evidenze nella trascrizione
 - 0-30: area critica con errori frequenti
