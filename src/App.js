@@ -164,10 +164,10 @@ function LoginPage() {
 
 // ═══════════════════════════════════════════════════════════════
 function RoleplayAnalisiList({ uid }) {
-  const [analisi, setAnalisi] = React.useState([]);
-  const [expanded, setExpanded] = React.useState(null);
+  const [analisi, setAnalisi] = useState([]);
+  const [expanded, setExpanded] = useState(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!uid) return;
     import("./firebase").then(({ db }) => {
       import("firebase/firestore").then(({ doc, onSnapshot }) => {
