@@ -265,27 +265,36 @@ Usa questi dati per calibrare il tono, gli esempi e la profondità. Se ha già p
 
   // ── Blocco 5b: Insight Roleplay ────────────────────────────────────────────
   const hasRoleplay = roleplayInsights && roleplayInsights.length > 0;
-  const blocco_roleplay = hasRoleplay ? (() => {
-    const recenti = roleplayInsights.slice(0, 3);
-    const tuttiPuntiForza = [...new Set(recenti.flatMap(r => r.punti_di_forza || []))].slice(0, 3);
-    const tuttiErrori = [...new Set(recenti.flatMap(r => r.errori_ricorrenti || []))].slice(0, 3);
-    const tutteObiezioni = [...new Set(recenti.flatMap(r => r.obiezioni_non_gestite || []))].slice(0, 3);
-    const tuttiConcetti = [...new Set(recenti.flatMap(r => r.concetti_da_rinforzare || []))].slice(0, 3);
-    const ultimaRacc = recenti[0]?.raccomandazione_coach || "";
-    return `
-ANALISI DALLE SESSIONI REALI DI ${firstName.toUpperCase()} (da trascrizioni roleplay):
-${tuttiPuntiForza.length ? `PUNTI DI FORZA OSSERVATI:
-${tuttiPuntiForza.map(p => `- ${p}`).join("\n")}` : ""}
-${tuttiErrori.length ? `\nERRORI RICORRENTI OSSERVATI:
-${tuttiErrori.map(p => `- ${p}`).join("\n")}` : ""}
-${tutteObiezioni.length ? `\nOBIEZIONI CHE NON SA ANCORA GESTIRE:
-${tutteObiezioni.map(p => `- ${p}`).join("\n")}` : ""}
-${tuttiConcetti.length ? `\nCONCETTI DA RINFORZARE:
-${tuttiConcetti.map(p => `- ${p}`).join("\n")}` : ""}
-${ultimaRacc ? `\nFOCUS ATTUALE: ${ultimaRacc}` : ""}
-
-Usa questi dati per personalizzare ogni risposta. Quando vedi un errore ricorrente emergere nella conversazione, affrontalo direttamente.`;
-  })() : "";
+  const blocco_roleplay = (() => {
+    const parti = [];
+    if (hasRoleplay) {
+      const recenti = roleplayInsights.slice(0, 3);
+      const tuttiPuntiForza = [...new Set(recenti.flatMap(r => r.punti_di_forza || []))].slice(0, 3);
+      const tuttiErrori = [...new Set(recenti.flatMap(r => r.errori_ricorrenti || []))].slice(0, 3);
+      const tutteObiezioni = [...new Set(recenti.flatMap(r => r.obiezioni_non_gestite || []))].slice(0, 3);
+      const tuttiConcetti = [...new Set(recenti.flatMap(r => r.concetti_da_rinforzare || []))].slice(0, 3);
+      parti.push(`ANALISI DALLE SESSIONI REALI DI ${firstName.toUpperCase()} (da trascrizioni roleplay):`);
+      if (tuttiPuntiForza.length) parti.push(`PUNTI DI FORZA:\n${tuttiPuntiForza.map(p => `- ${p}`).join("\n")}`);
+      if (tuttiErrori.length) parti.push(`ERRORI RICORRENTI:\n${tuttiErrori.map(p => `- ${p}`).join("\n")}`);
+      if (tutteObiezioni.length) parti.push(`OBIEZIONI NON GESTITE:\n${tutteObiezioni.map(p => `- ${p}`).join("\n")}`);
+      if (tuttiConcetti.length) parti.push(`CONCETTI DA RINFORZARE:\n${tuttiConcetti.map(p => `- ${p}`).join("\n")}`);
+    }
+    if (roleplayProgressione) {
+      const p = roleplayProgressione;
+      if (p.errori_persistenti?.length) parti.push(`ERRORI PERSISTENTI (presenti in più sessioni):\n${p.errori_persistenti.map(e => `- ${e}`).join("\n")}`);
+      if (p.errori_superati?.length) parti.push(`ERRORI GIÀ SUPERATI (non ripetere correzioni su questi):\n${p.errori_superati.map(e => `- ${e}`).join("\n")}`);
+      if (p.gap_teoria_pratica?.length) parti.push(`GAP TEORIA→PRATICA:\n${p.gap_teoria_pratica.map(e => `- ${e}`).join("\n")}`);
+      if (p.transfer_riuscito?.length) parti.push(`TRANSFER RIUSCITO:\n${p.transfer_riuscito.map(e => `- ${e}`).join("\n")}`);
+      if (p.focus_attuale) parti.push(`FOCUS ATTUALE: ${p.focus_attuale}`);
+      if (p.score_aree) {
+        const AREE_L = { chiusura: "Chiusura", gestione_obiezioni: "Obiezioni", rapport: "Rapport", struttura_pitch: "Pitch", ascolto_attivo: "Ascolto" };
+        const scores = Object.entries(p.score_aree).map(([k, v]) => `${AREE_L[k] || k}: ${v.score}/100 ${v.trend}`).join(", ");
+        parti.push(`SCORE: ${scores}`);
+      }
+    }
+    if (parti.length === 0) return "";
+    return "\n" + parti.join("\n\n") + "\n\nUsa questi dati per personalizzare ogni risposta. Affronta gli errori persistenti. Non rispiegare ciò che ha già superato.";
+  })();
 
   // ── Blocco 6: Confini ─────────────────────────────────────────────────────
   const blocco_confini = `
@@ -901,6 +910,30 @@ export default function AICoach({ userData, uid }) {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Traguardi studente */}
+        {roleplayProgressione?.traguardi?.length > 0 && (
+          <div style={{ background: C.card, border: `1px solid ${C.purple}44`, borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}` }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.purple, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                🏆 I tuoi traguardi
+              </span>
+            </div>
+            <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
+              {roleplayProgressione.traguardi.slice(0, 5).map((t, i) => (
+                <div key={i} style={{ padding: "8px 10px", borderRadius: 8, background: C.surface }}>
+                  <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>✓ {t.titolo}</div>
+                  {t.data && <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{new Date(t.data).toLocaleDateString("it-IT")}</div>}
+                </div>
+              ))}
+              {roleplayProgressione.messaggio_studente && (
+                <div style={{ padding: "8px 10px", borderRadius: 8, background: C.purple + "11", marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: C.purple, fontStyle: "italic" }}>{roleplayProgressione.messaggio_studente}</div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
