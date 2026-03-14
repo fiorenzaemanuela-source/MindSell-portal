@@ -165,6 +165,7 @@ function LoginPage() {
 // ═══════════════════════════════════════════════════════════════
 function RoleplayAnalisiList({ uid }) {
   const [analisi, setAnalisi] = useState([]);
+  const [progressione, setProgressione] = useState(null);
   const [expanded, setExpanded] = useState(null);
 
   useEffect(() => {
@@ -173,8 +174,13 @@ function RoleplayAnalisiList({ uid }) {
       import("firebase/firestore").then(({ doc, onSnapshot }) => {
         const ref = doc(db, "aiCoach", uid, "memoria", "roleplay");
         onSnapshot(ref, snap => {
-          if (snap.exists()) setAnalisi(snap.data().analisi || []);
-          else setAnalisi([]);
+          if (snap.exists()) {
+            setAnalisi(snap.data().analisi || []);
+            setProgressione(snap.data().progressione || null);
+          } else {
+            setAnalisi([]);
+            setProgressione(null);
+          }
         });
       });
     });
@@ -184,10 +190,77 @@ function RoleplayAnalisiList({ uid }) {
     <div style={{ fontSize: 13, color: "#6B7A8D", fontStyle: "italic" }}>Nessuna analisi roleplay ancora. Incolla un URL sopra per iniziare.</div>
   );
 
-  const CP = { purple: "#B44FFF", border: "#1C2530", text: "#E8EDF5", muted: "#6B7A8D", green: "#6DBF3E", surface: "#0E1318" };
+  const CP = { purple: "#B44FFF", border: "#1C2530", text: "#E8EDF5", muted: "#6B7A8D", green: "#6DBF3E", surface: "#0E1318", orange: "#E67E22", red: "#ff6b6b" };
+  const AREE_LABELS = { chiusura: "Chiusura", gestione_obiezioni: "Obiezioni", rapport: "Rapport", struttura_pitch: "Pitch", ascolto_attivo: "Ascolto" };
+  const TREND_COLOR = { "↑": CP.green, "↓": CP.red, "→": CP.muted };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+      {/* PANNELLO PROGRESSIONE */}
+      {progressione && progressione.score_aree && (
+        <div style={{ background: CP.surface, border: `1px solid ${CP.purple}44`, borderRadius: 12, padding: "16px 20px", marginBottom: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: CP.purple, marginBottom: 12 }}>📈 Progressione attuale</div>
+
+          {/* Score per area */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+            {Object.entries(progressione.score_aree).map(([area, val]) => (
+              <div key={area} style={{ background: "#0E1318", border: `1px solid ${CP.border}`, borderRadius: 8, padding: "8px 12px", minWidth: 100 }}>
+                <div style={{ fontSize: 11, color: CP.muted, marginBottom: 4 }}>{AREE_LABELS[area] || area}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: val.score >= 70 ? CP.green : val.score >= 40 ? CP.orange : CP.red }}>{val.score}</div>
+                  <div style={{ fontSize: 16, color: TREND_COLOR[val.trend] || CP.muted }}>{val.trend}</div>
+                  {val.variazione !== 0 && <div style={{ fontSize: 10, color: val.variazione > 0 ? CP.green : CP.red }}>{val.variazione > 0 ? "+" : ""}{val.variazione}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Focus attuale */}
+          {progressione.focus_attuale && (
+            <div style={{ background: CP.purple + "11", borderRadius: 8, padding: "8px 12px", marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: CP.purple, marginBottom: 3 }}>🎯 FOCUS ATTUALE</div>
+              <div style={{ fontSize: 12, color: CP.text }}>{progressione.focus_attuale}</div>
+            </div>
+          )}
+
+          {/* Errori superati */}
+          {progressione.errori_superati?.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: CP.green, marginBottom: 4 }}>✅ ERRORI SUPERATI</div>
+              {progressione.errori_superati.map((e, i) => <div key={i} style={{ fontSize: 11, color: CP.text, paddingLeft: 8, marginBottom: 2 }}>• {e}</div>)}
+            </div>
+          )}
+
+          {/* Errori persistenti */}
+          {progressione.errori_persistenti?.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: CP.red, marginBottom: 4 }}>⚠️ ERRORI PERSISTENTI</div>
+              {progressione.errori_persistenti.map((e, i) => <div key={i} style={{ fontSize: 11, color: CP.text, paddingLeft: 8, marginBottom: 2 }}>• {e}</div>)}
+            </div>
+          )}
+
+          {/* Gap teoria/pratica */}
+          {progressione.gap_teoria_pratica?.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: CP.orange, marginBottom: 4 }}>📚 GAP TEORIA → PRATICA</div>
+              {progressione.gap_teoria_pratica.map((e, i) => <div key={i} style={{ fontSize: 11, color: CP.text, paddingLeft: 8, marginBottom: 2 }}>• {e}</div>)}
+            </div>
+          )}
+
+          {/* Traguardi */}
+          {progressione.traguardi?.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: CP.muted, marginBottom: 4 }}>🏆 TRAGUARDI ({progressione.traguardi.length})</div>
+              {progressione.traguardi.slice(0, 3).map((t, i) => (
+                <div key={i} style={{ fontSize: 11, color: CP.text, paddingLeft: 8, marginBottom: 2 }}>
+                  • {t.titolo} <span style={{ color: CP.muted }}>({t.data ? new Date(t.data).toLocaleDateString("it-IT") : ""})</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {analisi.map((a, i) => (
         <div key={i} style={{ background: CP.surface, border: `1px solid ${CP.border}`, borderRadius: 12, overflow: "hidden" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", cursor: "pointer" }} onClick={() => setExpanded(expanded === i ? null : i)}>
@@ -984,25 +1057,65 @@ function AdminPanel({ adminUser }) {
                 setRoleplayLoading(true);
                 setRoleplayError("");
                 try {
-                  const res = await fetch("/api/analyze-roleplay", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ docUrl: roleplayUrl }),
-                  });
-                  const data = await res.json();
-                  if (!res.ok || data.error) throw new Error(data.error || "Errore API");
-
-                  // Salva su Firestore
+                  // Leggi dati esistenti per analisi comparativa
                   const { db } = await import("./firebase");
                   const { doc, setDoc, getDoc, serverTimestamp } = await import("firebase/firestore");
                   const roleplayRef = doc(db, "aiCoach", selected.uid, "memoria", "roleplay");
                   const existing = await getDoc(roleplayRef);
-                  const analisi = existing.exists() ? (existing.data().analisi || []) : [];
-                  analisi.unshift({ ...data.analisi, doc_id: data.doc_id });
-                  await setDoc(roleplayRef, { analisi, aggiornato_il: serverTimestamp() });
+                  const analisiEsistenti = existing.exists() ? (existing.data().analisi || []) : [];
+
+                  // Moduli completati dello studente
+                  const moduliCompletati = (selected.moduli || [])
+                    .filter(m => m.videolezioni?.some(v => v.progress === 100))
+                    .map(m => m.title);
+
+                  const res = await fetch("/api/analyze-roleplay", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      docUrl: roleplayUrl,
+                      analisiPrecedenti: analisiEsistenti.slice(0, 3),
+                      moduliCompletati,
+                    }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok || data.error) throw new Error(data.error || "Errore API");
+
+                  // Salva analisi
+                  const nuovaAnalisi = { ...data.analisi, doc_id: data.doc_id };
+                  analisiEsistenti.unshift(nuovaAnalisi);
+
+                  // Costruisci/aggiorna progressione
+                  const progressioneAggiornata = data.progressione ? {
+                    ...( existing.exists() ? (existing.data().progressione || {}) : {} ),
+                    score_aree: data.progressione.score_progressione,
+                    errori_superati: [
+                      ...( existing.exists() ? (existing.data().progressione?.errori_superati || []) : [] ),
+                      ...(data.progressione.errori_superati || [])
+                    ].filter((v, i, a) => a.indexOf(v) === i).slice(0, 10),
+                    errori_persistenti: data.progressione.errori_persistenti || [],
+                    traguardi: [
+                      ...( existing.exists() ? (existing.data().progressione?.traguardi || []) : [] ),
+                      ...(data.progressione.traguardi_raggiunti || []).map(t => ({
+                        ...t,
+                        data: new Date().toISOString()
+                      }))
+                    ].slice(0, 20),
+                    focus_attuale: data.progressione.focus_prossima_sessione || "",
+                    messaggio_studente: data.progressione.messaggio_studente || "",
+                    gap_teoria_pratica: data.progressione.gap_teoria_pratica || [],
+                    transfer_riuscito: data.progressione.transfer_riuscito || [],
+                    ultima_comparativa: new Date().toISOString(),
+                  } : (existing.exists() ? existing.data().progressione : null);
+
+                  await setDoc(roleplayRef, {
+                    analisi: analisiEsistenti,
+                    progressione: progressioneAggiornata,
+                    aggiornato_il: serverTimestamp(),
+                  });
 
                   setRoleplayUrl("");
-                  alert("✅ Analisi completata e salvata!");
+                  alert("✅ Analisi completata e salvata!" + (data.progressione ? "\n📈 Progressione aggiornata." : ""));
                 } catch (err) {
                   setRoleplayError("Errore: " + err.message);
                 } finally {
