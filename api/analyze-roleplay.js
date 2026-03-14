@@ -41,7 +41,20 @@ async function callAnthropic(apiKey, system, user, maxTokens = 2000) {
   });
   const data = await response.json();
   const raw = data.content?.[0]?.text || "";
-  return JSON.parse(raw.replace(/```json|```/g, "").trim());
+  // Pulizia robusta: rimuovi backtick, estrai solo il JSON
+  let clean = raw.replace(/```json|```/g, "").trim();
+  // Trova il primo { e l'ultimo } per estrarre solo il JSON
+  const firstBrace = clean.indexOf("{");
+  const lastBrace = clean.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1) {
+    clean = clean.slice(firstBrace, lastBrace + 1);
+  }
+  try {
+    return JSON.parse(clean);
+  } catch(e) {
+    console.error("JSON parse error:", e.message, "Raw:", raw.slice(0, 200));
+    throw new Error("Risposta AI non valida: " + e.message);
+  }
 }
 
 // ── Analisi singola sessione ──────────────────────────────────────────────────
