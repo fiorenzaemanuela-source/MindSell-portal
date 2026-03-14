@@ -163,6 +163,83 @@ function LoginPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+function RoleplayAnalisiList({ uid }) {
+  const [analisi, setAnalisi] = React.useState([]);
+  const [expanded, setExpanded] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!uid) return;
+    import("./firebase").then(({ db }) => {
+      import("firebase/firestore").then(({ doc, onSnapshot }) => {
+        const ref = doc(db, "aiCoach", uid, "memoria", "roleplay");
+        onSnapshot(ref, snap => {
+          if (snap.exists()) setAnalisi(snap.data().analisi || []);
+          else setAnalisi([]);
+        });
+      });
+    });
+  }, [uid]);
+
+  if (analisi.length === 0) return (
+    <div style={{ fontSize: 13, color: "#6B7A8D", fontStyle: "italic" }}>Nessuna analisi roleplay ancora. Incolla un URL sopra per iniziare.</div>
+  );
+
+  const CP = { purple: "#B44FFF", border: "#1C2530", text: "#E8EDF5", muted: "#6B7A8D", green: "#6DBF3E", surface: "#0E1318" };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {analisi.map((a, i) => (
+        <div key={i} style={{ background: CP.surface, border: `1px solid ${CP.border}`, borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", cursor: "pointer" }} onClick={() => setExpanded(expanded === i ? null : i)}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 13, color: CP.text }}>{a.titolo || "Roleplay " + (i+1)}</div>
+              <div style={{ fontSize: 11, color: CP.muted, marginTop: 2 }}>{a.contesto}</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ fontSize: 11, color: CP.muted }}>{a.data_analisi ? new Date(a.data_analisi).toLocaleDateString("it-IT") : ""}</div>
+              <div style={{ color: CP.muted }}>{expanded === i ? "▲" : "▼"}</div>
+            </div>
+          </div>
+          {expanded === i && (
+            <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${CP.border}` }}>
+              {a.punti_di_forza?.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: CP.green, marginBottom: 6 }}>✅ PUNTI DI FORZA</div>
+                  {a.punti_di_forza.map((p, j) => <div key={j} style={{ fontSize: 12, color: CP.text, marginBottom: 4, paddingLeft: 8 }}>• {p}</div>)}
+                </div>
+              )}
+              {a.errori_ricorrenti?.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#ff6b6b", marginBottom: 6 }}>⚠️ ERRORI RICORRENTI</div>
+                  {a.errori_ricorrenti.map((p, j) => <div key={j} style={{ fontSize: 12, color: CP.text, marginBottom: 4, paddingLeft: 8 }}>• {p}</div>)}
+                </div>
+              )}
+              {a.obiezioni_non_gestite?.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#E67E22", marginBottom: 6 }}>🥊 OBIEZIONI NON GESTITE</div>
+                  {a.obiezioni_non_gestite.map((p, j) => <div key={j} style={{ fontSize: 12, color: CP.text, marginBottom: 4, paddingLeft: 8 }}>• {p}</div>)}
+                </div>
+              )}
+              {a.concetti_da_rinforzare?.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: CP.purple, marginBottom: 6 }}>📚 CONCETTI DA RINFORZARE</div>
+                  {a.concetti_da_rinforzare.map((p, j) => <div key={j} style={{ fontSize: 12, color: CP.text, marginBottom: 4, paddingLeft: 8 }}>• {p}</div>)}
+                </div>
+              )}
+              {a.raccomandazione_coach && (
+                <div style={{ marginTop: 12, background: CP.purple + "11", border: `1px solid ${CP.purple}33`, borderRadius: 8, padding: "10px 14px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: CP.purple, marginBottom: 4 }}>🎯 RACCOMANDAZIONE COACH</div>
+                  <div style={{ fontSize: 12, color: CP.text }}>{a.raccomandazione_coach}</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ADMIN PANEL
 // ═══════════════════════════════════════════════════════════════
 function AdminPanel({ adminUser }) {
