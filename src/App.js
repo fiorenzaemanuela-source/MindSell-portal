@@ -200,6 +200,9 @@ function AdminPanel({ adminUser }) {
   const [modalRec, setModalRec] = useState(false);
   const [modalContent, setModalContent] = useState(false);
   const [modalPromo, setModalPromo] = useState(false);
+  const [roleplayUrl, setRoleplayUrl] = useState("");
+  const [roleplayLoading, setRoleplayLoading] = useState(false);
+  const [roleplayError, setRoleplayError] = useState("");
   const [fPromo, setFPromo] = useState({ title: "", desc: "", price: "", badge: "", color: C.green, evergreen: true, scadenza: "" });
 
   const [fStudent, setFStudent] = useState({ name: "", email: "", password: "", plan: "" });
@@ -881,6 +884,64 @@ function AdminPanel({ adminUser }) {
           </>
         )}
       </div>
+
+      {/* SEZIONE ROLEPLAY AI COACH */}
+      {selected && selected.aiCoach && (
+        <div style={{ background: C.card, borderRadius: 16, padding: "24px 28px", marginBottom: 24, border: `1px solid ${C.purple}44` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>🧠 Analisi Roleplay — AI Coach</div>
+          </div>
+
+          {/* Form aggiunta trascrizione */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+            <input
+              style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", fontSize: 13, color: C.text, outline: "none", fontFamily: "inherit" }}
+              placeholder="Incolla URL Google Doc trascrizione roleplay..."
+              value={roleplayUrl}
+              onChange={e => { setRoleplayUrl(e.target.value); setRoleplayError(""); }}
+            />
+            <button
+              style={{ ...btn(C.purple), opacity: roleplayLoading ? 0.6 : 1, cursor: roleplayLoading ? "wait" : "pointer", whiteSpace: "nowrap" }}
+              disabled={roleplayLoading || !roleplayUrl.trim()}
+              onClick={async () => {
+                setRoleplayLoading(true);
+                setRoleplayError("");
+                try {
+                  const res = await fetch("/api/analyze-roleplay", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ docUrl: roleplayUrl }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok || data.error) throw new Error(data.error || "Errore API");
+
+                  // Salva su Firestore
+                  const { db } = await import("./firebase");
+                  const { doc, setDoc, getDoc, serverTimestamp } = await import("firebase/firestore");
+                  const roleplayRef = doc(db, "aiCoach", selected.uid, "memoria", "roleplay");
+                  const existing = await getDoc(roleplayRef);
+                  const analisi = existing.exists() ? (existing.data().analisi || []) : [];
+                  analisi.unshift({ ...data.analisi, doc_id: data.doc_id });
+                  await setDoc(roleplayRef, { analisi, aggiornato_il: serverTimestamp() });
+
+                  setRoleplayUrl("");
+                  alert("✅ Analisi completata e salvata!");
+                } catch (err) {
+                  setRoleplayError("Errore: " + err.message);
+                } finally {
+                  setRoleplayLoading(false);
+                }
+              }}
+            >
+              {roleplayLoading ? "⏳ Analisi..." : "🔍 Analizza e salva"}
+            </button>
+          </div>
+          {roleplayError && <div style={{ fontSize: 12, color: "#ff6b6b", marginBottom: 8 }}>{roleplayError}</div>}
+
+          {/* Lista analisi esistenti */}
+          <RoleplayAnalisiList uid={selected.uid} />
+        </div>
+      )}
 
       {/* MODALI ADMIN */}
       {modalStudent && (
