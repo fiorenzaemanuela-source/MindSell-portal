@@ -24,8 +24,14 @@ module.exports = async function handler(req, res) {
       fileId = match[1];
     }
 
-    // Leggi il documento Google
-    const credentials = JSON.parse(googleCredentials);
+    // Leggi il documento Google — gestisce JSON con o senza escape
+    let credentials;
+    try {
+      credentials = JSON.parse(googleCredentials);
+    } catch (e) {
+      // Prova a decodificare se è stato encodato
+      credentials = JSON.parse(Buffer.from(googleCredentials, 'base64').toString('utf8'));
+    }
     const auth = new google.auth.GoogleAuth({
       credentials,
       scopes: ["https://www.googleapis.com/auth/documents.readonly"],
