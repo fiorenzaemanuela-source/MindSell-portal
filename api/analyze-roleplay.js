@@ -59,32 +59,48 @@ async function callAnthropic(apiKey, system, user, maxTokens = 2000) {
 
 // ── Analisi singola sessione ──────────────────────────────────────────────────
 async function analizzaSingola(apiKey, trascrizione, dataOra) {
-  const system = `Sei un coach esperto di vendita. Analizzi trascrizioni di sessioni di studenti.
+  const system = `Sei un coach esperto di vendita e formazione professionale. Analizzi documenti di sessioni con studenti — possono essere trascrizioni di roleplay, appunti di sessioni didattiche, report di coaching, analisi di trattative o qualsiasi altro tipo di contenuto formativo.
+Leggi il contenuto, capisci autonomamente di cosa si tratta ed estrai tutto ciò che è rilevante per la crescita professionale dello studente.
+Non presupporre il tipo di sessione — lascia che sia il contenuto a guidarti.
 Rispondi SOLO con JSON valido, senza testo aggiuntivo, senza backtick, senza markdown.`;
 
-  const user = `Analizza questa trascrizione e restituisci insight strutturati.
+  const user = `Leggi questo documento relativo a una sessione con uno studente di vendita.
+Capisci autonomamente di cosa si tratta ed estrai gli insight rilevanti per la sua crescita.
 
-TRASCRIZIONE:
-${trascrizione.slice(0, 8000)}
+DOCUMENTO:
+${trascrizione.slice(0, 12000)}
 
 Schema JSON esatto:
 {
   "data_analisi": "${dataOra}",
-  "titolo": "titolo descrittivo breve della sessione",
-  "contesto": "descrizione in 1-2 righe del tipo di situazione",
-  "punti_di_forza": ["cosa fa bene — specifico con esempio"],
-  "errori_ricorrenti": ["errore specifico con esempio dalla trascrizione"],
-  "pattern_comportamentali": ["pattern osservato — specifico"],
-  "obiezioni_non_gestite": ["obiezione non gestita bene"],
-  "concetti_da_rinforzare": ["concetto del corso da approfondire"],
-  "raccomandazione_coach": "la cosa più importante su cui lavorare — max 2 righe",
+  "tipo_sessione": "roleplay|coaching|didattica|analisi_trattativa|altro — rileva autonomamente",
+  "titolo": "titolo descrittivo che cattura l'essenza della sessione",
+  "contesto": "descrizione in 2-3 righe di cosa è successo e qual era l'obiettivo",
+  "argomenti_trattati": ["argomento specifico affrontato nella sessione"],
+  "punti_di_forza": ["comportamento o competenza positiva osservata — specifico"],
+  "errori_ricorrenti": ["errore o limite osservato — solo se presente nel documento"],
+  "pattern_comportamentali": ["pattern comportamentale o cognitivo osservato"],
+  "criticita_sessione": ["criticità specifica e concreta emersa — momento o meccanismo preciso"],
+  "concetti_da_rinforzare": ["concetto o competenza su cui lavorare"],
+  "progressi_osservati": ["miglioramento concreto osservato — solo se menzionato esplicitamente"],
+  "raccomandazione_coach": "la cosa più importante su cui focalizzarsi — max 2 righe",
   "score_aree": {
-    "chiusura": 0,
-    "gestione_obiezioni": 0,
-    "rapport": 0,
-    "struttura_pitch": 0,
-    "ascolto_attivo": 0
+    "chiusura": 50,
+    "gestione_obiezioni": 50,
+    "rapport": 50,
+    "struttura_pitch": 50,
+    "ascolto_attivo": 50
   }
+}
+
+REGOLE:
+- Ogni array: 2-4 elementi massimo, solo con evidenza reale nel documento
+- Se un area in score_aree non è osservabile lascia 50 (neutro)
+- score: 0-30 critico, 31-60 in sviluppo, 61-80 discreto, 81-100 solido
+- Non inventare dati non presenti
+- argomenti_trattati è sempre obbligatorio`;
+
+  return await callAnthropic(apiKey, system, user);
 }
 
 REGOLE criticita_sessione:
