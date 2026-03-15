@@ -89,25 +89,48 @@ const INTENTS = [
 // ── Ricerca lezioni rilevanti per RAG ────────────────────────────────────────
 async function searchRelevantLessons(db, userModuli, userMessage, intentHint) {
   try {
-    // Estrai numeri moduli completati (almeno una lezione con progress 100)
-    const moduliCompletati = new Set();
+    // Opzione B: moduli completati al 100% + lezioni singole viste nei moduli in corso
+    const moduliCompletati = new Set();  // moduli con tutte le lezioni a 100
+    const lezionIViste = new Map();      // moduloNum -> Set di numeri lezione visti
+
     for (const modulo of (userModuli || [])) {
       const titleMatch = modulo.title?.match(/modulo\s*(\d+)/i);
       if (!titleMatch) continue;
       const moduloNum = parseInt(titleMatch[1]);
-      const hasCompleted = modulo.videolezioni?.some(v => v.progress === 100);
-      if (hasCompleted) moduliCompletati.add(moduloNum);
+      const videolezioni = modulo.videolezioni || [];
+      if (videolezioni.length === 0) continue;
+
+      const tutteComplete = videolezioni.every(v => v.progress === 100);
+      if (tutteComplete) {
+        moduliCompletati.add(moduloNum);
+      } else {
+        // Modulo in corso — traccia le lezioni viste (progress 100)
+        const visteIdx = new Set();
+        videolezioni.forEach((v, idx) => {
+          if (v.progress === 100) visteIdx.add(idx + 1); // 1-based
+        });
+        if (visteIdx.size > 0) lezionIViste.set(moduloNum, visteIdx);
+      }
     }
 
-    if (moduliCompletati.size === 0) return [];
+    if (moduliCompletati.size === 0 && lezionIViste.size === 0) return [];
 
-    // Recupera lezioni dei moduli completati
+    // Recupera lezioni dalla knowledge base
     const lessonsRef = collection(db, "courses", "percorso-vendita", "lessons");
     const snap = await getDocs(lessonsRef);
     const lessons = [];
     snap.forEach(d => {
       const data = d.data();
-      if (moduliCompletati.has(data.modulo_num)) lessons.push(data);
+      if (moduliCompletati.has(data.modulo_num)) {
+        // Modulo completato — includi tutte le sue lezioni
+        lessons.push({ ...data, _fonte: "modulo_completo" });
+      } else if (lezionIViste.has(data.modulo_num)) {
+        // Modulo in corso — includi solo lezioni viste
+        const visteIdx = lezionIViste.get(data.modulo_num);
+        if (visteIdx.has(data.lezione_num)) {
+          lessons.push({ ...data, _fonte: "lezione_vista" });
+        }
+      }
     });
 
     if (lessons.length === 0) return [];
@@ -409,14 +432,18 @@ Compila solo i campi rilevanti per questa sessione. Lascia null quelli senza dat
 
   // ── Blocco lezioni rilevanti (RAG) ────────────────────────────────────────
   const blocco_lezioni = lessonsContext.length > 0 ? `
-LEZIONI COMPLETATE RILEVANTI PER QUESTA SESSIONE:
-Queste sono lezioni che ${firstName} ha già studiato e che sono pertinenti alla sua domanda.
-Usale per collegare i tuoi consigli ai framework specifici che ha imparato.
+CONTENUTI DIDATTICI RILEVANTI PER QUESTA SESSIONE:
+Queste sono lezioni che ${firstName} ha già studiato (o sta studiando) pertinenti alla sua domanda.
 
-${lessonsContext.map((l, i) => `[Lezione ${i+1}: ${l.titolo} — Modulo ${l.modulo_num}]
-${l.corpo.slice(0, 800)}...`).join("\n\n")}
+${lessonsContext.map((l, i) => {
+  const stato = l._fonte === "modulo_completo" ? "✅ Modulo completato" : "📖 Lezione vista (modulo in corso)";
+  return `[${stato} | Lezione: ${l.titolo} — Modulo ${l.modulo_num}]\n${l.corpo.slice(0, 800)}...`;
+}).join("\n\n")}
 
-IMPORTANTE: Quando citi un concetto da queste lezioni, fai riferimento esplicito alla lezione ("come hai visto nella lezione su X...") per rinforzare l'apprendimento.` : "";
+REGOLE:
+- Per lezioni di moduli completati: puoi usare i concetti in piena profondità, lo studente li conosce
+- Per lezioni di moduli in corso: usa il concetto ma verifica che lo abbia capito — potrebbe non aver visto le lezioni successive
+- Cita sempre la lezione esplicitamente ("come hai visto nella lezione su X...") per rinforzare l'apprendimento` : "";
 
   return [
     blocco_identita,
