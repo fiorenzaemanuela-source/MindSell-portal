@@ -435,9 +435,7 @@ Modalità: SIMULAZIONE ADMIN — questa sessione non viene memorizzata.
 ${noteCoachUmano}`);
                   if (patterns) systemParts.push(`PATTERN: figura_dominante: ${patterns.figura_dominante || "—"} | fase_critica: ${patterns.fase_critica || "—"} | bias: ${patterns.bias_ricorrente || "—"}`);
                   if (linguistic) systemParts.push(`PROFILO COGNITIVO: stile: ${linguistic.stile_comunicativo || "—"} | ragionamento: ${linguistic.stile_ragionamento || "—"}`);
-                  if (roleplayProgressione?.errori_persistenti?.length) systemParts.push(`ERRORI PERSISTENTI:
-${roleplayProgressione.errori_persistenti.map(e => `- ${e}`).join("
-")}`);
+                  if (roleplayProgressione?.errori_persistenti?.length) systemParts.push("ERRORI PERSISTENTI:\n" + roleplayProgressione.errori_persistenti.map(e => "- " + e).join("\n"));
                   if (roleplayProgressione?.focus_attuale) systemParts.push(`FOCUS ATTUALE: ${roleplayProgressione.focus_attuale}`);
                   systemParts.push("Rispondi in italiano. Tono diretto e caldo da mentor. Concludi sempre con 1 azione concreta.");
 
@@ -445,9 +443,7 @@ ${roleplayProgressione.errori_persistenti.map(e => `- ${e}`).join("
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      system: systemParts.join("
-
-"),
+                      system: systemParts.join("\n\n"),
                       messages: [...newMessages].map(m => ({ role: m.role, content: m.content })),
                     }),
                   });
