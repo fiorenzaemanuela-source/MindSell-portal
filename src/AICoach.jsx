@@ -150,7 +150,7 @@ async function searchRelevantLessons(db, userModuli, userMessage, intentHint) {
 }
 
 // ── Costruisce il system prompt dinamico ──────────────────────────────────────
-function buildSystemPrompt(intentHint, userData, patterns, linguistic, sessionCount, lessonsContext = [], roleplayInsights = null) {
+function buildSystemPrompt(intentHint, userData, patterns, linguistic, sessionCount, lessonsContext = [], roleplayInsights = null, noteCoachUmano = "") {
   const name = userData?.name || "lo studente";
   const firstName = name.split(" ")[0];
   const moduli = (userData?.moduli || []).map(m => m.title).filter(Boolean);
@@ -262,6 +262,13 @@ ${linguistic.concetti_parziali?.length ? `- Concetti da rafforzare: ${linguistic
 ${linguistic.errori_concettuali?.length ? `- Errori concettuali attivi: ${linguistic.errori_concettuali.join(", ")}` : ""}
 
 Usa questi dati per calibrare il tono, gli esempi e la profondità. Se ha già padroneggiato un concetto, non rispiegarlo — vai oltre.` : "";
+
+  // ── Blocco 5a: Note Coach Umano ─────────────────────────────────────────────
+  const blocco_note_coach = (typeof noteCoachUmano === "string" && noteCoachUmano.trim()) ? `
+NOTE DEL COACH UMANO (Emanuela MindSell — osservazioni dirette sullo studente):
+${noteCoachUmano.trim()}
+
+Queste note hanno priorità alta — integrале nel tuo ragionamento e usale per personalizzare ogni risposta.` : "";
 
   // ── Blocco 5b: Insight Roleplay ────────────────────────────────────────────
   const hasRoleplay = roleplayInsights && roleplayInsights.length > 0;
@@ -418,6 +425,7 @@ IMPORTANTE: Quando citi un concetto da queste lezioni, fai riferimento esplicito
     blocco_framework_ai,
     blocco_patterns,
     blocco_linguistic,
+    blocco_note_coach,
     blocco_roleplay,
     blocco_lezioni,
     blocco_confini,
@@ -517,6 +525,7 @@ export default function AICoach({ userData, uid }) {
   const [linguistic, setLinguistic] = useState(null);
   const [roleplayInsights, setRoleplayInsights] = useState(null);
   const [roleplayProgressione, setRoleplayProgressione] = useState(null);
+  const [noteCoachUmano, setNoteCoachUmano] = useState("");
   const [sessionCount, setSessionCount] = useState(0);
   const [recentSessions, setRecentSessions] = useState([]);
   const [isFirstSession, setIsFirstSession] = useState(false);
@@ -755,7 +764,8 @@ export default function AICoach({ userData, uid }) {
         linguistic,
         sessionCount,
         relevantLessons,
-        roleplayInsights
+        roleplayInsights,
+        noteCoachUmano
       );
 
       const apiMessages = newMessages.map(m => ({
