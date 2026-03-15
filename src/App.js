@@ -163,6 +163,317 @@ function LoginPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+function CoachIntelligencePanel({ selected, noteCoach, setNoteCoach, simInput, setSimInput, simMessages, setSimMessages, simLoading, setSimLoading, coachIntelTab, setCoachIntelTab, C }) {
+  const [coachData, setCoachData] = useState(null);
+  const [loadingData, setLoadingData] = useState(false);
+
+  // Carica dati memoria coach per questo studente
+  useEffect(() => {
+    if (!selected?.uid) return;
+    setLoadingData(true);
+    import("./firebase").then(({ db }) => {
+      import("firebase/firestore").then(({ doc, getDoc, collection, getDocs }) => {
+        Promise.all([
+          getDoc(doc(db, "aiCoach", selected.uid, "memoria", "patterns")),
+          getDoc(doc(db, "aiCoach", selected.uid, "memoria", "linguistic")),
+          getDoc(doc(db, "aiCoach", selected.uid, "memoria", "meta")),
+          getDoc(doc(db, "aiCoach", selected.uid, "memoria", "roleplay")),
+          getDoc(doc(db, "studenti", selected.uid)),
+        ]).then(([pSnap, lSnap, mSnap, rpSnap, stSnap]) => {
+          setCoachData({
+            patterns: pSnap.exists() ? pSnap.data() : null,
+            linguistic: lSnap.exists() ? lSnap.data() : null,
+            meta: mSnap.exists() ? mSnap.data() : null,
+            roleplay: rpSnap.exists() ? rpSnap.data() : null,
+            studente: stSnap.exists() ? stSnap.data() : null,
+          });
+          setLoadingData(false);
+        });
+      });
+    });
+  }, [selected?.uid]);
+
+  const tabStyle = (id) => ({
+    padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
+    background: coachIntelTab === id ? C.purple + "22" : "transparent",
+    color: coachIntelTab === id ? C.purple : C.muted,
+    border: `1px solid ${coachIntelTab === id ? C.purple + "44" : "transparent"}`,
+  });
+
+  const Section = ({ emoji, title, color, children }) => (
+    <div style={{ background: C.card, border: `1px solid ${color}22`, borderRadius: 12, padding: "16px 20px", marginBottom: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>{emoji} {title}</div>
+      {children}
+    </div>
+  );
+
+  const Row = ({ label, value }) => value ? (
+    <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+      <span style={{ fontSize: 12, color: C.muted, minWidth: 140, flexShrink: 0 }}>{label}:</span>
+      <span style={{ fontSize: 12, color: C.text }}>{value}</span>
+    </div>
+  ) : null;
+
+  const List = ({ items }) => items?.length > 0 ? (
+    <div>{items.map((item, i) => <div key={i} style={{ fontSize: 12, color: C.text, marginBottom: 4, paddingLeft: 8 }}>• {item}</div>)}</div>
+  ) : <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Nessun dato ancora</div>;
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <div style={tabStyle("visuale")} onClick={() => setCoachIntelTab("visuale")}>👁 Visuale</div>
+        <div style={tabStyle("simulatore")} onClick={() => setCoachIntelTab("simulatore")}>🧪 Simulatore</div>
+      </div>
+
+      {coachIntelTab === "visuale" && (
+        <div>
+          {loadingData ? (
+            <div style={{ color: C.muted, fontSize: 13 }}>Caricamento dati...</div>
+          ) : !coachData ? (
+            <div style={{ color: C.muted, fontSize: 13 }}>Nessun dato disponibile per questo studente.</div>
+          ) : (
+            <>
+              {/* Profilo */}
+              <Section emoji="👤" title="Profilo Studente" color={C.blue}>
+                <Row label="Nome" value={selected?.name} />
+                <Row label="Piano" value={selected?.plan} />
+                <Row label="Sessioni AI Coach" value={coachData.meta?.sessioni_totali ? `${coachData.meta.sessioni_totali} sessioni` : "0 sessioni"} />
+                <Row label="Moduli assegnati" value={selected?.moduli?.length > 0 ? selected.moduli.map(m => m.title).join(", ") : "Nessuno"} />
+                <Row label="Moduli completati" value={
+                  selected?.moduli?.filter(m => m.videolezioni?.some(v => v.progress === 100)).map(m => m.title).join(", ") || "Nessuno ancora"
+                } />
+              </Section>
+
+              {/* Pattern comportamentali */}
+              <Section emoji="🎯" title="Pattern Comportamentali" color={C.green}>
+                {coachData.patterns ? (
+                  <>
+                    <Row label="Figura clienti prevalente" value={coachData.patterns.figura_dominante} />
+                    <Row label="Bias ricorrente nei clienti" value={coachData.patterns.bias_ricorrente} />
+                    <Row label="Fase critica" value={coachData.patterns.fase_critica} />
+                    <Row label="Leva efficace" value={coachData.patterns.leva_efficace} />
+                    <Row label="Obiezione irrisolta" value={coachData.patterns.obiezione_irrisolta} />
+                  </>
+                ) : <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Nessun pattern rilevato ancora — servono almeno 2 sessioni coach</div>}
+              </Section>
+
+              {/* Profilo cognitivo */}
+              <Section emoji="🧬" title="Profilo Cognitivo e Linguistico" color={C.purple}>
+                {coachData.linguistic ? (
+                  <>
+                    <Row label="Stile comunicativo" value={coachData.linguistic.stile_comunicativo} />
+                    <Row label="Stile ragionamento" value={coachData.linguistic.stile_ragionamento} />
+                    {coachData.linguistic.concetti_padroneggiati?.length > 0 && (
+                      <div style={{ marginBottom: 6 }}>
+                        <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Concetti padroneggiati:</div>
+                        <List items={coachData.linguistic.concetti_padroneggiati} />
+                      </div>
+                    )}
+                    {coachData.linguistic.concetti_parziali?.length > 0 && (
+                      <div style={{ marginBottom: 6 }}>
+                        <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Da rafforzare:</div>
+                        <List items={coachData.linguistic.concetti_parziali} />
+                      </div>
+                    )}
+                    {coachData.linguistic.errori_concettuali?.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Errori concettuali:</div>
+                        <List items={coachData.linguistic.errori_concettuali} />
+                      </div>
+                    )}
+                  </>
+                ) : <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Nessun profilo cognitivo ancora</div>}
+              </Section>
+
+              {/* Progressione sessioni */}
+              {coachData.roleplay?.progressione && (
+                <Section emoji="📈" title="Progressione Sessioni" color="#E67E22">
+                  {coachData.roleplay.progressione.score_aree && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                      {Object.entries(coachData.roleplay.progressione.score_aree).map(([area, val]) => {
+                        const labels = { chiusura: "Chiusura", gestione_obiezioni: "Obiezioni", rapport: "Rapport", struttura_pitch: "Pitch", ascolto_attivo: "Ascolto" };
+                        const col = val.score >= 70 ? C.green : val.score >= 40 ? "#E67E22" : "#ff6b6b";
+                        return (
+                          <div key={area} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
+                            <div style={{ fontSize: 10, color: C.muted }}>{labels[area]}</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: col }}>{val.score} <span style={{ fontSize: 12 }}>{val.trend}</span></div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {coachData.roleplay.progressione.errori_persistenti?.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 11, color: "#ff6b6b", fontWeight: 700, marginBottom: 4 }}>⚠️ Errori persistenti:</div>
+                      <List items={coachData.roleplay.progressione.errori_persistenti} />
+                    </div>
+                  )}
+                  {coachData.roleplay.progressione.errori_superati?.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 11, color: C.green, fontWeight: 700, marginBottom: 4 }}>✅ Errori superati:</div>
+                      <List items={coachData.roleplay.progressione.errori_superati} />
+                    </div>
+                  )}
+                  {coachData.roleplay.progressione.gap_teoria_pratica?.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 11, color: "#E67E22", fontWeight: 700, marginBottom: 4 }}>📚 Gap teoria→pratica:</div>
+                      <List items={coachData.roleplay.progressione.gap_teoria_pratica} />
+                    </div>
+                  )}
+                </Section>
+              )}
+
+              {/* Note coach umano */}
+              <Section emoji="✍️" title="Note Coach Umano" color={C.green}>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>
+                  Scrivi qui osservazioni, criticità e focus che vuoi che il coach AI incorpori nel ragionamento su questo studente.
+                </div>
+                <textarea
+                  style={{ width: "100%", minHeight: 100, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, color: C.text, outline: "none", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
+                  placeholder="Es: Michele tende a categorizzare troppo presto il cliente senza esplorare il sistema decisionale attivo. Lavorare su domande di discovery prima di qualsiasi label..."
+                  value={noteCoach}
+                  onChange={e => setNoteCoach(e.target.value)}
+                />
+                <button
+                  style={{ ...{ background: C.green, color: "#fff", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", marginTop: 8 } }}
+                  onClick={async () => {
+                    import("./firebase").then(({ db }) => {
+                      import("firebase/firestore").then(({ doc, setDoc, serverTimestamp }) => {
+                        setDoc(doc(db, "aiCoach", selected.uid, "memoria", "meta"), {
+                          note_coach_umano: noteCoach,
+                          note_aggiornate_il: serverTimestamp(),
+                        }, { merge: true });
+                        alert("✅ Note salvate — il coach AI le leggerà dalla prossima sessione");
+                      });
+                    });
+                  }}
+                >💾 Salva note</button>
+              </Section>
+            </>
+          )}
+        </div>
+      )}
+
+      {coachIntelTab === "simulatore" && (
+        <div>
+          <div style={{ background: C.card, border: `1px solid ${C.purple}33`, borderRadius: 12, padding: "12px 16px", marginBottom: 16, fontSize: 12, color: C.muted }}>
+            🧪 <strong style={{ color: C.purple }}>Modalità simulazione</strong> — Le risposte non vengono memorizzate e non influenzano il profilo dello studente.
+          </div>
+
+          {/* Chat simulatore */}
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, minHeight: 200, maxHeight: 400, overflowY: "auto", marginBottom: 12 }}>
+            {simMessages.length === 0 ? (
+              <div style={{ color: C.muted, fontSize: 13, fontStyle: "italic", textAlign: "center", paddingTop: 60 }}>
+                Scrivi un messaggio per simulare una sessione coach con {selected?.name}
+              </div>
+            ) : simMessages.map((m, i) => (
+              <div key={i} style={{ marginBottom: 12, display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+                <div style={{
+                  maxWidth: "80%", padding: "10px 14px", borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                  background: m.role === "user" ? C.blue : C.card,
+                  border: `1px solid ${m.role === "user" ? C.blue + "66" : C.border}`,
+                  fontSize: 13, color: C.text, lineHeight: 1.5,
+                }}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {simLoading && (
+              <div style={{ display: "flex", gap: 4, padding: 8 }}>
+                {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: C.purple, animation: `msCoachPulse 1.2s ease-in-out ${i*0.2}s infinite` }} />)}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <textarea
+              style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, color: C.text, outline: "none", fontFamily: "inherit", resize: "none", minHeight: 44 }}
+              placeholder={`Simula una domanda come ${selected?.name}...`}
+              value={simInput}
+              onChange={e => setSimInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); document.getElementById("sim-send-btn")?.click(); }}}
+              rows={2}
+            />
+            <button
+              id="sim-send-btn"
+              style={{ background: C.purple, color: "#fff", border: "none", borderRadius: 8, padding: "0 20px", fontSize: 13, fontWeight: 700, cursor: simLoading || !simInput.trim() ? "not-allowed" : "pointer", opacity: simLoading || !simInput.trim() ? 0.6 : 1 }}
+              disabled={simLoading || !simInput.trim()}
+              onClick={async () => {
+                const msg = simInput.trim();
+                setSimInput("");
+                const newMessages = [...simMessages, { role: "user", content: msg }];
+                setSimMessages(newMessages);
+                setSimLoading(true);
+                try {
+                  // Carica memoria studente
+                  const { db } = await import("./firebase");
+                  const { doc, getDoc } = await import("firebase/firestore");
+                  const [pSnap, lSnap, metaSnap, rpSnap] = await Promise.all([
+                    getDoc(doc(db, "aiCoach", selected.uid, "memoria", "patterns")),
+                    getDoc(doc(db, "aiCoach", selected.uid, "memoria", "linguistic")),
+                    getDoc(doc(db, "aiCoach", selected.uid, "memoria", "meta")),
+                    getDoc(doc(db, "aiCoach", selected.uid, "memoria", "roleplay")),
+                  ]);
+                  const patterns = pSnap.exists() ? pSnap.data() : null;
+                  const linguistic = lSnap.exists() ? lSnap.data() : null;
+                  const sessionCount = metaSnap.exists() ? (metaSnap.data().sessioni_totali || 0) : 0;
+                  const noteCoachUmano = metaSnap.exists() ? metaSnap.data().note_coach_umano : null;
+                  const roleplayInsights = rpSnap.exists() ? rpSnap.data().analisi : null;
+                  const roleplayProgressione = rpSnap.exists() ? rpSnap.data().progressione : null;
+
+                  // Costruisci system prompt (uguale al coach reale)
+                  const name = selected.name || "lo studente";
+                  const moduli = (selected.moduli || []).map(m => m.title).filter(Boolean);
+                  
+                  let systemParts = [
+                    `Sei MindSell AI Coach, l'assistente personale di ${name}.
+Modalità: SIMULAZIONE ADMIN — questa sessione non viene memorizzata.
+`,
+                    `PROFILO: Piano: ${selected.plan || "—"} | Moduli: ${moduli.join(", ") || "nessuno"} | Sessioni AI: ${sessionCount}`,
+                  ];
+                  if (noteCoachUmano) systemParts.push(`NOTE COACH UMANO (osservazioni di Emanuela MindSell):
+${noteCoachUmano}`);
+                  if (patterns) systemParts.push(`PATTERN: figura_dominante: ${patterns.figura_dominante || "—"} | fase_critica: ${patterns.fase_critica || "—"} | bias: ${patterns.bias_ricorrente || "—"}`);
+                  if (linguistic) systemParts.push(`PROFILO COGNITIVO: stile: ${linguistic.stile_comunicativo || "—"} | ragionamento: ${linguistic.stile_ragionamento || "—"}`);
+                  if (roleplayProgressione?.errori_persistenti?.length) systemParts.push(`ERRORI PERSISTENTI:
+${roleplayProgressione.errori_persistenti.map(e => `- ${e}`).join("
+")}`);
+                  if (roleplayProgressione?.focus_attuale) systemParts.push(`FOCUS ATTUALE: ${roleplayProgressione.focus_attuale}`);
+                  systemParts.push("Rispondi in italiano. Tono diretto e caldo da mentor. Concludi sempre con 1 azione concreta.");
+
+                  const res = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      system: systemParts.join("
+
+"),
+                      messages: [...newMessages].map(m => ({ role: m.role, content: m.content })),
+                    }),
+                  });
+                  const data = await res.json();
+                  const reply = data.content?.[0]?.text || "Errore nella risposta.";
+                  setSimMessages(prev => [...prev, { role: "assistant", content: reply }]);
+                } catch(err) {
+                  setSimMessages(prev => [...prev, { role: "assistant", content: "Errore: " + err.message }]);
+                } finally {
+                  setSimLoading(false);
+                }
+              }}
+            >Invia</button>
+            {simMessages.length > 0 && (
+              <button
+                style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, padding: "0 12px", fontSize: 12, color: C.muted, cursor: "pointer" }}
+                onClick={() => setSimMessages([])}
+              >Reset</button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RoleplayAnalisiList({ uid }) {
   const [analisi, setAnalisi] = useState([]);
   const [progressione, setProgressione] = useState(null);
@@ -387,6 +698,11 @@ function AdminPanel({ adminUser }) {
   const [modalContent, setModalContent] = useState(false);
   const [modalPromo, setModalPromo] = useState(false);
   const [roleplayUrl, setRoleplayUrl] = useState("");
+  const [noteCoach, setNoteCoach] = useState("");
+  const [simInput, setSimInput] = useState("");
+  const [simMessages, setSimMessages] = useState([]);
+  const [simLoading, setSimLoading] = useState(false);
+  const [coachIntelTab, setCoachIntelTab] = useState("visuale");
   const [roleplayLoading, setRoleplayLoading] = useState(false);
   const [roleplayError, setRoleplayError] = useState("");
   const [fPromo, setFPromo] = useState({ title: "", desc: "", price: "", badge: "", color: C.green, evergreen: true, scadenza: "" });
@@ -539,6 +855,7 @@ function AdminPanel({ adminUser }) {
     { id: "registrazioni", label: "⏺ Registrazioni" },
     { id: "materiali", label: "📎 Materiali" },
     { id: "guide", label: "⚙️ Guide Strumenti" },
+    { id: "coach_intelligence", label: "🧠 Coach Intelligence" },
   ];
 
   return (
@@ -1030,6 +1347,22 @@ function AdminPanel({ adminUser }) {
               </div>
             )}
             {/* OFFERTE */}
+            {adminTab === "coach_intelligence" && (
+              <CoachIntelligencePanel
+                selected={selected}
+                noteCoach={noteCoach}
+                setNoteCoach={setNoteCoach}
+                simInput={simInput}
+                setSimInput={setSimInput}
+                simMessages={simMessages}
+                setSimMessages={setSimMessages}
+                simLoading={simLoading}
+                setSimLoading={setSimLoading}
+                coachIntelTab={coachIntelTab}
+                setCoachIntelTab={setCoachIntelTab}
+                C={C}
+              />
+            )}
             {adminTab === "offerte" && (
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
