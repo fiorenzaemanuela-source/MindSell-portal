@@ -263,18 +263,48 @@ function RoleplayAnalisiList({ uid }) {
       )}
       {analisi.map((a, i) => (
         <div key={i} style={{ background: CP.surface, border: `1px solid ${CP.border}`, borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", cursor: "pointer" }} onClick={() => setExpanded(expanded === i ? null : i)}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 13, color: CP.text }}>{a.titolo || "Roleplay " + (i+1)}</div>
-              <div style={{ fontSize: 11, color: CP.muted, marginTop: 2 }}>{a.contesto}</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px" }}>
+            <div style={{ flex: 1, cursor: "pointer" }} onClick={() => setExpanded(expanded === i ? null : i)}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: CP.text }}>{a.titolo || "Sessione " + (i+1)}</div>
+              <div style={{ fontSize: 11, color: CP.muted, marginTop: 2 }}>{a.contesto?.slice(0, 80)}{a.contesto?.length > 80 ? "..." : ""}</div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               <div style={{ fontSize: 11, color: CP.muted }}>{a.data_analisi ? new Date(a.data_analisi).toLocaleDateString("it-IT") : ""}</div>
-              <div style={{ color: CP.muted }}>{expanded === i ? "▲" : "▼"}</div>
+              <div style={{ cursor: "pointer", color: CP.muted }} onClick={() => setExpanded(expanded === i ? null : i)}>{expanded === i ? "▲" : "▼"}</div>
+              <button
+                style={{ background: "transparent", border: `1px solid #ff475444`, borderRadius: 6, color: "#ff4754", fontSize: 11, padding: "3px 8px", cursor: "pointer" }}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (!window.confirm("Eliminare questa analisi?")) return;
+                  const newAnalisi = analisi.filter((_, idx) => idx !== i);
+                  import("./firebase").then(({ db }) => {
+                    import("firebase/firestore").then(({ doc, setDoc, serverTimestamp }) => {
+                      const ref = doc(db, "aiCoach", uid, "memoria", "roleplay");
+                      setDoc(ref, { analisi: newAnalisi, aggiornato_il: serverTimestamp() }, { merge: true });
+                    });
+                  });
+                }}
+              >🗑</button>
             </div>
           </div>
           {expanded === i && (
             <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${CP.border}` }}>
+              {a.argomenti_trattati?.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: CP.muted, marginBottom: 6 }}>📋 ARGOMENTI TRATTATI</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {a.argomenti_trattati.map((t, j) => (
+                      <span key={j} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: CP.border, color: CP.muted }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {a.progressi_osservati?.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#00b894", marginBottom: 6 }}>📈 PROGRESSI OSSERVATI</div>
+                  {a.progressi_osservati.map((p, j) => <div key={j} style={{ fontSize: 12, color: CP.text, marginBottom: 4, paddingLeft: 8 }}>• {p}</div>)}
+                </div>
+              )}
               {a.punti_di_forza?.length > 0 && (
                 <div style={{ marginTop: 12 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: CP.green, marginBottom: 6 }}>✅ PUNTI DI FORZA</div>
