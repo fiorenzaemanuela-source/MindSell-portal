@@ -239,8 +239,9 @@ function CoachIntelligencePanel({ selected, noteCoach, setNoteCoach, simInput, s
                 <Row label="Piano" value={selected?.plan} />
                 <Row label="Sessioni AI Coach" value={coachData.meta?.sessioni_totali ? `${coachData.meta.sessioni_totali} sessioni` : "0 sessioni"} />
                 <Row label="Moduli assegnati" value={selected?.moduli?.length > 0 ? selected.moduli.map(m => m.title).join(", ") : "Nessuno"} />
+                <Row label="In corso" value={selected?.moduli?.filter(m => { const done = m.videolezioni?.filter(v => v.progress === 100).length || 0; return done > 0 && done < (m.videolezioni?.length || 0); }).map(m => { const done = m.videolezioni?.filter(v => v.progress === 100).length || 0; return `${m.title} (${done}/${m.videolezioni?.length})`; }).join(", ") || "—"} />
                 <Row label="Moduli completati" value={
-                  selected?.moduli?.filter(m => m.videolezioni?.some(v => v.progress === 100)).map(m => m.title).join(", ") || "Nessuno ancora"
+                  selected?.moduli?.filter(m => m.videolezioni?.length > 0 && m.videolezioni.every(v => v.progress === 100)).map(m => m.title).join(", ") || "Nessuno ancora"
                 } />
               </Section>
 
@@ -1388,7 +1389,7 @@ function AdminPanel({ adminUser }) {
                         const roleplayRef = doc(db, "aiCoach", selected.uid, "memoria", "roleplay");
                         const existing = await getDoc(roleplayRef);
                         const analisiEsistenti = existing.exists() ? (existing.data().analisi || []) : [];
-                        const moduliCompletati = (selected.moduli || []).filter(m => m.videolezioni?.some(v => v.progress === 100)).map(m => m.title);
+                        const moduliCompletati = (selected.moduli || []).filter(m => m.videolezioni?.length > 0 && m.videolezioni.every(v => v.progress === 100)).map(m => m.title);
                         const res = await fetch("/api/analyze-roleplay", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
