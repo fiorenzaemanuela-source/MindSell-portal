@@ -584,10 +584,30 @@ function RoleplayAnalisiList({ uid }) {
                   e.stopPropagation();
                   if (!window.confirm("Eliminare questa analisi?")) return;
                   const newAnalisi = analisi.filter((_, idx) => idx !== i);
+                  // Ricalcola progressione dalle analisi rimanenti
+                  let nuovaProgressione = null;
+                  if (newAnalisi.length > 0) {
+                    // Mantieni solo errori_superati e traguardi ancora validi
+                    const erroriRimanenti = new Set(newAnalisi.flatMap(a => a.errori_ricorrenti || []));
+                    const erroriSuperatiValidi = (progressione?.errori_superati || []).filter(e => !erroriRimanenti.has(e));
+                    nuovaProgressione = {
+                      ...(progressione || {}),
+                      errori_persistenti: newAnalisi.length >= 2
+                        ? newAnalisi[0]?.errori_ricorrenti?.filter(e => newAnalisi[1]?.errori_ricorrenti?.includes(e)) || []
+                        : [],
+                      errori_superati: erroriSuperatiValidi,
+                      // Resetta score se non ci sono più analisi con progressione
+                      score_aree: newAnalisi.length < 2 ? null : progressione?.score_aree || null,
+                    };
+                  }
                   import("./firebase").then(({ db }) => {
                     import("firebase/firestore").then(({ doc, setDoc, serverTimestamp }) => {
                       const ref = doc(db, "aiCoach", uid, "memoria", "roleplay");
-                      setDoc(ref, { analisi: newAnalisi, aggiornato_il: serverTimestamp() }, { merge: true });
+                      setDoc(ref, {
+                        analisi: newAnalisi,
+                        progressione: nuovaProgressione,
+                        aggiornato_il: serverTimestamp()
+                      });
                     });
                   });
                 }}
