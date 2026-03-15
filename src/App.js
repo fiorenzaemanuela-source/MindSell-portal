@@ -1344,6 +1344,67 @@ function AdminPanel({ adminUser }) {
             )}
             {/* OFFERTE */}
             {adminTab === "coach_intelligence" && (
+              <>
+              {/* Analisi Sessioni */}
+              <div style={{ background: C.card, borderRadius: 16, padding: "24px 28px", marginBottom: 24, border: `1px solid ${C.purple}44` }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: C.text, marginBottom: 16 }}>🧠 Analisi Sessioni</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Carica appunti Gemini, trascrizioni o report NotebookLM di qualsiasi sessione</div>
+                <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                  <input
+                    style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", fontSize: 13, color: C.text, outline: "none", fontFamily: "inherit" }}
+                    placeholder="Incolla URL Google Doc (appunti Gemini, trascrizione, NotebookLM...)..."
+                    value={roleplayUrl}
+                    onChange={e => { setRoleplayUrl(e.target.value); setRoleplayError(""); }}
+                  />
+                  <button
+                    style={{ ...btn(C.purple), opacity: roleplayLoading ? 0.6 : 1, cursor: roleplayLoading ? "wait" : "pointer", whiteSpace: "nowrap" }}
+                    disabled={roleplayLoading || !roleplayUrl.trim()}
+                    onClick={async () => {
+                      setRoleplayLoading(true);
+                      setRoleplayError("");
+                      try {
+                        const { db } = await import("./firebase");
+                        const { doc, setDoc, getDoc, serverTimestamp } = await import("firebase/firestore");
+                        const roleplayRef = doc(db, "aiCoach", selected.uid, "memoria", "roleplay");
+                        const existing = await getDoc(roleplayRef);
+                        const analisiEsistenti = existing.exists() ? (existing.data().analisi || []) : [];
+                        const moduliCompletati = (selected.moduli || []).filter(m => m.videolezioni?.some(v => v.progress === 100)).map(m => m.title);
+                        const res = await fetch("/api/analyze-roleplay", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ docUrl: roleplayUrl, analisiPrecedenti: analisiEsistenti.slice(0, 3), moduliCompletati }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok || data.error) throw new Error(data.error || "Errore API");
+                        const nuovaAnalisi = { ...data.analisi, doc_id: data.doc_id };
+                        analisiEsistenti.unshift(nuovaAnalisi);
+                        const progressioneAggiornata = data.progressione ? {
+                          ...(existing.exists() ? (existing.data().progressione || {}) : {}),
+                          score_aree: data.progressione.score_progressione,
+                          errori_superati: [...(existing.exists() ? (existing.data().progressione?.errori_superati || []) : []), ...(data.progressione.errori_superati || [])].filter((v, i, a) => a.indexOf(v) === i).slice(0, 10),
+                          errori_persistenti: data.progressione.errori_persistenti || [],
+                          traguardi: [...(existing.exists() ? (existing.data().progressione?.traguardi || []) : []), ...(data.progressione.traguardi_raggiunti || []).map(t => ({ ...t, data: new Date().toISOString() }))].slice(0, 20),
+                          focus_attuale: data.progressione.focus_prossima_sessione || "",
+                          messaggio_studente: data.progressione.messaggio_studente || "",
+                          gap_teoria_pratica: data.progressione.gap_teoria_pratica || [],
+                          transfer_riuscito: data.progressione.transfer_riuscito || [],
+                          ultima_comparativa: new Date().toISOString(),
+                        } : (existing.exists() ? existing.data().progressione : null);
+                        await setDoc(roleplayRef, { analisi: analisiEsistenti, progressione: progressioneAggiornata, aggiornato_il: serverTimestamp() });
+                        setRoleplayUrl("");
+                        alert("✅ Analisi completata!" + (data.progressione ? "\n📈 Progressione aggiornata." : ""));
+                      } catch (err) {
+                        setRoleplayError("Errore: " + err.message);
+                      } finally {
+                        setRoleplayLoading(false);
+                      }
+                    }}
+                  >{roleplayLoading ? "⏳ Analisi..." : "🔍 Analizza e salva"}</button>
+                </div>
+                {roleplayError && <div style={{ fontSize: 12, color: "#ff6b6b", marginBottom: 8 }}>{roleplayError}</div>}
+                <RoleplayAnalisiList uid={selected.uid} />
+              </div>
+
               <CoachIntelligencePanel
                 selected={selected}
                 noteCoach={noteCoach}
@@ -1358,6 +1419,7 @@ function AdminPanel({ adminUser }) {
                 setCoachIntelTab={setCoachIntelTab}
                 C={C}
               />
+              </>
             )}
             {adminTab === "offerte" && (
               <div>
@@ -1400,103 +1462,6 @@ function AdminPanel({ adminUser }) {
         )}
       </div>
 
-      {/* SEZIONE ROLEPLAY AI COACH */}
-      {selected && selected.aiCoach && (
-        <div style={{ background: C.card, borderRadius: 16, padding: "24px 28px", marginBottom: 24, border: `1px solid ${C.purple}44` }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>🧠 Analisi Roleplay — AI Coach</div>
-          </div>
-
-          {/* Form aggiunta trascrizione */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-            <input
-              style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", fontSize: 13, color: C.text, outline: "none", fontFamily: "inherit" }}
-              placeholder="Incolla URL Google Doc trascrizione roleplay..."
-              value={roleplayUrl}
-              onChange={e => { setRoleplayUrl(e.target.value); setRoleplayError(""); }}
-            />
-            <button
-              style={{ ...btn(C.purple), opacity: roleplayLoading ? 0.6 : 1, cursor: roleplayLoading ? "wait" : "pointer", whiteSpace: "nowrap" }}
-              disabled={roleplayLoading || !roleplayUrl.trim()}
-              onClick={async () => {
-                setRoleplayLoading(true);
-                setRoleplayError("");
-                try {
-                  // Leggi dati esistenti per analisi comparativa
-                  const { db } = await import("./firebase");
-                  const { doc, setDoc, getDoc, serverTimestamp } = await import("firebase/firestore");
-                  const roleplayRef = doc(db, "aiCoach", selected.uid, "memoria", "roleplay");
-                  const existing = await getDoc(roleplayRef);
-                  const analisiEsistenti = existing.exists() ? (existing.data().analisi || []) : [];
-
-                  // Moduli completati dello studente
-                  const moduliCompletati = (selected.moduli || [])
-                    .filter(m => m.videolezioni?.some(v => v.progress === 100))
-                    .map(m => m.title);
-
-                  const res = await fetch("/api/analyze-roleplay", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      docUrl: roleplayUrl,
-                      analisiPrecedenti: analisiEsistenti.slice(0, 3),
-                      moduliCompletati,
-                    }),
-                  });
-                  const data = await res.json();
-                  if (!res.ok || data.error) throw new Error(data.error || "Errore API");
-
-                  // Salva analisi
-                  const nuovaAnalisi = { ...data.analisi, doc_id: data.doc_id };
-                  analisiEsistenti.unshift(nuovaAnalisi);
-
-                  // Costruisci/aggiorna progressione
-                  const progressioneAggiornata = data.progressione ? {
-                    ...( existing.exists() ? (existing.data().progressione || {}) : {} ),
-                    score_aree: data.progressione.score_progressione,
-                    errori_superati: [
-                      ...( existing.exists() ? (existing.data().progressione?.errori_superati || []) : [] ),
-                      ...(data.progressione.errori_superati || [])
-                    ].filter((v, i, a) => a.indexOf(v) === i).slice(0, 10),
-                    errori_persistenti: data.progressione.errori_persistenti || [],
-                    traguardi: [
-                      ...( existing.exists() ? (existing.data().progressione?.traguardi || []) : [] ),
-                      ...(data.progressione.traguardi_raggiunti || []).map(t => ({
-                        ...t,
-                        data: new Date().toISOString()
-                      }))
-                    ].slice(0, 20),
-                    focus_attuale: data.progressione.focus_prossima_sessione || "",
-                    messaggio_studente: data.progressione.messaggio_studente || "",
-                    gap_teoria_pratica: data.progressione.gap_teoria_pratica || [],
-                    transfer_riuscito: data.progressione.transfer_riuscito || [],
-                    ultima_comparativa: new Date().toISOString(),
-                  } : (existing.exists() ? existing.data().progressione : null);
-
-                  await setDoc(roleplayRef, {
-                    analisi: analisiEsistenti,
-                    progressione: progressioneAggiornata,
-                    aggiornato_il: serverTimestamp(),
-                  });
-
-                  setRoleplayUrl("");
-                  alert("✅ Analisi completata e salvata!" + (data.progressione ? "\n📈 Progressione aggiornata." : ""));
-                } catch (err) {
-                  setRoleplayError("Errore: " + err.message);
-                } finally {
-                  setRoleplayLoading(false);
-                }
-              }}
-            >
-              {roleplayLoading ? "⏳ Analisi..." : "🔍 Analizza e salva"}
-            </button>
-          </div>
-          {roleplayError && <div style={{ fontSize: 12, color: "#ff6b6b", marginBottom: 8 }}>{roleplayError}</div>}
-
-          {/* Lista analisi esistenti */}
-          <RoleplayAnalisiList uid={selected.uid} />
-        </div>
-      )}
 
       {/* MODALI ADMIN */}
       {modalStudent && (
