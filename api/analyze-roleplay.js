@@ -103,24 +103,6 @@ REGOLE:
   return await callAnthropic(apiKey, system, user);
 }
 
-REGOLE criticita_sessione:
-- Identifica i momenti PRECISI in cui la comunicazione ha fallito o il risultato è stato compromesso
-- Non confondere con errori generici — deve essere una criticità concreta e specifica di questa sessione
-- Massimo 3 elementi, solo se evidenti dalla trascrizione
-
-REGOLE score_aree:
-- Valuta ogni area da 0 a 100 basandoti SOLO su evidenze nella trascrizione
-- 0-30: area critica con errori frequenti
-- 31-60: area in sviluppo con alti e bassi
-- 61-80: area discreta con margini di miglioramento
-- 81-100: area solida
-- Se un'area non è osservabile nella trascrizione, metti 50 (neutro)
-- Ogni array: 2-4 elementi massimo
-- Solo dati con evidenza reale`;
-
-  return await callAnthropic(apiKey, system, user);
-}
-
 // ── Analisi comparativa (quando ci sono sessioni precedenti) ──────────────────
 async function analizzaProgressione(apiKey, nuovaAnalisi, analisiPrecedenti, moduliCompletati) {
   const system = `Sei un coach esperto di vendita che valuta il progresso di uno studente nel tempo.
