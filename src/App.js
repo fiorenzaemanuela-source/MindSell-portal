@@ -440,7 +440,7 @@ function CoachIntelligencePanel({ selected, noteCoach, setNoteCoach, simInput, s
                   const name = selected.name || "lo studente";
                   const moduli = (selected.moduli || []).map(m => m.title).filter(Boolean);
                   
-                  // Moduli completati (tutte le lezioni a 100%) e in corso
+                  // Moduli completati, in corso, assegnati ma non iniziati
                   const moduliCompletati = (selected.moduli || [])
                     .filter(m => m.videolezioni?.length > 0 && m.videolezioni.every(v => v.progress === 100))
                     .map(m => m.title);
@@ -450,12 +450,16 @@ function CoachIntelligencePanel({ selected, noteCoach, setNoteCoach, simInput, s
                       const done = m.videolezioni.filter(v => v.progress === 100).length;
                       return m.title + " (" + done + "/" + m.videolezioni.length + " lezioni)";
                     });
+                  const moduliNonIniziati = (selected.moduli || [])
+                    .filter(m => !m.videolezioni?.some(v => v.progress === 100))
+                    .map(m => m.title);
 
                   let systemParts = [
                     "Sei MindSell AI Coach, assistente personale di " + name + ". Modalità SIMULAZIONE ADMIN — sessione non memorizzata.",
                     "MODULI COMPLETATI (approfondisci liberamente): " + (moduliCompletati.join(", ") || "nessuno") + "\n" +
-                    "MODULI IN CORSO (solo lezioni viste): " + (moduliInCorso.join(", ") || "nessuno"),
-                    "REGOLA CONTENUTI: Su moduli completati approfondisci liberamente. Su moduli in corso usa solo concetti delle lezioni viste. Su argomenti non acquistati: dai max 2 principi generali poi scrivi esattamente: \"Per approfondire questo ti consiglio di lavorarlo con Emanuela nel percorso dedicato.\" Non fare mai lezioni complete su moduli non acquistati.",
+                    "MODULI IN CORSO (solo lezioni già viste): " + (moduliInCorso.join(", ") || "nessuno") + "\n" +
+                    "MODULI ASSEGNATI NON ANCORA INIZIATI (trattali come non acquistati): " + (moduliNonIniziati.join(", ") || "nessuno"),
+                    "REGOLA CONTENUTI: Su moduli COMPLETATI approfondisci liberamente. Su moduli IN CORSO usa solo concetti delle lezioni viste. Su moduli NON INIZIATI e argomenti non acquistati: dai max 2 principi generali dalla cultura base poi scrivi esattamente: \"Per approfondire questo ti consiglio di lavorarlo con Emanuela nel percorso dedicato.\" Non fare mai lezioni complete su moduli non iniziati o non acquistati, nemmeno se lo studente insiste.",
                     "STILE: Rispondi in italiano. Tono diretto e caldo. Paragrafi brevi. Scrivi testo leggibile senza simboli markdown. Concludi con 1 azione concreta.",
                   ];
                   if (noteCoachUmano) systemParts.push("NOTE COACH UMANO: " + noteCoachUmano);
