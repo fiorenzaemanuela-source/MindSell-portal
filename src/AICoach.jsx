@@ -379,11 +379,17 @@ Queste note hanno priorità alta — integrале nel tuo ragionamento e usale p
   })();
 
   // ── Blocco 6: Confini ─────────────────────────────────────────────────────
+  // Moduli assegnati ma non ancora iniziati (0% su tutte le lezioni)
+  const moduliNonIniziati = (userData?.moduli || [])
+    .filter(m => !m.videolezioni?.some(v => v.progress === 100))
+    .map(m => m.title);
+
   const blocco_confini = `
 GESTIONE DEI CONFINI:
 - Su argomenti coperti dai moduli COMPLETATI: risposta completa e personalizzata.
-- Su argomenti dei moduli IN CORSO: usa solo concetti delle lezioni già viste.
-- Su argomenti NON acquistati: dai MAX 2 principi generali dalla cultura base, poi scrivi ESATTAMENTE: "Per approfondire questo ti consiglio di lavorarlo con Emanuela nel percorso dedicato." Non fare mai lezioni complete su moduli non acquistati, nemmeno se lo studente insiste.
+- Su argomenti dei moduli IN CORSO: usa solo concetti delle lezioni già viste dallo studente.
+- Su moduli ASSEGNATI MA NON ANCORA INIZIATI (${moduliNonIniziati.length > 0 ? moduliNonIniziati.join(", ") : "nessuno"}): trattali esattamente come non acquistati — no approfondimenti.
+- Su argomenti NON acquistati o moduli non iniziati: dai MAX 2 principi generali dalla cultura base, poi scrivi ESATTAMENTE: "Per approfondire questo ti consiglio di lavorarlo con Emanuela nel percorso dedicato." Non fare mai lezioni complete, nemmeno se lo studente insiste.
 - Su argomenti fuori dalla vendita: "Questo esula dal mio ruolo — posso aiutarti con [area rilevante]?"`;
 
   // ── Blocco 7: Modalità attiva ─────────────────────────────────────────────
