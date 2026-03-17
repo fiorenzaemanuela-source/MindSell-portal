@@ -175,7 +175,12 @@ function renderMarkdown(text) {
     .replace(/\n/g, '<br/>');
 }
 
-function CoachIntelligencePanel({ selected, simInput, setSimInput, simMessages, setSimMessages, simLoading, setSimLoading, coachIntelTab, setCoachIntelTab, C }) {
+function CoachIntelligencePanel({ selected, C }) {
+  const [noteCoach, setNoteCoach] = useState("");
+  const [simInput, setSimInput] = useState("");
+  const [simMessages, setSimMessages] = useState([]);
+  const [simLoading, setSimLoading] = useState(false);
+  const [coachIntelTab, setCoachIntelTab] = useState("visuale");
   const [coachData, setCoachData] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
 
