@@ -175,7 +175,7 @@ function renderMarkdown(text) {
     .replace(/\n/g, '<br/>');
 }
 
-function CoachIntelligencePanel({ selected, noteCoach, setNoteCoach, simInput, setSimInput, simMessages, setSimMessages, simLoading, setSimLoading, coachIntelTab, setCoachIntelTab, C }) {
+function CoachIntelligencePanel({ selected, simInput, setSimInput, simMessages, setSimMessages, simLoading, setSimLoading, coachIntelTab, setCoachIntelTab, C }) {
   const [coachData, setCoachData] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
 
@@ -743,11 +743,6 @@ function AdminPanel({ adminUser }) {
   const [modalContent, setModalContent] = useState(false);
   const [modalPromo, setModalPromo] = useState(false);
   const [roleplayUrl, setRoleplayUrl] = useState("");
-  const [noteCoach, setNoteCoach] = useState("");
-  const [simInput, setSimInput] = useState("");
-  const [simMessages, setSimMessages] = useState([]);
-  const [simLoading, setSimLoading] = useState(false);
-  const [coachIntelTab, setCoachIntelTab] = useState("visuale");
   const [roleplayLoading, setRoleplayLoading] = useState(false);
   const [roleplayError, setRoleplayError] = useState("");
   const [fPromo, setFPromo] = useState({ title: "", desc: "", price: "", badge: "", color: C.green, evergreen: true, scadenza: "" });
@@ -1456,16 +1451,6 @@ function AdminPanel({ adminUser }) {
 
               <CoachIntelligencePanel
                 selected={selected}
-                noteCoach={noteCoach}
-                setNoteCoach={setNoteCoach}
-                simInput={simInput}
-                setSimInput={setSimInput}
-                simMessages={simMessages}
-                setSimMessages={setSimMessages}
-                simLoading={simLoading}
-                setSimLoading={setSimLoading}
-                coachIntelTab={coachIntelTab}
-                setCoachIntelTab={setCoachIntelTab}
                 C={C}
               />
               </>
