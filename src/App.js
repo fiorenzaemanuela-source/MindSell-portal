@@ -729,6 +729,11 @@ function AdminPanel({ adminUser }) {
   const [libreria, setLibreria] = useState([]);
   const [guide, setGuide] = useState([]);
   const [offerteGlobali, setOfferteGlobali] = useState([]);
+  const [prezziSessioni, setPrezziSessioni] = useState([
+    { key: "aula", tipo: "📚 Aula Didattica", prezzo: "59€", desc: "1 sessione di formazione in gruppo" },
+    { key: "onetoone", tipo: "🎯 One to One", prezzo: "149€", desc: "1 sessione individuale con il coach" },
+    { key: "roleplay", tipo: "🎭 Roleplay", prezzo: "149€", desc: "1 sessione di simulazione pratica" },
+  ]);
   const [selected, setSelected] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
   const [adminTab, setAdminTab] = useState("moduli");
@@ -768,14 +773,18 @@ function AdminPanel({ adminUser }) {
   const loadAll = async () => {
     setLoadingData(true);
     try {
-      const [snapS, snapL, snapG] = await Promise.all([
+      const [snapS, snapL, snapG, snapConfig] = await Promise.all([
         getDocs(collection(db, "studenti")),
         getDocs(collection(db, "libreria")),
         getDocs(collection(db, "guide")),
+        getDoc(doc(db, "config", "prezzi_sessioni")),
       ]);
       setStudenti(snapS.docs.map(d => ({ uid: d.id, ...d.data() })));
       setLibreria(snapL.docs.map(d => ({ id: d.id, ...d.data() })));
       setGuide(snapG?.docs?.map(d => ({ id: d.id, ...d.data() })) || []);
+      if (snapConfig.exists() && snapConfig.data().sessioni) {
+        setPrezziSessioni(snapConfig.data().sessioni);
+      }
     } catch (e) { console.error(e); }
     setLoadingData(false);
   };
@@ -1003,6 +1012,27 @@ function AdminPanel({ adminUser }) {
         {/* OFFERTE GLOBALI */}
         {section === "offerte" && (
           <>
+            {/* Prezzi sessioni */}
+            <div style={{ background: C.card, borderRadius: 16, padding: "24px 28px", marginBottom: 28, border: `1px solid ${C.border}` }}>
+              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>💳 Prezzi Sessioni</div>
+              <div style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>Modifica e salva — si aggiornano nel modal di acquisto studenti</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {prezziSessioni.map((s, i) => (
+                  <div key={s.key} style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                    <div style={{ fontSize: 13, color: C.text, minWidth: 200 }}>{s.tipo}</div>
+                    <input style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: C.text, outline: "none", width: 80 }}
+                      value={s.prezzo} onChange={e => setPrezziSessioni(prev => prev.map((p, j) => j === i ? { ...p, prezzo: e.target.value } : p))} />
+                    <input style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: C.text, outline: "none" }}
+                      value={s.desc} onChange={e => setPrezziSessioni(prev => prev.map((p, j) => j === i ? { ...p, desc: e.target.value } : p))} />
+                  </div>
+                ))}
+              </div>
+              <button style={{ ...btn(C.green), marginTop: 16 }} onClick={async () => {
+                await setDoc(doc(db, "config", "prezzi_sessioni"), { sessioni: prezziSessioni });
+                showToast("✅ Prezzi salvati!");
+              }}>💾 Salva prezzi</button>
+            </div>
+
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Offerte Globali ({offerteGlobali.length})</h2>
@@ -1277,9 +1307,7 @@ function AdminPanel({ adminUser }) {
           <Modal onClose={()=>setModalAcquisto(false)} title="💳 Acquista sessioni">
             <p style={{ color:C.muted, fontSize:13, marginBottom:16 }}>Scegli il tipo di sessione e procedi con il bonifico. Dopo il pagamento avvisa il coach via chat.</p>
             {[
-              { tipo:"📚 Aula Didattica", prezzo:"59€", desc:"1 sessione di formazione in gruppo" },
-              { tipo:"🎯 One to One", prezzo:"149€", desc:"1 sessione individuale con il coach" },
-              { tipo:"🎭 Roleplay", prezzo:"149€", desc:"1 sessione di simulazione pratica" },
+              ...prezziSessioni,
             ].map((s,i)=>(
               <div key={i} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", marginBottom:10 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
