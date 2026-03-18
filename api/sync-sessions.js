@@ -120,9 +120,11 @@ function aggiornaPackages(packages, conteggioPassate) {
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
-  // Verifica token di sicurezza
+  // Verifica token di sicurezza (da header o query param)
   const authHeader = req.headers.authorization || "";
-  const token = authHeader.replace("Bearer ", "");
+  const tokenHeader = authHeader.replace("Bearer ", "");
+  const tokenQuery = req.query.token || "";
+  const token = tokenHeader || tokenQuery;
   if (token !== process.env.SYNC_SECRET_TOKEN) {
     return res.status(401).json({ error: "Non autorizzato" });
   }
