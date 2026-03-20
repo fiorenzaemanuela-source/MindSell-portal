@@ -2292,9 +2292,16 @@ function SessioniCalendario({ email, uid, packages = [], onPackagesUpdated }) {
   }, [email]);
 
   const now = new Date();
+  // Mostra eventi fino a mezzanotte del giorno corrente — una sessione di oggi resta visibile tutto il giorno
+  const fineGiornata = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
   const eventiFuturi = eventi.filter(e => {
     const dt = e.start?.dateTime || e.start?.date;
-    return dt && new Date(dt) >= now;
+    if (!dt) return false;
+    const dataEvento = new Date(dt);
+    // Considera "futuro" tutto ciò che inizia oggi o dopo (anche se già passato nell'orario)
+    const inizioGiornoEvento = new Date(dataEvento.getFullYear(), dataEvento.getMonth(), dataEvento.getDate());
+    const inizioOggi = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return inizioGiornoEvento >= inizioOggi;
   });
 
   const categories = [
