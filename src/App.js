@@ -762,7 +762,7 @@ function AdminPanel({ adminUser }) {
   const [fVideoLib, setFVideoLib] = useState({ title: "", duration: "", url: "", emoji: "🎬" });
   const [fSession, setFSession] = useState({ label: "", icon: "🎯", total: 1 });
   const [fRec, setFRec] = useState({ title: "", date: "", duration: "", coach: "", url: "", tipo: "aula" });
-  const [fContent, setFContent] = useState({ title: "", type: "PDF", size: "", emoji: "📄", url: "" });
+  const [fContent, setFContent] = useState({ title: "", type: "PDF", size: "", emoji: "📄", url: "", videoUrl: "" });
   const [searchStudenti, setSearchStudenti] = useState("");
   const [selectedLibModuli, setSelectedLibModuli] = useState([]);
 
@@ -1378,6 +1378,7 @@ function AdminPanel({ adminUser }) {
                       <div style={{ flex: 1 }}>
                         <input style={{ background: "none", border: "none", color: C.text, fontWeight: 600, fontSize: 14, width: "100%", outline: "none", fontFamily: "inherit" }} value={c.title} onChange={e => upd(s => s.contents[idx].title = e.target.value)} />
                         <input style={{ background: "none", border: "none", color: C.muted, fontSize: 12, width: "100%", outline: "none", fontFamily: "inherit" }} placeholder="URL Google Drive" value={c.url} onChange={e => upd(s => s.contents[idx].url = e.target.value)} />
+                      {c.videoUrl !== undefined && <input style={{ background: "none", border: "none", color: C.blue, fontSize: 12, width: "100%", outline: "none", fontFamily: "inherit", marginTop: 2 }} placeholder="URL Bunny video" value={c.videoUrl || ""} onChange={e => upd(s => s.contents[idx].videoUrl = e.target.value)} />}
                       </div>
                       <button style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 18 }} onClick={() => upd(s => s.contents.splice(idx, 1))}>🗑</button>
                     </div>
@@ -1691,12 +1692,12 @@ function AdminPanel({ adminUser }) {
 
       {modalContent && (
         <Modal onClose={() => setModalContent(false)} title="📎 Nuovo materiale">
-          {[["emoji","Emoji"],["title","Titolo"],["type","Tipo es. PDF"],["size","Dimensione es. 2.4 MB"],["url","URL Google Drive"]].map(([k,ph]) => (
+          {[["emoji","Emoji"],["title","Titolo"],["type","Tipo es. PDF"],["size","Dimensione es. 2.4 MB"],["url","URL Google Drive (opzionale)"],["videoUrl","URL Video Bunny (opzionale)"]].map(([k,ph]) => (
             <input key={k} style={inp()} placeholder={ph} value={fContent[k]} onChange={e => setFContent({...fContent,[k]:e.target.value})} />
           ))}
           <button style={{...btn(C.green),width:"100%",marginTop:8}} onClick={() => {
             upd(s => { if(!s.contents)s.contents=[]; s.contents.push({...fContent}); });
-            setFContent({title:"",type:"PDF",size:"",emoji:"📄",url:""}); setModalContent(false);
+            setFContent({title:"",type:"PDF",size:"",emoji:"📄",url:"",videoUrl:""}); setModalContent(false);
             try { getDocs(collection(db, "studenti")).then(snap => { snap.forEach(d => inviaNotifica(d.id, { emoji:"📎", titolo:"Nuovo materiale disponibile!", testo:"Il coach ha caricato nuovo materiale." })); }); } catch(e) {}
           }}>Aggiungi →</button>
         </Modal>
@@ -2057,15 +2058,23 @@ function MaterialiStudente({ uid, moduli }) {
         </div>
       )}
       {materiali.map(m => (
-        <a key={m.id} href={m.fileUrl} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 14, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: 10, textDecoration: "none", color: C.text }}>
-          <span style={{ fontSize: 28 }}>{m.emoji}</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>{m.titolo}</div>
-            {m.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{m.descrizione}</div>}
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>📎 {m.fileName}</div>
-          </div>
-          <div style={{ color: C.green, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{m.isLink ? "🔗 Apri" : "⬇ Scarica"}</div>
-        </a>
+        <div key={m.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: 10 }}>
+          {/* Video Bunny embed se presente */}
+          {m.videoUrl && (
+            <div style={{ marginBottom: 12, borderRadius: 8, overflow: "hidden", aspectRatio: "16/9" }}>
+              <iframe src={m.videoUrl} style={{ width: "100%", height: "100%", border: "none" }} allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+            </div>
+          )}
+          <a href={m.fileUrl || m.url || "#"} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 14, textDecoration: "none", color: C.text }}>
+            <span style={{ fontSize: 28 }}>{m.emoji}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{m.titolo}</div>
+              {m.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{m.descrizione}</div>}
+              <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>📎 {m.fileName || m.title}</div>
+            </div>
+            {(m.fileUrl || m.url) && <div style={{ color: C.green, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{m.isLink ? "🔗 Apri" : "⬇ Scarica"}</div>}
+          </a>
+        </div>
       ))}
     </div>
   );
@@ -3243,10 +3252,11 @@ function AdminMateriali() {
           moduloId: form.tipo === "modulo" ? form.moduloId : null,
           fileName: file.name,
           fileUrl: url,
+          videoUrl: form.videoUrl?.trim() || null,
           storagePath: `materiali/${Date.now()}_${file.name}`,
           ts: serverTimestamp()
         });
-        setForm({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "📄" });
+        setForm({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "📄", url: "", videoUrl: "" });
         setUploading(false); setProgress(0);
       }
     );
@@ -3327,9 +3337,10 @@ function AdminMateriali() {
                   tipo: form.tipo, studenteUid: form.tipo === "studente" ? form.studenteUid : null,
                   moduloId: form.tipo === "modulo" ? form.moduloId : null,
                   fileUrl: form.url.trim(), fileName: null, storagePath: null, isLink: true,
+                  videoUrl: form.videoUrl?.trim() || null,
                   ts: serverTimestamp()
                 });
-                setForm({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "🔗", url: "" });
+                setForm({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "🔗", url: "", videoUrl: "" });
               }} style={{ background: C.blue, border: "none", color: "#fff", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>🔗 Salva link</button>
             )}
           </div>
