@@ -2632,13 +2632,47 @@ function StudentPortal({ userData }) {
         </div>
         <div className="ms-sidebar-bottom" style={{ padding:"0 10px", display:"flex", flexDirection:"column", gap:8 }}>
           <button style={{ background:`linear-gradient(135deg,${C.green},${C.blue})`, border:"none", borderRadius:10, color:"#fff", padding:"11px 14px", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit" }} onClick={()=>setShowPromo(true)}>✦ Offerte per te</button>
-          <a href="https://www.google.com/search?client=ms-android-samsung-ss&hs=xzxU&sca_esv=c6b7077b8ab86951&hl=it-IT&cs=0&sxsrf=ANbL-n6Ux6ZpU3R5vG0ZBmpqhRGv4HD5MA:1775120442587&q=recensioni+di+mindsell.academy&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOf6rRF0ZkcFdJQ8vNOXTuwRtcBtqPXf0PaTaxjrjdTLygfAxjlGMn_LHXzgSrHAHAWpYqEuxMrg0sJYVgOxRjYh_fhW1vANSvUwKzN_T3VLA0tKo-g%3D%3D&sa=X&ved=2ahUKEwiHraf75s6TAxXMxQIHHRUiHZkQ9qsLegQIHBAJ&biw=384&bih=699&dpr=2.81" target="_blank" rel="noreferrer" style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, background:"#fff", border:"1px solid #e0e0e0", borderRadius:10, padding:"10px 14px", cursor:"pointer", textDecoration:"none" }}>
+          <a href="https://www.google.com/search?client=ms-android-samsung-ss&hs=xzxU&sca_esv=c6b7077b8ab86951&hl=it-IT&cs=0&sxsrf=ANbL-n6Ux6ZpU3R5vG0ZBmpqhRGv4HD5MA:1775120442587&q=recensioni+di+mindsell.academy&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOf6rRF0ZkcFdJQ8vNOXTuwRtcBtqPXf0PaTaxjrjdTLygfAxjlGMn_LHXzgSrHAHAWpYqEuxMrg0sJYVgOxRjYh_fhW1vANSvUwKzN_T3VLA0tKo-g%3D%3D&sa=X&ved=2ahUKEwiHraf75s6TAxXMxQIHHRUiHZkQ9qsLegQIHBAJ&biw=384&bih=699&dpr=2.81" target="_blank" rel="noreferrer" style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, background:C.card, border:`1px solid ${C.green}44`, borderRadius:10, padding:"10px 14px", cursor:"pointer", textDecoration:"none" }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.7 7.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.5 0 10.5-1.9 14.3-5l-6.6-5.4C29.7 37 27 38 24 38c-6.1 0-11.3-4.1-13.1-9.7l-7 5.4C7.5 41.8 15.2 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-1 2.8-2.8 5.1-5.2 6.6l6.6 5.4C41.4 37.3 45 31.2 45 24c0-1.3-.2-2.7-.5-4z"/></svg>
-              <span style={{ fontSize:12, fontWeight:700, color:"#333" }}>Lascia la tua recensione</span>
+              <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.7 7.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.5 0 10.5-1.9 14.3-5l-6.6-5.4C29.7 37 27 38 24 38c-6.1 0-11.3-4.1-13.1-9.7l-7 5.4C7.5 41.8 15.2 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-1 2.8-2.8 5.1-5.2 6.6l6.6 5.4C41.4 37.3 45 31.2 45 24c0-1.3-.2-2.7-.5-4z"/></svg>
+              <span style={{ fontSize:11, fontWeight:700, color:C.text }}>Lascia la tua recensione</span>
             </div>
-            <div style={{ fontSize:18, letterSpacing:2, color:"#FBBC05", lineHeight:1 }}>★★★★★</div>
+            <div style={{ fontSize:16, letterSpacing:3, color:"#FBBC05", lineHeight:1 }}>★★★★★</div>
           </a>
+          <label style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:C.card, border:`1px solid ${C.purple}44`, borderRadius:10, padding:"10px 14px", cursor:"pointer", color:C.text, fontSize:11, fontWeight:700 }}>
+            🎬 Carica video recensione
+            <input type="file" accept="video/*" style={{ display:"none" }} onChange={async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              if (file.size > 200 * 1024 * 1024) { alert("Il video non può superare i 200MB"); return; }
+              const toastEl = document.createElement("div");
+              toastEl.style.cssText = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1C2530;color:#E8EDF5;padding:10px 20px;border-radius:10px;z-index:9999;font-size:13px;";
+              toastEl.textContent = "⏳ Caricamento video in corso...";
+              document.body.appendChild(toastEl);
+              try {
+                const { ref: sRef, uploadBytesResumable, getDownloadURL } = await import("firebase/storage");
+                const { storage } = await import("./firebase");
+                const path = `recensioni/${uid}_${Date.now()}_${file.name}`;
+                const fileRef = sRef(storage, path);
+                await new Promise((res, rej) => {
+                  const task = uploadBytesResumable(fileRef, file);
+                  task.on("state_changed", null, rej, () => res());
+                });
+                const url = await getDownloadURL(fileRef);
+                const { db } = await import("./firebase");
+                const { addDoc, collection, serverTimestamp } = await import("firebase/firestore");
+                await addDoc(collection(db, "recensioni"), {
+                  uid, nome: data?.name || "", videoUrl: url, storagePath: path, ts: serverTimestamp()
+                });
+                toastEl.textContent = "✅ Video caricato! Grazie per la recensione.";
+                setTimeout(() => document.body.removeChild(toastEl), 3000);
+              } catch(err) {
+                toastEl.textContent = "❌ Errore caricamento: " + err.message;
+                setTimeout(() => document.body.removeChild(toastEl), 4000);
+              }
+              e.target.value = "";
+            }} />
+          </label>
           <button style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:10, color:C.muted, padding:"10px 14px", cursor:"pointer", fontSize:13, fontFamily:"inherit" }} onClick={()=>signOut(auth)}>Esci</button>
         </div>
       </aside>
