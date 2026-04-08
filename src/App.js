@@ -2900,7 +2900,7 @@ function StudentPortal({ userData }) {
                 </div>
                 <span style={{ color:C.muted, fontSize:12 }}>{activeVideo.progress||0}%</span>
                 {activeVideo.progress !== 100 && (
-                  <button style={{ background:C.green+"22", border:`1px solid ${C.green}55`, color:C.green, borderRadius:8, padding:"6px 14px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>markVideoComplete(activeVideo.url)}>✓ Segna completata</button>
+                  <button style={{ background:C.green+"22", border:`1px solid ${C.green}55`, color:C.green, borderRadius:8, padding:"6px 14px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }} onMouseDown={()=>markVideoComplete(activeVideo.url)}>✓ Segna completata</button>
                 )}
                 {activeVideo.progress === 100 && (
                   <span style={{ color:C.green, fontSize:13, fontWeight:700 }}>✓ Completata!</span>
