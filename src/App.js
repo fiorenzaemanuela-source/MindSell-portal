@@ -2667,7 +2667,7 @@ function StudentPortal({ userData }) {
         </div>
       </aside>
 
-      <main className="ms-main" style={{ flex:1, padding:"36px 40px", overflowY:"auto", overflowX:"hidden" }}>
+      <main className="ms-main" style={{ flex:1, padding:"36px 40px", overflowY: tab==="coach" ? "hidden" : "auto", overflowX:"hidden" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:32 }}>
           <div>
             <h2 style={{ fontSize:24, fontWeight:800, margin:0, letterSpacing:"-0.5px" }}>
