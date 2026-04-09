@@ -2550,11 +2550,13 @@ function StudentPortal({ userData }) {
         })
       }));
       if (updated) {
-        await setDoc(ref, { ...studentData, moduli });
-        await inviaNotifica(uid, { emoji:"🎉", titolo:"Lezione completata!", testo:"Ottimo lavoro! Hai completato una lezione del tuo percorso." });
+        // Feedback immediato UI
         setActiveVideo(prev => prev ? { ...prev, progress: 100 } : null);
         setLocalData(prev => ({ ...(prev || studentData), moduli }));
         showToast('✅ Lezione completata!');
+        // Salvataggio in background
+        setDoc(ref, { ...studentData, moduli }).catch(e => console.error('Errore salvataggio:', e));
+        inviaNotifica(uid, { emoji:"🎉", titolo:"Lezione completata!", testo:"Ottimo lavoro! Hai completato una lezione del tuo percorso." }).catch(()=>{});
       }
     } catch(e) { console.error('Errore salvataggio progresso:', e); }
   };
