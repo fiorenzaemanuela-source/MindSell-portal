@@ -1086,7 +1086,7 @@ export default function AICoach({ userData, uid }) {
               </span>
             </div>
             <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
-              {userData.moduli.slice(0, 4).map((m, i) => {
+              {userData.moduli.map((m, i) => {
                 const lezioni = m.videolezioni || [];
                 const completate = lezioni.filter(v => v.progress === 100).length;
                 const pct = lezioni.length > 0 ? Math.round((completate / lezioni.length) * 100) : 0;
