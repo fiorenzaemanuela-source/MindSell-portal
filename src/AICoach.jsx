@@ -1058,7 +1058,7 @@ export default function AICoach({ userData, uid }) {
                   }}>
                     <span style={{ fontSize: 13, flexShrink: 0 }}>{intent?.icon || "💬"}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 11, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <div style={{ fontSize: 11, color: C.text, lineHeight: 1.3 }}>
                         {s.intent_label}
                       </div>
                       {s.anteprima && (
@@ -1095,7 +1095,7 @@ export default function AICoach({ userData, uid }) {
                     padding: "6px 8px", borderRadius: 8, background: C.surface,
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                      <span style={{ fontSize: 11, color: C.text, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: 11, color: C.text, fontWeight: 600, flex: 1, minWidth: 0, lineHeight: 1.3 }}>
                         {m.emoji || "📚"} {m.title}
                       </span>
                       <span style={{ fontSize: 10, color: pct === 100 ? C.green : C.muted, flexShrink: 0, marginLeft: 6 }}>{pct}%</span>
