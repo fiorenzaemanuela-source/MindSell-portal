@@ -2553,19 +2553,7 @@ function StudentPortal({ userData }) {
         await setDoc(ref, { ...studentData, moduli });
         await inviaNotifica(uid, { emoji:"🎉", titolo:"Lezione completata!", testo:"Ottimo lavoro! Hai completato una lezione del tuo percorso." });
         setActiveVideo(prev => prev ? { ...prev, progress: 100 } : null);
-        setLocalData(prev => {
-          const base = prev || studentData;
-          if (!base) return prev;
-          const moduli = (base.moduli || []).map(m => ({
-            ...m,
-            videolezioni: (m.videolezioni || []).map(v => {
-              const vUrl = (v.url || '').split('?')[0];
-              const targetUrl = (videoUrl || '').split('?')[0];
-              return vUrl === targetUrl ? { ...v, progress: 100 } : v;
-            })
-          }));
-          return { ...base, moduli };
-        });
+        setLocalData(prev => ({ ...(prev || studentData), moduli }));
         showToast('✅ Lezione completata!');
       }
     } catch(e) { console.error('Errore salvataggio progresso:', e); }
