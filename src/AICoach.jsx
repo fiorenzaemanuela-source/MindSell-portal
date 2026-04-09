@@ -914,7 +914,7 @@ export default function AICoach({ userData, uid }) {
       <div style={{
         width: 230, flexShrink: 0,
         display: "flex", flexDirection: "column", gap: 12,
-        overflowY: "auto",
+        overflowY: "auto", height: "100%",
       }}>
 
         {/* Stato sessione */}
