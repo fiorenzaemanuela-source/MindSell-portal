@@ -758,7 +758,7 @@ function AdminPanel({ adminUser }) {
   const [fPromo, setFPromo] = useState({ title: "", desc: "", price: "", badge: "", color: C.green, evergreen: true, scadenza: "" });
 
   const [fStudent, setFStudent] = useState({ name: "", email: "", password: "", plan: "" });
-  const [fModuloLib, setFModuloLib] = useState({ title: "", emoji: "📚", descrizione: "" });
+  const [fModuloLib, setFModuloLib] = useState({ title: "", emoji: "📚", descrizione: "", tipo: "modulo" });
   const [fVideoLib, setFVideoLib] = useState({ title: "", duration: "", url: "", emoji: "🎬" });
   const [fSession, setFSession] = useState({ label: "", icon: "🎯", total: 1 });
   const [fRec, setFRec] = useState({ title: "", date: "", duration: "", coach: "", url: "", tipo: "aula" });
@@ -835,7 +835,7 @@ function AdminPanel({ adminUser }) {
     try {
       await setDoc(doc(db, "libreria", id), { ...fModuloLib, videolezioni: [] });
       await loadAll();
-      setFModuloLib({ title: "", emoji: "📚", descrizione: "" });
+      setFModuloLib({ title: "", emoji: "📚", descrizione: "", tipo: "modulo" });
       setModalModuloLib(false);
       showToast("✅ Modulo aggiunto alla libreria!");
     } catch { showToast("❌ Errore."); }
@@ -892,7 +892,7 @@ function AdminPanel({ adminUser }) {
     if (!s.moduli) s.moduli = [];
     const giàAssegnati = s.moduli.map(m => m.libId);
     const nuovi = libreria.filter(m => selectedLibModuli.includes(m.id) && !giàAssegnati.includes(m.id));
-    nuovi.forEach(m => s.moduli.push({ libId: m.id, title: m.title, emoji: m.emoji, videolezioni: (m.videolezioni || []).map(v => ({ ...v, progress: 0 })) }));
+    nuovi.forEach(m => s.moduli.push({ libId: m.id, title: m.title, emoji: m.emoji, tipo: m.tipo || "modulo", videolezioni: (m.videolezioni || []).map(v => ({ ...v, progress: 0 })) }));
     setSelected(s);
     setSelectedLibModuli([]);
     setModalAssegna(false);
@@ -1546,6 +1546,10 @@ function AdminPanel({ adminUser }) {
           <input style={inp()} placeholder="Emoji es. 🧠" value={fModuloLib.emoji} onChange={e => setFModuloLib({...fModuloLib,emoji:e.target.value})} />
           <input style={inp()} placeholder="Titolo modulo *" value={fModuloLib.title} onChange={e => setFModuloLib({...fModuloLib,title:e.target.value})} />
           <input style={inp()} placeholder="Descrizione breve (opzionale)" value={fModuloLib.descrizione} onChange={e => setFModuloLib({...fModuloLib,descrizione:e.target.value})} />
+          <select style={{...inp(),marginTop:4}} value={fModuloLib.tipo} onChange={e => setFModuloLib({...fModuloLib,tipo:e.target.value})}>
+            <option value="modulo">📚 Modulo didattico (unlock sequenziale)</option>
+            <option value="webinar">🎥 Webinar / Registrazione (accesso libero)</option>
+          </select>
           <button style={{...btn(C.green),width:"100%",marginTop:8}} onClick={addModuloLib}>Aggiungi alla libreria →</button>
         </Modal>
       )}
@@ -1613,7 +1617,7 @@ function AdminPanel({ adminUser }) {
                       const s = JSON.parse(JSON.stringify(selected));
                       if (!s.moduli) s.moduli = [];
                       let mod = s.moduli.find(sm => sm.libId === m.id);
-                      if (!mod) { mod = { libId: m.id, title: m.title, emoji: m.emoji, videolezioni: [] }; s.moduli.push(mod); }
+                      if (!mod) { mod = { libId: m.id, title: m.title, emoji: m.emoji, tipo: m.tipo || "modulo", videolezioni: [] }; s.moduli.push(mod); }
                       mod.videolezioni.push({ ...v, progress: 0 });
                       setSelected(s);
                       showToast(`✅ Lezione aggiunta! Ricorda di salvare.`);
@@ -2711,7 +2715,7 @@ function StudentPortal({ userData }) {
                   </div>
                   {open&&m.videolezioni?.map((v,vIdx)=>{
                     const completata = v.progress === 100;
-                    const sbloccata = vIdx === 0 || m.videolezioni[vIdx-1]?.progress === 100;
+                    const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.progress === 100;
                     const bgColor = completata ? `${C.green}11` : C.surface;
                     const borderColor = completata ? `${C.green}44` : C.border;
                     return (
