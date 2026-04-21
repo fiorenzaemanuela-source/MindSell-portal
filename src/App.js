@@ -2695,7 +2695,7 @@ function StudentPortal({ userData }) {
               const tot=m.videolezioni?.length||0;
               const done=m.videolezioni?.filter(v=>v.progress===100).length||0;
               const open=expandedModulo===mIdx;
-              const sbloccatoMod = mIdx===0 || (data.moduli[mIdx-1]?.videolezioni||[]).every(v=>v.progress===100);
+              const sbloccatoMod = m.tipo === "webinar" || mIdx===0 || (data.moduli[mIdx-1]?.videolezioni||[]).every(v=>v.progress===100);
               return(
                 <div key={mIdx} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, marginBottom:14, overflow:"hidden" }}>
                   <div style={{ padding:"20px 24px", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:sbloccatoMod?"pointer":"not-allowed", borderLeft:`4px solid ${sbloccatoMod?col:C.muted}`, opacity:sbloccatoMod?1:0.5 }} onClick={()=>{ if(sbloccatoMod) setExpandedModulo(open?null:mIdx); }}>
@@ -2715,7 +2715,8 @@ function StudentPortal({ userData }) {
                   </div>
                   {open&&m.videolezioni?.map((v,vIdx)=>{
                     const completata = v.progress === 100;
-                    const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.progress === 100;
+                    console.log('modulo:', m.title, 'tipo:', m.tipo);
+const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.progress === 100;
                     const bgColor = completata ? `${C.green}11` : C.surface;
                     const borderColor = completata ? `${C.green}44` : C.border;
                     return (
