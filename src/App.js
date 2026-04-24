@@ -3297,43 +3297,6 @@ function AdminMateriali() {
       descrizione: m.descrizione || "",
       emoji: m.emoji || "📄",
       tipo: m.tipo || "generale",
-      studenteUid: m.studenteUid || "",
-      studentiUids: m.studentiUids || (m.studenteUid ? [m.studenteUid] : []),
-      moduloId: m.moduloId || ""
-    });
-  };
-
-  const salvaModifica = async () => {
-    if (!editId || !editForm) return;
-    const dati = {
-      titolo: editForm.titolo.trim(),
-      descrizione: editForm.descrizione.trim(),
-      emoji: editForm.emoji,
-      tipo: editForm.tipo,
-      studenteUid: editForm.tipo === "studente" ? (editForm.studentiUids[0] || null) : null,
-      studentiUids: editForm.tipo === "studente" ? editForm.studentiUids : [],
-      moduloId: editForm.tipo === "modulo" ? editForm.moduloId : null,
-    };
-    await updateDoc(doc(db, "materiali", editId), dati);
-    setEditId(null);
-    setEditForm(null);
-    showToast("✅ Materiale aggiornato!");
-  };
-
-  const toggleStudente = (uid) => {
-    setEditForm(prev => {
-      const already = prev.studentiUids.includes(uid);
-      return { ...prev, studentiUids: already ? prev.studentiUids.filter(u => u !== uid) : [...prev.studentiUids, uid] };
-    });
-  };
-
-  const apriModifica = (m) => {
-    setEditId(m.id);
-    setEditForm({
-      titolo: m.titolo || "",
-      descrizione: m.descrizione || "",
-      emoji: m.emoji || "📄",
-      tipo: m.tipo || "generale",
       studentiUids: m.studentiUids?.length ? m.studentiUids : (m.studenteUid ? [m.studenteUid] : []),
       moduloId: m.moduloId || ""
     });
