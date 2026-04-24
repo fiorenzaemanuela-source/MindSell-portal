@@ -3252,6 +3252,8 @@ function AdminMateriali() {
   const [form, setForm] = useState({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "📄" });
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState(null);
+  const [editId, setEditId] = useState(null);
+  const [editForm, setEditForm] = useState(null);
 
   useEffect(() => {
     const u1 = onSnapshot(query(collection(db, "materiali"), orderBy("ts", "desc")), snap => {
@@ -3325,6 +3327,41 @@ function AdminMateriali() {
       const already = prev.studentiUids.includes(uid);
       return { ...prev, studentiUids: already ? prev.studentiUids.filter(u => u !== uid) : [...prev.studentiUids, uid] };
     });
+  };
+
+  const apriModifica = (m) => {
+    setEditId(m.id);
+    setEditForm({
+      titolo: m.titolo || "",
+      descrizione: m.descrizione || "",
+      emoji: m.emoji || "📄",
+      tipo: m.tipo || "generale",
+      studentiUids: m.studentiUids?.length ? m.studentiUids : (m.studenteUid ? [m.studenteUid] : []),
+      moduloId: m.moduloId || ""
+    });
+  };
+
+  const salvaModifica = async () => {
+    if (!editId || !editForm) return;
+    await updateDoc(doc(db, "materiali", editId), {
+      titolo: editForm.titolo.trim(),
+      descrizione: editForm.descrizione.trim(),
+      emoji: editForm.emoji,
+      tipo: editForm.tipo,
+      studenteUid: editForm.tipo === "studente" && editForm.studentiUids.length > 0 ? editForm.studentiUids[0] : null,
+      studentiUids: editForm.tipo === "studente" ? editForm.studentiUids : [],
+      moduloId: editForm.tipo === "modulo" ? editForm.moduloId : null,
+    });
+    setEditId(null); setEditForm(null);
+  };
+
+  const toggleStudente = (uid) => {
+    setEditForm(prev => ({
+      ...prev,
+      studentiUids: prev.studentiUids.includes(uid)
+        ? prev.studentiUids.filter(u => u !== uid)
+        : [...prev.studentiUids, uid]
+    }));
   };
 
   const elimina = async (m) => {
@@ -3419,18 +3456,19 @@ function AdminMateriali() {
       {/* Lista materiali */}
       {materiali.length === 0 && <div style={{ color: C.muted, fontSize: 13 }}>Nessun materiale caricato ancora.</div>}
       {materiali.map(m => (
-        <div key={m.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: 8, display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ fontSize: 24 }}>{m.emoji}</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>{m.titolo}</div>
-            {m.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{m.descrizione}</div>}
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{tipoLabel(m)} · {m.fileName}</div>
+        <React.Fragment key={m.id}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: editId === m.id ? 0 : 8, display: "flex", alignItems: "center", gap: 14, borderBottomLeftRadius: editId === m.id ? 0 : 12, borderBottomRightRadius: editId === m.id ? 0 : 12 }}>
+            <span style={{ fontSize: 24 }}>{m.emoji}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{m.titolo}</div>
+              {m.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{m.descrizione}</div>}
+              <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{tipoLabel(m)} · {m.fileName}</div>
+            </div>
+            <a href={m.fileUrl} target="_blank" rel="noreferrer" style={{ color: C.green, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>{m.isLink ? "🔗 Apri" : "⬇ Scarica"}</a>
+            <button onClick={() => apriModifica(m)} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: 18 }} title="Modifica">✏️</button>
+            <button onClick={() => elimina(m)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 18 }}>🗑</button>
           </div>
-          <a href={m.fileUrl} target="_blank" rel="noreferrer" style={{ color: C.green, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>{m.isLink ? "🔗 Apri" : "⬇ Scarica"}</a>
-          <button onClick={() => apriModifica(m)} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: 18 }} title="Modifica">✏️</button>
-          <button onClick={() => elimina(m)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 18 }}>🗑</button>
-        </div>
-        {editId === m.id && editForm && (
+          {editId === m.id && editForm && (
           <div style={{ marginTop: 10, padding: "14px 16px", background: C.surface, borderRadius: 10, border: `1px solid ${C.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, color: C.text }}>✏️ Modifica materiale</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
@@ -3474,7 +3512,8 @@ function AdminMateriali() {
               <button onClick={() => { setEditId(null); setEditForm(null); }} style={{ background: "none", border: `1px solid ${C.border}`, color: C.muted, borderRadius: 8, padding: "7px 16px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Annulla</button>
             </div>
           </div>
-        )}
+          )}
+        </React.Fragment>
       ))}
     </div>
   );
