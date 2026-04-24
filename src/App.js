@@ -3252,8 +3252,6 @@ function AdminMateriali() {
   const [form, setForm] = useState({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "📄" });
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState(null);
-  const [editId, setEditId] = useState(null);
-  const [editForm, setEditForm] = useState(null);
 
   useEffect(() => {
     const u1 = onSnapshot(query(collection(db, "materiali"), orderBy("ts", "desc")), snap => {
