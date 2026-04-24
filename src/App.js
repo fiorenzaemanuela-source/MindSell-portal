@@ -12,7 +12,7 @@ import {
 } from "firebase/auth";
 import {
   doc, getDoc, setDoc, collection, getDocs, deleteDoc,
-  addDoc, query, orderBy, onSnapshot, serverTimestamp
+  addDoc, updateDoc, query, orderBy, onSnapshot, serverTimestamp
 } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 const storage = getStorage();
@@ -3250,6 +3250,8 @@ function AdminMateriali() {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [form, setForm] = useState({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "📄" });
+  const [editId, setEditId] = useState(null);
+  const [editForm, setEditForm] = useState(null);
 
   useEffect(() => {
     const u1 = onSnapshot(query(collection(db, "materiali"), orderBy("ts", "desc")), snap => {
@@ -3288,6 +3290,43 @@ function AdminMateriali() {
     );
   };
 
+  const apriModifica = (m) => {
+    setEditId(m.id);
+    setEditForm({
+      titolo: m.titolo || "",
+      descrizione: m.descrizione || "",
+      emoji: m.emoji || "📄",
+      tipo: m.tipo || "generale",
+      studenteUid: m.studenteUid || "",
+      studentiUids: m.studentiUids || (m.studenteUid ? [m.studenteUid] : []),
+      moduloId: m.moduloId || ""
+    });
+  };
+
+  const salvaModifica = async () => {
+    if (!editId || !editForm) return;
+    const dati = {
+      titolo: editForm.titolo.trim(),
+      descrizione: editForm.descrizione.trim(),
+      emoji: editForm.emoji,
+      tipo: editForm.tipo,
+      studenteUid: editForm.tipo === "studente" ? (editForm.studentiUids[0] || null) : null,
+      studentiUids: editForm.tipo === "studente" ? editForm.studentiUids : [],
+      moduloId: editForm.tipo === "modulo" ? editForm.moduloId : null,
+    };
+    await updateDoc(doc(db, "materiali", editId), dati);
+    setEditId(null);
+    setEditForm(null);
+    showToast("✅ Materiale aggiornato!");
+  };
+
+  const toggleStudente = (uid) => {
+    setEditForm(prev => {
+      const already = prev.studentiUids.includes(uid);
+      return { ...prev, studentiUids: already ? prev.studentiUids.filter(u => u !== uid) : [...prev.studentiUids, uid] };
+    });
+  };
+
   const elimina = async (m) => {
     if (!window.confirm("Eliminare questo materiale?")) return;
     try { await deleteObject(storageRef(storage, m.storagePath)); } catch(e) {}
@@ -3295,7 +3334,12 @@ function AdminMateriali() {
   };
 
   const tipoLabel = (m) => {
-    if (m.tipo === "studente") { const s = studenti.find(s => s.uid === m.studenteUid); return `👤 ${s?.name || m.studenteUid}`; }
+    if (m.tipo === "studente") {
+      const uids = m.studentiUids?.length ? m.studentiUids : (m.studenteUid ? [m.studenteUid] : []);
+      if (uids.length === 0) return "👤 Nessuno";
+      if (uids.length === 1) { const s = studenti.find(s => s.uid === uids[0]); return `👤 ${s?.name || uids[0]}`; }
+      return `👥 ${uids.length} studenti`;
+    }
     if (m.tipo === "modulo") { const mod = libreria.find(l => l.id === m.moduloId); return `📚 ${mod?.title || m.moduloId}`; }
     return "🌐 Tutti";
   };
@@ -3383,8 +3427,54 @@ function AdminMateriali() {
             <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{tipoLabel(m)} · {m.fileName}</div>
           </div>
           <a href={m.fileUrl} target="_blank" rel="noreferrer" style={{ color: C.green, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>{m.isLink ? "🔗 Apri" : "⬇ Scarica"}</a>
+          <button onClick={() => apriModifica(m)} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: 18 }} title="Modifica">✏️</button>
           <button onClick={() => elimina(m)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 18 }}>🗑</button>
         </div>
+        {editId === m.id && editForm && (
+          <div style={{ marginTop: 10, padding: "14px 16px", background: C.surface, borderRadius: 10, border: `1px solid ${C.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, color: C.text }}>✏️ Modifica materiale</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <input value={editForm.emoji} onChange={e => setEditForm(p => ({ ...p, emoji: e.target.value }))}
+                style={{ width: 44, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px", color: C.text, fontSize: 18, textAlign: "center", fontFamily: "inherit" }} />
+              <input value={editForm.titolo} onChange={e => setEditForm(p => ({ ...p, titolo: e.target.value }))}
+                placeholder="Titolo"
+                style={{ flex: 1, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", color: C.text, fontSize: 13, fontFamily: "inherit" }} />
+            </div>
+            <input value={editForm.descrizione} onChange={e => setEditForm(p => ({ ...p, descrizione: e.target.value }))}
+              placeholder="Descrizione (opzionale)"
+              style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", color: C.text, fontSize: 12, fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box" }} />
+            <select value={editForm.tipo} onChange={e => setEditForm(p => ({ ...p, tipo: e.target.value, studentiUids: [], moduloId: "" }))}
+              style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", color: C.text, fontSize: 13, fontFamily: "inherit", marginBottom: 8 }}>
+              <option value="generale">🌐 Tutti gli studenti</option>
+              <option value="studente">👤 Studenti specifici</option>
+              <option value="modulo">📚 Modulo specifico</option>
+            </select>
+            {editForm.tipo === "studente" && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Seleziona uno o più studenti:</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {studenti.map(s => (
+                    <label key={s.uid} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: C.text }}>
+                      <input type="checkbox" checked={editForm.studentiUids.includes(s.uid)} onChange={() => toggleStudente(s.uid)} />
+                      {s.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            {editForm.tipo === "modulo" && (
+              <select value={editForm.moduloId} onChange={e => setEditForm(p => ({ ...p, moduloId: e.target.value }))}
+                style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", color: C.text, fontSize: 13, fontFamily: "inherit", marginBottom: 8 }}>
+                <option value="">Scegli modulo...</option>
+                {libreria.map(l => <option key={l.id} value={l.id}>{l.emoji} {l.title}</option>)}
+              </select>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              <button onClick={salvaModifica} style={{ background: C.green, border: "none", color: "#000", borderRadius: 8, padding: "7px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>✅ Salva</button>
+              <button onClick={() => { setEditId(null); setEditForm(null); }} style={{ background: "none", border: `1px solid ${C.border}`, color: C.muted, borderRadius: 8, padding: "7px 16px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Annulla</button>
+            </div>
+          </div>
+        )}
       ))}
     </div>
   );
