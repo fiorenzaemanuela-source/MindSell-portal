@@ -3417,7 +3417,7 @@ function AdminMateriali() {
       {/* Lista materiali */}
       {materiali.length === 0 && <div style={{ color: C.muted, fontSize: 13 }}>Nessun materiale caricato ancora.</div>}
       {materiali.map(m => (
-        <React.Fragment key={m.id}>
+        <div key={m.id}>
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: editId === m.id ? 0 : 8, display: "flex", alignItems: "center", gap: 14, borderBottomLeftRadius: editId === m.id ? 0 : 12, borderBottomRightRadius: editId === m.id ? 0 : 12 }}>
             <span style={{ fontSize: 24 }}>{m.emoji}</span>
             <div style={{ flex: 1 }}>
@@ -3474,7 +3474,7 @@ function AdminMateriali() {
             </div>
           </div>
           )}
-        </React.Fragment>
+        </div>
       ))}
     </div>
   );
