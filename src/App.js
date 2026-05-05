@@ -3447,7 +3447,14 @@ function AdminMateriali() {
       return `👥 ${uids.length} studenti`;
     }
     if (m.tipo === "modulo") { const mod = libreria.find(l => l.id === m.moduloId); return `📚 ${mod?.title || m.moduloId}`; }
+    if (m.tipo === "upload_studente") return `📤 Da: ${m.uploaderName || "Studente"}`;
     return "🌐 Tutti";
+  };
+
+  const formatData = (ts) => {
+    if (!ts?.seconds) return "";
+    const d = new Date(ts.seconds * 1000);
+    return d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
   };
 
   return (
@@ -3531,7 +3538,12 @@ function AdminMateriali() {
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{m.titolo}</div>
               {m.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{m.descrizione}</div>}
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{tipoLabel(m)} · {m.fileName}</div>
+              <div style={{ fontSize: 11, color: C.muted, marginTop: 4, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {m.tipo === "upload_studente" && <span style={{ background: "#f59e0b22", color: "#f59e0b", borderRadius: 4, padding: "1px 7px", fontWeight: 700, fontSize: 11 }}>📤 STUDENTE</span>}
+                <span>{tipoLabel(m)}</span>
+                {m.ts && <span>· {formatData(m.ts)}</span>}
+                {m.fileName && <span>· {m.fileName}</span>}
+              </div>
             </div>
             <a href={m.fileUrl} target="_blank" rel="noreferrer" style={{ color: C.green, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>{m.isLink ? "🔗 Apri" : "⬇ Scarica"}</a>
             <button onClick={() => apriModifica(m)} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: 18 }} title="Modifica">✏️</button>
