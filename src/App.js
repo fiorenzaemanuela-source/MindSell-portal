@@ -2034,8 +2034,14 @@ function SetupStrumenti({ studentName, guideIds }) {
   );
 }
 
-function MaterialiStudente({ uid, moduli }) {
+function MaterialiStudente({ uid, moduli, studentName }) {
   const [materiali, setMateriali] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [titolo, setTitolo] = useState("");
+  const [descrizione, setDescrizione] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(query(collection(db, "materiali"), orderBy("ts", "desc")), snap => {
@@ -2052,15 +2058,117 @@ function MaterialiStudente({ uid, moduli }) {
     return unsub;
   }, [uid, moduli]);
 
+  const uploadMateriale = async (file) => {
+    if (!titolo.trim()) { alert("Inserisci un titolo prima di caricare"); return; }
+    setUploading(true); setProgress(0);
+    try {
+      const { getStorage, ref: storageRef, uploadBytesResumable, getDownloadURL } = await import('firebase/storage');
+      const storage = getStorage();
+      const path = "materiali-studenti/" + uid + "/" + Date.now() + "_" + file.name;
+      const ref = storageRef(storage, path);
+      const task = uploadBytesResumable(ref, file);
+      task.on('state_changed', snap => setProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)));
+      await task;
+      const fileUrl = await getDownloadURL(ref);
+      await addDoc(collection(db, "materiali"), {
+        titolo: titolo.trim(),
+        descrizione: descrizione.trim(),
+        emoji: "📤",
+        tipo: "upload_studente",
+        uploadedBy: uid,
+        uploaderName: studentName || "Studente",
+        fileUrl, fileName: file.name, storagePath: path,
+        isLink: false,
+        ts: serverTimestamp()
+      });
+      setTitolo(""); setDescrizione(""); setLinkUrl(""); setShowForm(false);
+      setProgress(0);
+    } catch(e) { console.error(e); alert("Errore durante il caricamento"); }
+    setUploading(false);
+  };
+
+  const salvaLink = async () => {
+    if (!titolo.trim()) { alert("Inserisci un titolo"); return; }
+    if (!linkUrl.trim()) { alert("Inserisci un link"); return; }
+    await addDoc(collection(db, "materiali"), {
+      titolo: titolo.trim(),
+      descrizione: descrizione.trim(),
+      emoji: "🔗",
+      tipo: "upload_studente",
+      uploadedBy: uid,
+      uploaderName: studentName || "Studente",
+      fileUrl: linkUrl.trim(), fileName: null, storagePath: null,
+      isLink: true,
+      ts: serverTimestamp()
+    });
+    setTitolo(""); setDescrizione(""); setLinkUrl(""); setShowForm(false);
+  };
+
+  const materialiCoach = materiali.filter(m => m.tipo !== "upload_studente");
+  const materialiMiei = materiali.filter(m => m.tipo === "upload_studente" && m.uploadedBy === uid);
+
   return (
     <div style={{ maxWidth: 720, margin: "0 auto" }}>
-      <h3 style={{ fontSize: 16, fontWeight: 800, margin: "0 0 20px" }}>📎 Materiali</h3>
-      {materiali.length === 0 && (
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>📎 Materiali</h3>
+        <button onClick={() => setShowForm(p => !p)} style={{ background: showForm ? C.surface : C.green, border: showForm ? "1px solid "+C.border : "none", color: showForm ? C.text : "#000", borderRadius: 8, padding: "7px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+          {showForm ? "Annulla" : "+ Invia materiale al coach"}
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={{ background: C.card, border: "1px solid "+C.border, borderRadius: 12, padding: "16px 18px", marginBottom: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: C.text }}>📤 Invia un materiale al coach</div>
+          <input value={titolo} onChange={e => setTitolo(e.target.value)} placeholder="Titolo *"
+            style={{ width: "100%", background: C.surface, border: "1px solid "+C.border, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box" }} />
+          <input value={descrizione} onChange={e => setDescrizione(e.target.value)} placeholder="Descrizione (opzionale)"
+            style={{ width: "100%", background: C.surface, border: "1px solid "+C.border, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box" }} />
+          <input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="Oppure incolla un link (Drive, YouTube...)"
+            style={{ width: "100%", background: C.surface, border: "1px solid "+C.border, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box" }} />
+          {uploading ? (
+            <div style={{ background: C.surface, borderRadius: 8, padding: "10px" }}>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Caricamento... {progress}%</div>
+              <div style={{ background: C.border, borderRadius: 4, height: 5 }}>
+                <div style={{ background: C.green, height: 5, borderRadius: 4, width: progress+"%", transition: "width 0.3s" }} />
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 8, background: C.green, border: "none", color: "#000", borderRadius: 8, padding: "8px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                📎 Scegli file
+                <input type="file" style={{ display: "none" }} onChange={e => { if(e.target.files[0]) uploadMateriale(e.target.files[0]); }} />
+              </label>
+              {linkUrl.trim() && (
+                <button onClick={salvaLink} style={{ background: C.blue, border: "none", color: "#fff", borderRadius: 8, padding: "8px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>🔗 Salva link</button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {materialiMiei.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 10 }}>I tuoi invii</div>
+          {materialiMiei.map(m => (
+            <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 14, background: C.card, border: "1px solid "+C.border, borderRadius: 12, padding: "14px 18px", marginBottom: 8 }}>
+              <span style={{ fontSize: 24 }}>{m.emoji}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{m.titolo}</div>
+                {m.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{m.descrizione}</div>}
+              </div>
+              <a href={m.fileUrl} target="_blank" rel="noreferrer" style={{ color: C.green, fontWeight: 700, fontSize: 13, textDecoration: "none" }}>{m.isLink ? "🔗 Apri" : "⬇ Scarica"}</a>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {materialiCoach.length > 0 && <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 10 }}>Dal coach</div>}
+      {materialiCoach.length === 0 && materialiMiei.length === 0 && (
         <div style={{ background: C.card, borderRadius: 12, padding: "30px", color: C.muted, fontSize: 13, textAlign: "center" }}>
           Nessun materiale disponibile al momento.
         </div>
       )}
-      {materiali.map(m => (
+      {materialiCoach.map(m => (
         <a key={m.id} href={m.fileUrl} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 14, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: 10, textDecoration: "none", color: C.text }}>
           <span style={{ fontSize: 28 }}>{m.emoji}</span>
           <div style={{ flex: 1 }}>
@@ -2832,7 +2940,7 @@ const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.
         )}
 
         {/* MATERIALI */}
-        {tab==="materiali" && <MaterialiStudente uid={uid} moduli={data?.moduli||[]} />}
+        {tab==="materiali" && <MaterialiStudente uid={uid} moduli={data?.moduli||[]} studentName={data?.name||""} />}
         {tab==="strumenti" && <SetupStrumenti studentName={data?.name||""} guideIds={data?.guide||[]} />}
         {tab==="coach" && <AICoach userData={localData} uid={uid} />}
       </main>
