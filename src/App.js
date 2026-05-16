@@ -2049,7 +2049,7 @@ function MaterialiStudente({ uid, moduli, studentName }) {
       const tutti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const visibili = tutti.filter(m => {
         if (m.tipo === "generale") return true;
-        if (m.tipo === "studente" && m.studenteUid === uid) return true;
+        if (m.tipo === "studente" && (m.studenteUid === uid || (Array.isArray(m.studentiUids) && m.studentiUids.includes(uid)))) return true;
         if (m.tipo === "modulo" && moduliIds.includes(m.moduloId)) return true;
         return false;
       });
@@ -3386,6 +3386,7 @@ function AdminMateriali() {
           emoji: form.emoji,
           tipo: form.tipo,
           studenteUid: form.tipo === "studente" ? form.studenteUid : null,
+          studentiUids: form.tipo === "studente" && form.studenteUid ? [form.studenteUid] : [],
           moduloId: form.tipo === "modulo" ? form.moduloId : null,
           fileName: file.name,
           fileUrl: url,
