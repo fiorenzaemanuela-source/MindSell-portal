@@ -2047,12 +2047,15 @@ function MaterialiStudente({ uid, moduli, studentName }) {
     const unsub = onSnapshot(query(collection(db, "materiali"), orderBy("ts", "desc")), snap => {
       const moduliIds = (moduli || []).map(m => m.libId);
       const tutti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      console.log("[DEBUG materiali] uid:", uid);
+      console.log("[DEBUG materiali] tutti:", tutti.map(m => ({ id: m.id, tipo: m.tipo, studenteUid: m.studenteUid, studentiUids: m.studentiUids })));
       const visibili = tutti.filter(m => {
         if (m.tipo === "generale") return true;
         if (m.tipo === "studente" && (m.studenteUid === uid || (Array.isArray(m.studentiUids) && m.studentiUids.includes(uid)))) return true;
         if (m.tipo === "modulo" && moduliIds.includes(m.moduloId)) return true;
         return false;
       });
+      console.log("[DEBUG materiali] visibili:", visibili.map(m => m.titolo));
       setMateriali(visibili);
     });
     return unsub;
