@@ -905,17 +905,17 @@ function AdminPanel({ adminUser }) {
 
   // ── SEZIONE COMUNICAZIONI ──
   const AdminComunicazioni = () => {
-    const [studenti, setStudenti] = React.useState([]);
-    const [destinatari, setDestinatari] = React.useState("tutti");
-    const [selezionati, setSelezionati] = React.useState([]);
-    const [emoji, setEmoji] = React.useState("📣");
-    const [titolo, setTitolo] = React.useState("");
-    const [testo, setTesto] = React.useState("");
-    const [importante, setImportante] = React.useState(false);
-    const [inviando, setInviando] = React.useState(false);
-    const [inviato, setInviato] = React.useState(false);
+    const [studenti, setStudenti] = useState([]);
+    const [destinatari, setDestinatari] = useState("tutti");
+    const [selezionati, setSelezionati] = useState([]);
+    const [emoji, setEmoji] = useState("📣");
+    const [titolo, setTitolo] = useState("");
+    const [testo, setTesto] = useState("");
+    const [importante, setImportante] = useState(false);
+    const [inviando, setInviando] = useState(false);
+    const [inviato, setInviato] = useState(false);
 
-    React.useEffect(() => {
+    useEffect(() => {
       getDocs(collection(db, "studenti")).then(snap => {
         setStudenti(snap.docs.map(d => ({ uid: d.id, ...d.data() })));
       });
@@ -2766,10 +2766,7 @@ function StudentPortal({ userData }) {
   
   const initials = data.name?.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase() || "MS";
 
-  useEffect(() => {
-    const t = setTimeout(() => setShowPromo(true), 3500);
-    return () => clearTimeout(t);
-  }, []);
+  
 
   const tabs = [
     { id: "moduli", label: "I miei Corsi", emoji: "▶" },
@@ -2809,7 +2806,7 @@ function StudentPortal({ userData }) {
           </nav>
         </div>
         <div className="ms-sidebar-bottom" style={{ padding:"0 10px", display:"flex", flexDirection:"column", gap:8 }}>
-          <button style={{ background:`linear-gradient(135deg,${C.green},${C.blue})`, border:"none", borderRadius:10, color:"#fff", padding:"11px 14px", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit" }} onClick={()=>setShowPromo(true)}>✦ Offerte per te</button>
+
           <a href="https://www.google.com/search?client=ms-android-samsung-ss&hs=xzxU&sca_esv=c6b7077b8ab86951&hl=it-IT&cs=0&sxsrf=ANbL-n6Ux6ZpU3R5vG0ZBmpqhRGv4HD5MA:1775120442587&q=recensioni+di+mindsell.academy&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOf6rRF0ZkcFdJQ8vNOXTuwRtcBtqPXf0PaTaxjrjdTLygfAxjlGMn_LHXzgSrHAHAWpYqEuxMrg0sJYVgOxRjYh_fhW1vANSvUwKzN_T3VLA0tKo-g%3D%3D&sa=X&ved=2ahUKEwiHraf75s6TAxXMxQIHHRUiHZkQ9qsLegQIHBAJ&biw=384&bih=699&dpr=2.81" target="_blank" rel="noreferrer" style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, background:C.card, border:`1px solid ${C.green}44`, borderRadius:10, padding:"10px 14px", cursor:"pointer", textDecoration:"none" }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.7 7.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.5 0 10.5-1.9 14.3-5l-6.6-5.4C29.7 37 27 38 24 38c-6.1 0-11.3-4.1-13.1-9.7l-7 5.4C7.5 41.8 15.2 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-1 2.8-2.8 5.1-5.2 6.6l6.6 5.4C41.4 37.3 45 31.2 45 24c0-1.3-.2-2.7-.5-4z"/></svg>
