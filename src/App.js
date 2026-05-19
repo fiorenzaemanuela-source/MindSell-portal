@@ -903,6 +903,78 @@ function AdminPanel({ adminUser }) {
 
   const upd = (fn) => { const s = JSON.parse(JSON.stringify(selected)); fn(s); setSelected(s); };
 
+  // ── SEZIONE COMUNICAZIONI ──
+  const AdminComunicazioni = () => {
+    const [studenti, setStudenti] = React.useState([]);
+    const [destinatari, setDestinatari] = React.useState("tutti");
+    const [selezionati, setSelezionati] = React.useState([]);
+    const [emoji, setEmoji] = React.useState("📣");
+    const [titolo, setTitolo] = React.useState("");
+    const [testo, setTesto] = React.useState("");
+    const [importante, setImportante] = React.useState(false);
+    const [inviando, setInviando] = React.useState(false);
+    const [inviato, setInviato] = React.useState(false);
+
+    React.useEffect(() => {
+      getDocs(collection(db, "studenti")).then(snap => {
+        setStudenti(snap.docs.map(d => ({ uid: d.id, ...d.data() })));
+      });
+    }, []);
+
+    const toggleSelezionato = (uid) => {
+      setSelezionati(prev => prev.includes(uid) ? prev.filter(u => u !== uid) : [...prev, uid]);
+    };
+
+    const invia = async () => {
+      if (!titolo.trim()) { alert("Inserisci un titolo"); return; }
+      setInviando(true);
+      const targets = destinatari === "tutti" ? studenti.map(s => s.uid) : selezionati;
+      await Promise.all(targets.map(uid => inviaNotifica(uid, { emoji, titolo: titolo.trim(), testo: testo.trim(), importante }).catch(() => {})));
+      setInviando(false);
+      setInviato(true);
+      setTitolo(""); setTesto(""); setEmoji("📣"); setImportante(false); setSelezionati([]);
+      setTimeout(() => setInviato(false), 3000);
+    };
+
+    return (
+      <div style={{ maxWidth: 600 }}>
+        <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 24, color: C.text }}>📣 Comunicazioni</div>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", gap: 10 }}>
+            <input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={2} style={{ ...inp(), width: 60, textAlign: "center", fontSize: 20, padding: "8px 10px" }} placeholder="📣" />
+            <input value={titolo} onChange={e => setTitolo(e.target.value)} style={{ ...inp(), flex: 1, padding: "10px 14px", fontSize: 14 }} placeholder="Titolo notifica..." />
+          </div>
+          <input value={testo} onChange={e => setTesto(e.target.value)} style={{ ...inp(), padding: "10px 14px", fontSize: 13 }} placeholder="Testo (opzionale)..." />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" checked={importante} onChange={e => setImportante(e.target.checked)} style={{ accentColor: C.purple, width: 16, height: 16 }} id="imp-check" />
+            <label htmlFor="imp-check" style={{ fontSize: 13, color: C.muted, cursor: "pointer" }}>Importante (rimane in evidenza)</label>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 10, fontWeight: 600 }}>Destinatari</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              {[["tutti", "👥 Tutti gli studenti"], ["seleziona", "🎯 Seleziona studenti"]].map(([v, l]) => (
+                <button key={v} onClick={() => setDestinatari(v)} style={{ ...btn(destinatari === v ? C.purple : C.surface), border: `1px solid ${destinatari === v ? C.purple : C.border}`, padding: "7px 16px", fontSize: 13, borderRadius: 8 }}>{l}</button>
+              ))}
+            </div>
+            {destinatari === "seleziona" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {studenti.map(s => (
+                  <label key={s.uid} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "8px 12px", background: selezionati.includes(s.uid) ? C.purpleDim : C.surface, borderRadius: 8, border: `1px solid ${selezionati.includes(s.uid) ? C.purple + "66" : C.border}` }}>
+                    <input type="checkbox" checked={selezionati.includes(s.uid)} onChange={() => toggleSelezionato(s.uid)} style={{ accentColor: C.purple }} />
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{s.name || s.email}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <button onClick={invia} disabled={inviando || (destinatari === "seleziona" && selezionati.length === 0)} style={{ ...btn(inviato ? C.green : C.purple), padding: "11px 24px", fontSize: 14, fontWeight: 700, opacity: inviando ? 0.6 : 1, borderRadius: 10 }}>
+            {inviato ? "✅ Notifica inviata!" : inviando ? "Invio in corso..." : "📣 Invia notifica"}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const adminNavItems = [
     { id: "moduli", label: "📚 Moduli assegnati" },
     { id: "sessioni", label: "🎯 Sessioni" },
@@ -919,7 +991,7 @@ function AdminPanel({ adminUser }) {
           <img src="/logo_mindsell.png" alt="" style={{ height: 30, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
           <span style={{ fontWeight: 800, fontSize: 18, background: `linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>MindSell Admin</span>
           <div style={{ display: "flex", gap: 4, marginLeft: 8, overflowX: "auto", maxWidth: "60vw" }}>
-            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["guide", "⚙️ Guide Strumenti"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"]].map(([id, label]) => (
+            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["guide", "⚙️ Guide Strumenti"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"], ["comunicazioni", "📣 Comunicazioni"]].map(([id, label]) => (
               <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit", position: "relative" }}
                 onClick={() => { setSection(id); setView("lista"); }}>{id === "chat" && unreadChats > 0 ? <span style={{ position:"relative" }}>{label}<span style={{ position:"absolute", top:-8, right:-14, background:"#FF4444", color:"#fff", borderRadius:"50%", width:16, height:16, fontSize:10, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{unreadChats}</span></span> : label}</button>
             ))}
@@ -1007,6 +1079,7 @@ function AdminPanel({ adminUser }) {
       {section==="guide" && <AdminGuide guide={guide} studenti={studenti} onRefresh={loadAll} />}
       {section==="bacheca" && <AdminBacheca />}
       {section === "chat" && <AdminChat />}
+      {section === "comunicazioni" && <AdminComunicazioni />}
 
 
         {/* OFFERTE GLOBALI */}
@@ -3396,6 +3469,11 @@ function AdminMateriali() {
           storagePath: `materiali/${Date.now()}_${file.name}`,
           ts: serverTimestamp()
         });
+        // Notifica studenti
+        if (form.tipo === "studente" && form.studenteUid) {
+          const uids = [form.studenteUid];
+          uids.forEach(uid => inviaNotifica(uid, { emoji: form.emoji || "📎", titolo: "Nuovo materiale condiviso!", testo: form.titolo.trim() }).catch(()=>{}));
+        }
         setForm({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "📄" });
         setUploading(false); setProgress(0);
       }
@@ -3416,6 +3494,10 @@ function AdminMateriali() {
 
   const salvaModifica = async () => {
     if (!editId || !editForm) return;
+    // Trova studenti precedenti per inviare notifica solo ai nuovi
+    const matPrecedente = materiali.find(m => m.id === editId);
+    const uidsPrecedenti = matPrecedente?.studentiUids || (matPrecedente?.studenteUid ? [matPrecedente.studenteUid] : []);
+    const uidsNuovi = editForm.tipo === "studente" ? editForm.studentiUids.filter(u => !uidsPrecedenti.includes(u)) : [];
     await updateDoc(doc(db, "materiali", editId), {
       titolo: editForm.titolo.trim(),
       descrizione: editForm.descrizione.trim(),
@@ -3425,6 +3507,8 @@ function AdminMateriali() {
       studentiUids: editForm.tipo === "studente" ? editForm.studentiUids : [],
       moduloId: editForm.tipo === "modulo" ? editForm.moduloId : null,
     });
+    // Notifica solo i nuovi studenti aggiunti
+    uidsNuovi.forEach(uid => inviaNotifica(uid, { emoji: editForm.emoji || "📎", titolo: "Nuovo materiale condiviso!", testo: editForm.titolo.trim() }).catch(()=>{}));
     setEditId(null); setEditForm(null);
   };
 
@@ -3526,6 +3610,10 @@ function AdminMateriali() {
                   fileUrl: form.url.trim(), fileName: null, storagePath: null, isLink: true,
                   ts: serverTimestamp()
                 });
+                // Notifica studente
+                if (form.tipo === "studente" && form.studenteUid) {
+                  inviaNotifica(form.studenteUid, { emoji: form.emoji || "🔗", titolo: "Nuovo materiale condiviso!", testo: form.titolo.trim() }).catch(()=>{});
+                }
                 setForm({ titolo: "", descrizione: "", tipo: "generale", studenteUid: "", moduloId: "", emoji: "🔗", url: "" });
               }} style={{ background: C.blue, border: "none", color: "#fff", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>🔗 Salva link</button>
             )}
