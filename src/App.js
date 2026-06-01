@@ -187,6 +187,7 @@ function CoachIntelligencePanel({ selected, C }) {
   // Carica dati memoria coach per questo studente
   useEffect(() => {
     if (!selected?.uid) return;
+    setNoteCoach("");
     setLoadingData(true);
     import("./firebase").then(({ db }) => {
       import("firebase/firestore").then(({ doc, getDoc, collection, getDocs }) => {
@@ -204,6 +205,7 @@ function CoachIntelligencePanel({ selected, C }) {
             roleplay: rpSnap.exists() ? rpSnap.data() : null,
             studente: stSnap.exists() ? stSnap.data() : null,
           });
+          if (mSnap.exists() && mSnap.data().note_coach_umano) setNoteCoach(mSnap.data().note_coach_umano);
           setLoadingData(false);
         });
       });
