@@ -177,7 +177,7 @@ function renderMarkdown(text) {
 
 function CoachIntelligencePanel({ selected, C }) {
   const [noteCoach, setNoteCoach] = useState("");
-  const noteCoachRef = React.useRef(null);
+  const noteCoachRef = useRef(null);
   const [simInput, setSimInput] = useState("");
   const [simMessages, setSimMessages] = useState([]);
   const [simLoading, setSimLoading] = useState(false);
