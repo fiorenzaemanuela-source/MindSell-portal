@@ -177,6 +177,7 @@ function renderMarkdown(text) {
 
 function CoachIntelligencePanel({ selected, C }) {
   const [noteCoach, setNoteCoach] = useState("");
+  const noteCoachRef = React.useRef(null);
   const [simInput, setSimInput] = useState("");
   const [simMessages, setSimMessages] = useState([]);
   const [simLoading, setSimLoading] = useState(false);
@@ -351,8 +352,8 @@ function CoachIntelligencePanel({ selected, C }) {
                 <textarea
                   style={{ width: "100%", minHeight: 100, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, color: C.text, outline: "none", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
                   placeholder="Es: Michele tende a categorizzare troppo presto il cliente senza esplorare il sistema decisionale attivo. Lavorare su domande di discovery prima di qualsiasi label..."
-                  value={noteCoach}
-                  onChange={e => setNoteCoach(e.target.value)}
+                  defaultValue={noteCoach}
+                  ref={noteCoachRef}
                 />
                 <button
                   style={{ ...{ background: C.green, color: "#fff", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", marginTop: 8 } }}
@@ -360,7 +361,7 @@ function CoachIntelligencePanel({ selected, C }) {
                     import("./firebase").then(({ db }) => {
                       import("firebase/firestore").then(({ doc, setDoc, serverTimestamp }) => {
                         setDoc(doc(db, "aiCoach", selected.uid, "memoria", "meta"), {
-                          note_coach_umano: noteCoach,
+                          note_coach_umano: noteCoachRef.current ? noteCoachRef.current.value : noteCoach,
                           note_aggiornate_il: serverTimestamp(),
                         }, { merge: true });
                         alert("✅ Note salvate — il coach AI le leggerà dalla prossima sessione");
