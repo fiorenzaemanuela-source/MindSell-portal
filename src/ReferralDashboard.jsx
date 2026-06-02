@@ -192,9 +192,17 @@ function LeadCard({ lead }) {
 // ─────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────
-export default function ReferralDashboard() {
-  const user = MOCK_USER;
-  const [leads, setLeads] = useState(MOCK_LEADS);
+export default function ReferralDashboard({ uid, userData }) {
+  // Dati reali da props (Firestore via App.js)
+  const user = {
+    nome: userData?.name?.split(" ")[0] || "",
+    cognome: userData?.name?.split(" ").slice(1).join(" ") || "",
+    ruolo: userData?.ruolo || "studente",
+    referral: userData?.referral || false,
+    livello: userData?.referralLivello || "Bronze",
+    leadAcquisiti: userData?.referralAcquisiti || 0,
+  };
+  const [leads, setLeads] = useState([]);
   const [activeTab, setActiveTab] = useState("leads");
   const [form, setForm] = useState({ nome: "", cognome: "", email: "", telefono: "", note: "" });
   const [formOk, setFormOk] = useState(false);
@@ -209,7 +217,7 @@ export default function ReferralDashboard() {
   const progressPct = getProgressPct(acquisiti, user.livello);
   const mancano = nextTier ? nextTier.soglia - acquisiti : 0;
 
-  const initials = (user.nome[0] + user.cognome[0]).toUpperCase();
+  const initials = userData?.name ? userData.name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase() : "??";
 
   function submitLead() {
     if (!form.nome || !form.cognome || !form.email) return;
@@ -289,7 +297,7 @@ export default function ReferralDashboard() {
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: "#fff",
             }}>{initials}</div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "#e8e8f0" }}>{user.nome} {user.cognome}</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#e8e8f0" }}>{userData?.name || "Utente"}</div>
               <div style={{ fontSize: 12, color: "#555" }}>
                 {user.ruolo === "procacciatore" ? "Procacciatore MindSell" : "MindSell Academy"}
               </div>
