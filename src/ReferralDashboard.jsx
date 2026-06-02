@@ -239,13 +239,13 @@ export default function ReferralDashboard({ uid, userData }) {
       {/* STATS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
         {[
-          { icon: "ti-users", iconColor: C.greenMid, bg: "#0d2e1a", val: leads.length, label: "Lead segnalati" },
-          { icon: "ti-circle-check", iconColor: C.purple, bg: "#1e1a3a", val: acquisiti, label: "Lead acquisiti" },
-          { icon: "ti-medal", iconColor: C.amber, bg: "#2a1f08", val: livello, label: "Livello attuale" },
+          { icon: "👥", iconColor: C.greenMid, bg: "#0d2e1a", val: leads.length, label: "Lead segnalati" },
+          { icon: "✅", iconColor: C.purple, bg: "#1e1a3a", val: acquisiti, label: "Lead acquisiti" },
+          { icon: "🏅", iconColor: C.amber, bg: "#2a1f08", val: livello, label: "Livello attuale" },
         ].map((s, i) => (
           <div key={i} style={{ ...S.card, padding: "1rem" }}>
             <div style={{ width: 40, height: 40, borderRadius: 8, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-              <i className={`ti ${s.icon}`} style={{ fontSize: 22, color: s.iconColor }} aria-hidden="true" />
+              <span style={{ fontSize: 22 }}>{s.icon}</span>
             </div>
             <div style={{ fontSize: 28, fontWeight: 500, color: s.iconColor, lineHeight: 1 }}>{s.val}</div>
             <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{s.label}</div>
@@ -253,15 +253,42 @@ export default function ReferralDashboard({ uid, userData }) {
         ))}
       </div>
 
-      {/* ALERT */}
-      {nextTier && mancano > 0 && (
-        <div style={{ background: "#0d2e1a", border: "1px solid #1a4a2a", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
-          <i className="ti ti-bolt" style={{ color: C.green, fontSize: 20, flexShrink: 0 }} aria-hidden="true" />
-          <p style={{ fontSize: 13, color: "#4ade80", lineHeight: 1.5, margin: 0 }}>
-            <strong>Sei a {mancano} lead acquisiti dal livello {nextTier.id}.</strong> Salendo sbloccherai commissione più alta e bonus aggiuntivo.
-          </p>
-        </div>
-      )}
+      {/* ALERT DINAMICO */}
+      {(() => {
+        const leadAttivi = leads.filter(l => l.stato !== "perso");
+        const tuttiPersi = leads.length > 0 && leads.every(l => l.stato === "perso");
+        const platinum = livello === "Platinum";
+
+        let emoji = "⚡";
+        let msg = null;
+
+        if (platinum) {
+          emoji = "💎";
+          msg = <p style={{ fontSize: 13, color: "#c4b5fd", lineHeight: 1.5, margin: 0 }}><strong>Sei al livello Platinum!</strong> Hai raggiunto il massimo — grazie per il tuo impegno straordinario.</p>;
+        } else if (leads.length === 0) {
+          emoji = "🚀";
+          msg = <p style={{ fontSize: 13, color: "#4ade80", lineHeight: 1.5, margin: 0 }}><strong>Inizia ora!</strong> Segnala il tuo primo contatto e guadagna la tua prima commissione.</p>;
+        } else if (tuttiPersi) {
+          emoji = "💪";
+          msg = <p style={{ fontSize: 13, color: "#fbbf24", lineHeight: 1.5, margin: 0 }}><strong>Non mollare!</strong> Ogni no avvicina al prossimo sì. Segnala un nuovo contatto qualificato.</p>;
+        } else if (nextTier && mancano > 0) {
+          const inCorso = leads.filter(l => l.stato !== "perso" && l.stato !== "acquisito").length;
+          emoji = "⚡";
+          msg = <p style={{ fontSize: 13, color: "#4ade80", lineHeight: 1.5, margin: 0 }}>
+            <strong>Sei a {mancano} lead acquisiti dal livello {nextTier.id}.</strong>
+            {inCorso > 0 ? ` Hai ${inCorso} lead in corso — continua così!` : " Segnala nuovi contatti per salire di livello."}
+          </p>;
+        }
+
+        const alertColor = platinum ? { bg: "#1e1a3a", border: "#534AB7" } : tuttiPersi ? { bg: "#2a1f08", border: "#5c3d00" } : { bg: "#0d2e1a", border: "#1a4a2a" };
+
+        return msg ? (
+          <div style={{ background: alertColor.bg, border: `1px solid ${alertColor.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>{emoji}</span>
+            {msg}
+          </div>
+        ) : null;
+      })()}
 
       {/* LIVELLO */}
       <div style={{ ...S.card, padding: "1.25rem", marginBottom: 16 }}>
