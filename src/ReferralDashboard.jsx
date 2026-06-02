@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, addDoc, onSnapshot, orderBy, query, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, orderBy, query, where, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
 const TIERS = [
@@ -173,7 +173,8 @@ export default function ReferralDashboard({ uid, userData }) {
   useEffect(() => {
     if (!uid) return;
     const q = query(
-      collection(db, "studenti", uid, "referrals"),
+      collection(db, "referrals"),
+      where("studenteUid", "==", uid),
       orderBy("dataCreazione", "desc")
     );
     const unsub = onSnapshot(q, (snap) => {
@@ -193,11 +194,12 @@ export default function ReferralDashboard({ uid, userData }) {
   async function submitLead() {
     if (!form.nome || !form.cognome || !form.email) return;
     try {
-      await addDoc(collection(db, "studenti", uid, "referrals"), {
+      await addDoc(collection(db, "referrals"), {
         ...form,
         stato: "segnalato",
         dataCreazione: serverTimestamp(),
         studenteUid: uid,
+        studenteName: userData && userData.name ? userData.name : "",
       });
       setForm({ nome: "", cognome: "", email: "", telefono: "", note: "" });
       setFormOk(true);
