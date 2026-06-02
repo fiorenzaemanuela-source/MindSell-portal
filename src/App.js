@@ -17,6 +17,7 @@ import {
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 const storage = getStorage();
 import AICoach from "./AICoach";
+import ReferralDashboard from "./ReferralDashboard";
 
 const ADMIN_EMAIL = "emanuela@mindsell.it";
 
@@ -2777,6 +2778,7 @@ function StudentPortal({ userData }) {
   const tabs = [
     { id: "moduli", label: "I miei Corsi", emoji: "▶" },
     { id: "sessioni", label: "Le mie Sessioni", emoji: "◈" },
+    ...(data?.referral || userData?.referral || localData?.referral ? [{ id: "referral", label: "Referral", emoji: "🤝" }] : []),
     { id: "bacheca", label: "Bacheca", emoji: "📋" },
     { id: "registrazioni", label: "Registrazioni", emoji: "⏺" },
     { id: "materiali", label: "Materiali", emoji: "📎" },
@@ -3022,6 +3024,7 @@ const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.
         {tab==="materiali" && <MaterialiStudente uid={uid} moduli={data?.moduli||[]} studentName={data?.name||""} />}
         {tab==="strumenti" && <SetupStrumenti studentName={data?.name||""} guideIds={data?.guide||[]} />}
         {tab==="coach" && <AICoach userData={localData} uid={uid} />}
+            {tab==="referral" && <ReferralDashboard uid={uid} userData={localData || data} />}
       </main>
 
       {/* ── VIDEO MODAL con player Bunny integrato ── */}
