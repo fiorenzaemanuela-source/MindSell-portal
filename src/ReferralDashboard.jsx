@@ -239,16 +239,17 @@ export default function ReferralDashboard({ uid, userData }) {
       {/* STATS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
         {[
-          { icon: "👥", iconColor: C.greenMid, bg: "#0d2e1a", val: leads.length, label: "Lead segnalati" },
-          { icon: "✅", iconColor: C.purple, bg: "#1e1a3a", val: acquisiti, label: "Lead acquisiti" },
-          { icon: "🏅", iconColor: C.amber, bg: "#2a1f08", val: livello, label: "Livello attuale" },
+          { color: "#39d98a", border: "#1a4a35", label: "Lead segnalati", val: leads.length, icon: "👥" },
+          { color: "#818cf8", border: "#2d2d6b", label: "Lead acquisiti", val: acquisiti, icon: "🎯" },
+          { color: "#f59e0b", border: "#4a3000", label: "Livello attuale", val: livello, icon: "🏆" },
         ].map((s, i) => (
-          <div key={i} style={{ ...S.card, padding: "1rem" }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-              <span style={{ fontSize: 22 }}>{s.icon}</span>
+          <div key={i} style={{ background: C.card, border: `1px solid ${s.border}`, borderRadius: 12, padding: "1.1rem 1rem", borderLeft: `3px solid ${s.color}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+              <span style={{ fontSize: 26 }}>{s.icon}</span>
+              <span style={{ fontSize: 11, color: s.color, background: s.border, padding: "2px 8px", borderRadius: 20, fontWeight: 500 }}>attivo</span>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 500, color: s.iconColor, lineHeight: 1 }}>{s.val}</div>
-            <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{s.label}</div>
+            <div style={{ fontSize: 30, fontWeight: 500, color: s.color, lineHeight: 1 }}>{s.val}</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 5 }}>{s.label}</div>
           </div>
         ))}
       </div>
