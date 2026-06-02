@@ -192,17 +192,9 @@ function LeadCard({ lead }) {
 // ─────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────
-export default function ReferralDashboard({ uid, userData }) {
-  // Dati reali da props (Firestore via App.js)
-  const user = {
-    nome: userData?.name?.split(" ")[0] || "",
-    cognome: userData?.name?.split(" ").slice(1).join(" ") || "",
-    ruolo: userData?.ruolo || "studente",
-    referral: userData?.referral || false,
-    livello: userData?.referralLivello || "Bronze",
-    leadAcquisiti: userData?.referralAcquisiti || 0,
-  };
-  const [leads, setLeads] = useState([]);
+export default function ReferralDashboard() {
+  const user = MOCK_USER;
+  const [leads, setLeads] = useState(MOCK_LEADS);
   const [activeTab, setActiveTab] = useState("leads");
   const [form, setForm] = useState({ nome: "", cognome: "", email: "", telefono: "", note: "" });
   const [formOk, setFormOk] = useState(false);
@@ -217,7 +209,7 @@ export default function ReferralDashboard({ uid, userData }) {
   const progressPct = getProgressPct(acquisiti, user.livello);
   const mancano = nextTier ? nextTier.soglia - acquisiti : 0;
 
-  const initials = userData?.name ? userData.name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase() : "??";
+  const initials = (user.nome[0] + user.cognome[0]).toUpperCase();
 
   function submitLead() {
     if (!form.nome || !form.cognome || !form.email) return;
@@ -297,9 +289,9 @@ export default function ReferralDashboard({ uid, userData }) {
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: "#fff",
             }}>{initials}</div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "#e8e8f0" }}>{userData?.name || "Utente"}</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#e8e8f0" }}>{user.nome} {user.cognome}</div>
               <div style={{ fontSize: 12, color: "#555" }}>
-                {userData?.ruolo === "procacciatore" ? "Procacciatore MindSell" : "MindSell Academy"}
+                {user.ruolo === "procacciatore" ? "Procacciatore MindSell" : "MindSell Academy"}
               </div>
             </div>
           </div>
@@ -324,7 +316,7 @@ export default function ReferralDashboard({ uid, userData }) {
             ↑ Referral Program
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 600, color: "#fff", margin: "0 0 6px", position: "relative" }}>
-            Ciao, {userData?.name?.split(" ")[0] || "ciao"} 👋
+            Ciao, {user.nome} 👋
           </h1>
           <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.6, maxWidth: 420, margin: 0, position: "relative" }}>
             Ogni contatto che porti vale. Più lead acquisiti, più sali di livello — e più guadagni.
