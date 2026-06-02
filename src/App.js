@@ -87,16 +87,22 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, async (u) => {
+    let unsubSnap = null;
+    const unsubAuth = onAuthStateChanged(auth, (u) => {
       setUser(u);
+      if (unsubSnap) { unsubSnap(); unsubSnap = null; }
       if (u && u.email !== ADMIN_EMAIL) {
         try {
-          const snap = await getDoc(doc(db, "studenti", u.uid));
-          setUserData(snap.exists() ? snap.data() : {});
-        } catch { setUserData({}); }
+          unsubSnap = onSnapshot(doc(db, "studenti", u.uid), (snap) => {
+            setUserData(snap.exists() ? snap.data() : {});
+            setLoading(false);
+          });
+        } catch { setUserData({}); setLoading(false); }
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
+    return () => { unsubAuth(); if (unsubSnap) unsubSnap(); };
   }, []);
 
   if (loading) return <Splash />;
