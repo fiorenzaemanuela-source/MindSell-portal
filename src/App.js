@@ -3314,11 +3314,11 @@ function ChatWidget({ studentUid, studentName }) {
 // ═══════════════════════════════════════════════════════════════
 
 function AdminReferral({ studenti }) {
-  const [leads, setLeads] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [filtro, setFiltro] = React.useState("tutti");
+  const [leads, setLeads] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filtro, setFiltro] = useState("tutti");
 
-  React.useEffect(() => {
+  useEffect(() => {
     const q = query(collection(db, "referrals"), orderBy("dataCreazione", "desc"));
     const unsub = onSnapshot(q, snap => {
       setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -3333,7 +3333,8 @@ function AdminReferral({ studenti }) {
 
   const cambiaStato = async (lead, stato) => {
     await setDoc(doc(db, "referrals", lead.id), { stato }, { merge: true });
-    const acquisiti = leads.filter(l => l.studenteUid === lead.studenteUid && (l.id === lead.id ? stato === "acquisito" : l.stato === "acquisito")).length;
+    const leadsAggiornati = leads.map(l => l.id === lead.id ? { ...l, stato } : l);
+    const acquisiti = leadsAggiornati.filter(l => l.studenteUid === lead.studenteUid && l.stato === "acquisito").length;
     let livello = "Bronze";
     if (acquisiti >= 15) livello = "Platinum";
     else if (acquisiti >= 7) livello = "Gold";
@@ -3345,43 +3346,50 @@ function AdminReferral({ studenti }) {
   const leadsFiltrati = filtro === "tutti" ? leads : leads.filter(l => l.studenteUid === filtro);
 
   return (
-    React.createElement("div", { style: { padding: "32px 40px", maxWidth: 900 } },
-      React.createElement("h2", { style: { fontSize: 20, fontWeight: 800, margin: "0 0 6px" } }, "🤝 Referral — Lead ricevuti"),
-      React.createElement("p", { style: { color: C.muted, fontSize: 13, margin: "0 0 20px" } }, leads.length + " lead totali · " + leads.filter(l => l.stato === "acquisito").length + " acquisiti"),
-      React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" } },
-        React.createElement("button", { onClick: () => setFiltro("tutti"), style: { padding: "6px 14px", borderRadius: 20, border: "1px solid " + (filtro === "tutti" ? C.green : C.border), background: filtro === "tutti" ? C.greenDim : C.surface, color: filtro === "tutti" ? C.green : C.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" } }, "Tutti (" + leads.length + ")"),
-        ...studentiConLead.map(s => React.createElement("button", { key: s.uid, onClick: () => setFiltro(s.uid), style: { padding: "6px 14px", borderRadius: 20, border: "1px solid " + (filtro === s.uid ? C.green : C.border), background: filtro === s.uid ? C.greenDim : C.surface, color: filtro === s.uid ? C.green : C.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" } }, s.name + " (" + leads.filter(l => l.studenteUid === s.uid).length + ")"))
-      ),
-      loading && React.createElement("p", { style: { color: C.muted, fontSize: 13 } }, "Caricamento..."),
-      !loading && leadsFiltrati.length === 0 && React.createElement(EmptyState, { emoji: "🤝", text: "Nessun lead ancora.", sub: "I lead segnalati dai procacciatori appariranno qui." }),
-      ...leadsFiltrati.map(lead => {
+    <div style={{ padding: "32px 40px", maxWidth: 900 }}>
+      <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 6px" }}>🤝 Referral — Lead ricevuti</h2>
+      <p style={{ color: C.muted, fontSize: 13, margin: "0 0 20px" }}>{leads.length} lead totali · {leads.filter(l => l.stato === "acquisito").length} acquisiti</p>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+        <button onClick={() => setFiltro("tutti")} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${filtro === "tutti" ? C.green : C.border}`, background: filtro === "tutti" ? C.greenDim : C.surface, color: filtro === "tutti" ? C.green : C.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+          Tutti ({leads.length})
+        </button>
+        {studentiConLead.map(s => (
+          <button key={s.uid} onClick={() => setFiltro(s.uid)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${filtro === s.uid ? C.green : C.border}`, background: filtro === s.uid ? C.greenDim : C.surface, color: filtro === s.uid ? C.green : C.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+            {s.name} ({leads.filter(l => l.studenteUid === s.uid).length})
+          </button>
+        ))}
+      </div>
+      {loading && <p style={{ color: C.muted, fontSize: 13 }}>Caricamento...</p>}
+      {!loading && leadsFiltrati.length === 0 && <EmptyState emoji="🤝" text="Nessun lead ancora." sub="I lead segnalati appariranno qui." />}
+      {leadsFiltrati.map(lead => {
         const proc = studenti.find(s => s.uid === lead.studenteUid);
         const dataStr = lead.dataCreazione && lead.dataCreazione.toDate ? lead.dataCreazione.toDate().toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }) : "";
-        return React.createElement("div", { key: lead.id, style: { background: C.card, border: "1px solid " + C.border, borderRadius: 14, padding: "16px 20px", marginBottom: 10 } },
-          React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 } },
-            React.createElement("div", null,
-              React.createElement("div", { style: { fontWeight: 700, fontSize: 15, color: C.text } }, lead.nome + " " + lead.cognome),
-              React.createElement("div", { style: { fontSize: 12, color: C.muted, marginTop: 2 } }, lead.email + (lead.telefono ? " · " + lead.telefono : "")),
-              lead.note && React.createElement("div", { style: { fontSize: 12, color: C.muted, marginTop: 2, fontStyle: "italic" } }, lead.note)
-            ),
-            React.createElement("div", { style: { textAlign: "right", flexShrink: 0, marginLeft: 12 } },
-              React.createElement("div", { style: { fontSize: 11, color: C.muted, marginBottom: 4 } }, dataStr),
-              React.createElement("div", { style: { fontSize: 12, color: C.purple, fontWeight: 500 } }, "da " + (proc ? proc.name : lead.studenteName || "—"))
-            )
-          ),
-          React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10 } },
-            React.createElement("span", { style: { fontSize: 12, color: C.muted } }, "Stato:"),
-            React.createElement("select", {
-              value: lead.stato,
-              onChange: e => cambiaStato(lead, e.target.value),
-              style: { background: C.surface, border: "1px solid " + (STATI_C[lead.stato] || C.border), borderRadius: 8, padding: "5px 10px", fontSize: 13, color: STATI_C[lead.stato] || C.text, fontFamily: "inherit", fontWeight: 500, cursor: "pointer", outline: "none" }
-            }, ...STATI.map(s => React.createElement("option", { key: s, value: s, style: { color: C.text, background: C.card } }, STATI_L[s])))
-          )
+        return (
+          <div key={lead.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 20px", marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{lead.nome} {lead.cognome}</div>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{lead.email}{lead.telefono && ` · ${lead.telefono}`}</div>
+                {lead.note && <div style={{ fontSize: 12, color: C.muted, marginTop: 2, fontStyle: "italic" }}>{lead.note}</div>}
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>{dataStr}</div>
+                <div style={{ fontSize: 12, color: C.purple, fontWeight: 500 }}>da {proc ? proc.name : lead.studenteName || "—"}</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 12, color: C.muted }}>Stato:</span>
+              <select value={lead.stato} onChange={e => cambiaStato(lead, e.target.value)} style={{ background: C.surface, border: `1px solid ${STATI_C[lead.stato] || C.border}`, borderRadius: 8, padding: "5px 10px", fontSize: 13, color: STATI_C[lead.stato] || C.text, fontFamily: "inherit", fontWeight: 500, cursor: "pointer", outline: "none" }}>
+                {STATI.map(s => <option key={s} value={s} style={{ color: C.text, background: C.card }}>{STATI_L[s]}</option>)}
+              </select>
+            </div>
+          </div>
         );
-      })
-    )
+      })}
+    </div>
   );
 }
+
 
 function AdminGuide({ guide, studenti, onRefresh }) {
   const [form, setForm] = useState({ titolo: "", descrizione: "", emoji: "⚙️", tipo: "ai_vendita", aiEnabled: false, aiPrompt: "" });
