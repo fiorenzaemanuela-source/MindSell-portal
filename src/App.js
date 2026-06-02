@@ -95,7 +95,9 @@ export default function App() {
       if (u && u.email !== ADMIN_EMAIL) {
         try {
           unsubSnap = onSnapshot(doc(db, "studenti", u.uid), (snap) => {
-            setUserData(snap.exists() ? snap.data() : {});
+            const d = snap.exists() ? snap.data() : {};
+            console.log('[MindSell] userData:', JSON.stringify({referral: d.referral, ruolo: d.ruolo, name: d.name}));
+            setUserData(d);
             setLoading(false);
           });
         } catch { setUserData({}); setLoading(false); }
