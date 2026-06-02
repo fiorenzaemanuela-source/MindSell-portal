@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { collection, addDoc, onSnapshot, orderBy, query, serverTimestamp } from "firebase/firestore";
+import { db } from "./firebase";
 
 const TIERS = [
   { id: "Bronze",   emoji: "🥉", soglia: 0,  label: "Partenza",     comm: "Commissione base",       bonus: "Da definire" },
@@ -166,6 +168,19 @@ export default function ReferralDashboard({ uid, userData }) {
   const firstName = userData?.name?.split(" ")[0] || "";
 
   const [leads, setLeads] = useState([]);
+
+  // Carica lead reali da Firestore
+  useEffect(() => {
+    if (!uid) return;
+    const q = query(
+      collection(db, "studenti", uid, "referrals"),
+      orderBy("dataCreazione", "desc")
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [uid]);
   const [activeTab, setActiveTab] = useState("leads");
   const [form, setForm] = useState({ nome: "", cognome: "", email: "", telefono: "", note: "" });
   const [formOk, setFormOk] = useState(false);
@@ -175,15 +190,21 @@ export default function ReferralDashboard({ uid, userData }) {
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  function submitLead() {
+  async function submitLead() {
     if (!form.nome || !form.cognome || !form.email) return;
-    const oggi = new Date();
-    const mesi = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
-    const data = `${oggi.getDate()} ${mesi[oggi.getMonth()]} ${oggi.getFullYear()}`;
-    setLeads(prev => [{ id: Date.now(), ...form, data, stato: "segnalato" }, ...prev]);
-    setForm({ nome: "", cognome: "", email: "", telefono: "", note: "" });
-    setFormOk(true);
-    setTimeout(() => setFormOk(false), 4000);
+    try {
+      await addDoc(collection(db, "studenti", uid, "referrals"), {
+        ...form,
+        stato: "segnalato",
+        dataCreazione: serverTimestamp(),
+        studenteUid: uid,
+      });
+      setForm({ nome: "", cognome: "", email: "", telefono: "", note: "" });
+      setFormOk(true);
+      setTimeout(() => setFormOk(false), 4000);
+    } catch(e) {
+      console.error("Errore salvataggio lead:", e);
+    }
   }
 
   async function generatePost() {
