@@ -2787,10 +2787,7 @@ function StudentPortal({ userData }) {
   
   const initials = data.name?.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase() || "MS";
 
-  useEffect(() => {
-    const t = setTimeout(() => setShowPromo(true), 3500);
-    return () => clearTimeout(t);
-  }, []);
+
 
   const tabs = [
     { id: "moduli", label: "I miei Corsi", emoji: "▶" },
