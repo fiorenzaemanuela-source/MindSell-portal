@@ -810,7 +810,7 @@ function AdminPanel({ adminUser }) {
       const cred = await createUserWithEmailAndPassword(secondaryAuth, fStudent.email, fStudent.password);
       await secondaryAuth.signOut();
       await setDoc(doc(db, "studenti", cred.user.uid), {
-        name: fStudent.name, plan: fStudent.plan, email: fStudent.email,
+        name: fStudent.name, ruolo: fStudent.ruolo || "studente", referral: fStudent.referral || false, plan: fStudent.plan, email: fStudent.email,
         avatar: fStudent.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase(),
         moduli: [], packages: [], recordings: [], contents: [], promos: defaultPromos,
       });
@@ -1614,7 +1614,17 @@ function AdminPanel({ adminUser }) {
           <input style={inp()} placeholder="Email *" type="email" autoComplete="new-password" value={fStudent.email} onChange={e => setFStudent({...fStudent, email: e.target.value})} />
           <input style={inp()} placeholder="Password temporanea *" type="password" autoComplete="new-password" value={fStudent.password} onChange={e => setFStudent({...fStudent, password: e.target.value})} />
           <input style={inp()} placeholder="Piano es. Percorso Vendita Base" type="text" autoComplete="off" value={fStudent.plan} onChange={e => setFStudent({...fStudent, plan: e.target.value})} />
-          <button style={{...btn(C.green),width:"100%",marginTop:8}} onClick={addStudent}>Crea studente →</button>
+                        <select style={inp()} value={fStudent.ruolo} onChange={e => setFStudent({...fStudent, ruolo: e.target.value})}>
+                <option value="studente">👤 Studente</option>
+                <option value="procacciatore">🤝 Procacciatore (solo Referral)</option>
+              </select>
+              <label style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:C.surface, border:"1px solid "+C.border, borderRadius:10, cursor:"pointer" }}>
+                <div onClick={() => setFStudent(p => ({...p, referral: !p.referral}))} style={{ width:36, height:20, borderRadius:10, background: fStudent.referral ? "#1D9E75" : C.border, cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+                  <div style={{ position:"absolute", top:2, left: fStudent.referral ? 18 : 2, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left 0.2s" }} />
+                </div>
+                <span style={{ fontSize:13, color: fStudent.referral ? "#1D9E75" : C.muted }}>🤝 Abilita Referral Program</span>
+              </label>
+              <button style={{...btn(C.green),width:"100%",marginTop:8}} onClick={addStudent}>Crea studente →</button>
         </Modal>
       )}
 
