@@ -1,3 +1,4 @@
+// build-force: 1780399362685
 import { useState, useEffect, useRef } from "react";
 import { auth, db, firebaseConfig } from "./firebase";
 import { initializeApp, getApps } from "firebase/app";
