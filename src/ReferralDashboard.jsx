@@ -299,7 +299,7 @@ export default function ReferralDashboard({ uid, userData }) {
             <div>
               <div style={{ fontSize: 15, fontWeight: 600, color: "#e8e8f0" }}>{userData?.name || "Utente"}</div>
               <div style={{ fontSize: 12, color: "#555" }}>
-                {user.ruolo === "procacciatore" ? "Procacciatore MindSell" : "MindSell Academy"}
+                {userData?.ruolo === "procacciatore" ? "Procacciatore MindSell" : "MindSell Academy"}
               </div>
             </div>
           </div>
@@ -324,7 +324,7 @@ export default function ReferralDashboard({ uid, userData }) {
             ↑ Referral Program
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 600, color: "#fff", margin: "0 0 6px", position: "relative" }}>
-            Ciao, {user.nome} 👋
+            Ciao, {userData?.name?.split(" ")[0] || "ciao"} 👋
           </h1>
           <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.6, maxWidth: 420, margin: 0, position: "relative" }}>
             Ogni contatto che porti vale. Più lead acquisiti, più sali di livello — e più guadagni.
