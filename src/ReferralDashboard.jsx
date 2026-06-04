@@ -171,16 +171,20 @@ export default function ReferralDashboard({ uid, userData }) {
 
   // Carica lead reali da Firestore
   useEffect(() => {
-    if (!uid) return;
-    const q = query(
-      collection(db, "referrals"),
-      where("studenteUid", "==", uid),
-      orderBy("dataCreazione", "desc")
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
-    return unsub;
+    if (!uid || typeof uid !== "string" || uid.length < 5) return;
+    let unsub = null;
+    try {
+      const q = query(
+        collection(db, "referrals"),
+        where("studenteUid", "==", uid),
+        orderBy("dataCreazione", "desc")
+      );
+      unsub = onSnapshot(q, 
+        (snap) => { setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() }))); },
+        (err) => { console.warn("Referral listener error:", err.code); }
+      );
+    } catch(e) { console.warn("Referral query error:", e); }
+    return () => { if (unsub) unsub(); };
   }, [uid]);
   const [activeTab, setActiveTab] = useState("leads");
   const [form, setForm] = useState({ nome: "", cognome: "", email: "", telefono: "", note: "" });
