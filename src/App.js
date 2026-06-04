@@ -1273,6 +1273,11 @@ function AdminPanel({ adminUser }) {
                       <div style={{ position: "absolute", top: 2, left: selected.strumenti ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
                     </div>
                     <span style={{ fontSize: 11, color: selected.strumenti ? C.green : C.muted, fontWeight: 700 }}>{selected.strumenti ? "ON" : "OFF"}</span>
+                    <span style={{ fontSize: 12, color: C.muted, marginLeft: 8 }}>🤝 Referral</span>
+                    <div onClick={() => upd(s => s.referral = !s.referral)} style={{ width: 36, height: 20, borderRadius: 10, background: selected.referral ? C.green : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                      <div style={{ position: "absolute", top: 2, left: selected.referral ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: selected.referral ? C.green : C.muted, fontWeight: 700 }}>{selected.referral ? "ON" : "OFF"}</span>
                     <span style={{ fontSize: 12, color: C.muted, marginLeft: 8 }}>🧠 AI Coach</span>
                     <div onClick={() => upd(s => s.aiCoach = !s.aiCoach)} style={{ width: 36, height: 20, borderRadius: 10, background: selected.aiCoach ? C.purple : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
                       <div style={{ position: "absolute", top: 2, left: selected.aiCoach ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
