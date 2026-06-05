@@ -207,6 +207,15 @@ export default function ReferralDashboard({ uid, userData }) {
       setForm({ nome: "", cognome: "", email: "", telefono: "", note: "" });
       setFormOk(true);
       setTimeout(() => setFormOk(false), 4000);
+      // Notifica email admin
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipo: "nuovo_lead",
+          dati: { studenteName: userData?.name || "", ...form },
+        }),
+      }).catch(e => console.warn("Email notifica fallita:", e));
     } catch(e) { console.error("Errore salvataggio lead:", e); }
   }
 

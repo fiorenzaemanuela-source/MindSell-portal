@@ -3366,6 +3366,22 @@ function AdminReferral({ studenti }) {
     else if (acquisiti >= 7) livello = "Gold";
     else if (acquisiti >= 3) livello = "Silver";
     await setDoc(doc(db, "studenti", lead.studenteUid), { referralAcquisiti: acquisiti, referralLivello: livello }, { merge: true });
+    // Notifica campanella allo studente
+    const STATI_MSG = {
+      contattato: "Il tuo lead " + lead.nome + " " + lead.cognome + " è stato contattato dal nostro team.",
+      appuntamento: "Il tuo lead " + lead.nome + " " + lead.cognome + " ha fissato un appuntamento! 📅",
+      proposta: "Al tuo lead " + lead.nome + " " + lead.cognome + " è stata inviata una proposta commerciale.",
+      acquisito: "🎉 Il tuo lead " + lead.nome + " " + lead.cognome + " è diventato cliente MindSell! Commissione attiva.",
+      perso: "Il lead " + lead.nome + " " + lead.cognome + " non ha proceduto. Continua a segnalare nuovi contatti!",
+    };
+    if (STATI_MSG[stato]) {
+      await addDoc(collection(db, "notifiche", lead.studenteUid, "lista"), {
+        testo: STATI_MSG[stato],
+        tipo: stato === "acquisito" ? "successo" : stato === "perso" ? "info" : "aggiornamento",
+        letto: false,
+        data: serverTimestamp(),
+      });
+    }
   };
 
   const studentiConLead = studenti.filter(s => leads.some(l => l.studenteUid === s.uid));
