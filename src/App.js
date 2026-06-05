@@ -3322,6 +3322,27 @@ function AdminReferral({ studenti }) {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState("tutti");
+  const [brochure, setBrochure] = useState([]);
+  const [addingBrochure, setAddingBrochure] = useState(false);
+  const [newBrochure, setNewBrochure] = useState({ titolo: "", descrizione: "", url: "", obbligatoria: true });
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "referralBrochure"), snap => {
+      setBrochure(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, []);
+
+  const salvaBrochure = async () => {
+    if (!newBrochure.titolo) return;
+    await addDoc(collection(db, "referralBrochure"), { ...newBrochure, dataCreazione: serverTimestamp() });
+    setNewBrochure({ titolo: "", descrizione: "", url: "", obbligatoria: true });
+    setAddingBrochure(false);
+  };
+
+  const eliminaBrochure = async (id) => {
+    await deleteDoc(doc(db, "referralBrochure", id));
+  };
 
   useEffect(() => {
     const q = query(collection(db, "referrals"), orderBy("dataCreazione", "desc"));
@@ -3354,6 +3375,51 @@ function AdminReferral({ studenti }) {
     <div style={{ padding: "32px 40px", maxWidth: 900 }}>
       <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 6px" }}>🤝 Referral — Lead ricevuti</h2>
       <p style={{ color: C.muted, fontSize: 13, margin: "0 0 20px" }}>{leads.length} lead totali · {leads.filter(l => l.stato === "acquisito").length} acquisiti</p>
+
+      {/* SEZIONE BROCHURE */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem", marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>📋 Brochure e materiali per procacciatori</div>
+          <button onClick={() => setAddingBrochure(!addingBrochure)} style={{ background: C.greenDim, color: C.green, border: `1px solid ${C.green}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            {addingBrochure ? "Annulla" : "+ Aggiungi"}
+          </button>
+        </div>
+        {brochure.map(b => (
+          <div key={b.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>📄 {b.titolo}{b.obbligatoria && " 🔴"}</div>
+              {b.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{b.descrizione}</div>}
+              {b.url && <div style={{ fontSize: 11, color: C.blue, marginTop: 2 }}>{b.url}</div>}
+            </div>
+            <button onClick={() => eliminaBrochure(b.id)} style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Rimuovi</button>
+          </div>
+        ))}
+        {brochure.length === 0 && !addingBrochure && <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nessun materiale aggiunto.</p>}
+        {addingBrochure && (
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px", marginTop: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Titolo *</label>
+                <input value={newBrochure.titolo} onChange={e => setNewBrochure(p => ({ ...p, titolo: e.target.value }))} placeholder="Es. Presentazione MindSell Academy" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>URL PDF</label>
+                <input value={newBrochure.url} onChange={e => setNewBrochure(p => ({ ...p, url: e.target.value }))} placeholder="https://..." style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }} />
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Descrizione</label>
+                <input value={newBrochure.descrizione} onChange={e => setNewBrochure(p => ({ ...p, descrizione: e.target.value }))} placeholder="Breve descrizione del documento" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }} />
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <input type="checkbox" id="obbl" checked={newBrochure.obbligatoria} onChange={e => setNewBrochure(p => ({ ...p, obbligatoria: e.target.checked }))} />
+              <label htmlFor="obbl" style={{ fontSize: 13, color: C.textSoft, cursor: "pointer" }}>🔴 Lettura obbligatoria (blocca il form fino alla conferma)</label>
+            </div>
+            <button onClick={salvaBrochure} style={{ background: C.green, color: "#fff", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Salva documento</button>
+          </div>
+        )}
+      </div>
+
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
         <button onClick={() => setFiltro("tutti")} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${filtro === "tutti" ? C.green : C.border}`, background: filtro === "tutti" ? C.greenDim : C.surface, color: filtro === "tutti" ? C.green : C.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
           Tutti ({leads.length})
