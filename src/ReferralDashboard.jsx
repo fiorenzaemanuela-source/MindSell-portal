@@ -143,11 +143,9 @@ export default function ReferralDashboard({ uid, userData }) {
   const [activeTab, setActiveTab] = useState("leads");
   const [form, setForm] = useState({ nome: "", cognome: "", email: "", telefono: "", note: "" });
   const [formOk, setFormOk] = useState(false);
-  const [post, setPost] = useState("");
-  const [argomento, setArgomento] = useState(null);
-  const [canale, setCanale] = useState("linkedin");
-  const [generating, setGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [postLibreria, setPostLibreria] = useState([]);
+  const [canalePost, setCanalePost] = useState("tutti");
+  const [copiedId, setCopiedId] = useState(null);
 
   // Brochure
   const [brochure, setBrochure] = useState([]);
@@ -207,42 +205,22 @@ export default function ReferralDashboard({ uid, userData }) {
       setForm({ nome: "", cognome: "", email: "", telefono: "", note: "" });
       setFormOk(true);
       setTimeout(() => setFormOk(false), 4000);
-      // Notifica email admin
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tipo: "nuovo_lead",
-          dati: { studenteName: userData?.name || "", ...form },
-        }),
-      }).catch(e => console.warn("Email notifica fallita:", e));
     } catch(e) { console.error("Errore salvataggio lead:", e); }
   }
 
-  const ARGOMENTI = [
-    { id: 1, label: "Perché i venditori non chiudono", prompt: "Perché il 70% dei venditori non chiude abbastanza" },
-    { id: 2, label: "Trasformare i no in opportunità", prompt: "Come trasformare i no in opportunità di vendita" },
-    { id: 3, label: "Costruire fiducia col cliente", prompt: "Il metodo MindSell per costruire fiducia con il cliente" },
-    { id: 4, label: "Formazione che cambia le performance", prompt: "Perché la formazione alla vendita cambia le performance del team" },
-    { id: 5, label: "Strutturare un processo vincente", prompt: "Come strutturare un processo di vendita vincente" },
-    { id: 6, label: "3 errori nella vendita consultiva", prompt: "I 3 errori più comuni nella vendita consultiva" },
-  ];
+  // Carica post libreria da Firestore
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "referralPost"), snap => {
+      setPostLibreria(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, []);
 
-  async function generatePost() {
-    if (!argomento) return;
-    setGenerating(true); setPost("");
-    const chLabel = canale === "linkedin" ? "LinkedIn" : "Instagram e Facebook";
-    const tone = canale === "linkedin" ? "professionale, autorevole, paragrafi brevi, hashtag pertinenti alla fine" : "diretto, coinvolgente, storytelling breve, emoji vivaci, call to action chiara, hashtag popolari alla fine";
-    try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: `Sei un copywriter esperto di formazione commerciale. Scrivi un post ${chLabel} per promuovere MindSell Academy.\n\nArgomento: ${argomento.prompt}\nTono: ${tone}\n\nIl post deve aprire con un hook forte, sviluppare il tema e concludere con call to action verso academy.mindsell.it. Scrivi solo il testo del post.` }] }),
-      });
-      const data = await res.json();
-      setPost(data.content?.[0]?.text || "Errore. Riprova.");
-    } catch { setPost("Errore di connessione. Riprova."); }
-    setGenerating(false);
+  function copiaPost(p) {
+    navigator.clipboard.writeText(p.testo).then(() => {
+      setCopiedId(p.id);
+      setTimeout(() => setCopiedId(null), 2500);
+    });
   }
 
   // ─── ALERT DINAMICO ──────────────────────────────────────────
@@ -442,51 +420,39 @@ export default function ReferralDashboard({ uid, userData }) {
       {/* PANEL POST */}
       {activeTab === "post" && (
         <div style={{ ...S.card, padding: "1.5rem" }}>
-          <div style={S.secTitle}>Scegli un argomento</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 8, marginBottom: 16 }}>
-            {ARGOMENTI.map(a => (
-              <button key={a.id} onClick={() => setArgomento(a)} style={{
-                padding: "8px 12px", fontSize: 13, textAlign: "left", lineHeight: 1.4,
-                border: `1px solid ${argomento?.id === a.id ? B.green : B.border}`,
-                borderRadius: 8, cursor: "pointer",
-                background: argomento?.id === a.id ? B.greenDim : B.surface,
-                color: argomento?.id === a.id ? B.green : B.textSoft,
-                fontWeight: argomento?.id === a.id ? 600 : 400, fontFamily: "inherit",
-              }}>{a.label}</button>
-            ))}
-          </div>
-          <div style={{ ...S.secTitle, marginBottom: 8 }}>Canale</div>
+          <div style={S.secTitle}>Post da pubblicare</div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            {[{ id: "linkedin", label: "LinkedIn" }, { id: "instagram", label: "Instagram / Facebook" }].map(ch => (
-              <button key={ch.id} onClick={() => setCanale(ch.id)} style={{
+            {[{ id: "tutti", label: "Tutti" }, { id: "linkedin", label: "LinkedIn" }, { id: "instagram", label: "Instagram / Facebook" }].map(ch => (
+              <button key={ch.id} onClick={() => setCanalePost(ch.id)} style={{
                 padding: "6px 14px", fontSize: 13, borderRadius: 20, cursor: "pointer", fontFamily: "inherit",
-                border: `1px solid ${canale === ch.id ? B.green : B.border}`,
-                background: canale === ch.id ? B.greenDim : B.surface,
-                color: canale === ch.id ? B.green : B.textSoft, fontWeight: canale === ch.id ? 600 : 400,
+                border: `1px solid ${canalePost === ch.id ? B.green : B.border}`,
+                background: canalePost === ch.id ? B.greenDim : B.surface,
+                color: canalePost === ch.id ? B.green : B.textSoft, fontWeight: canalePost === ch.id ? 600 : 400,
               }}>{ch.label}</button>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
-            <button style={S.btnGreen} onClick={generatePost} disabled={generating || !argomento}>
-              ✨ {generating ? "Generazione..." : "Genera post"}
-            </button>
-            {post && !generating && (
-              <button style={S.btnGhost} onClick={generatePost}>↺ Rigenera</button>
-            )}
-          </div>
-          <div style={{ background: B.surface, border: `1px solid ${B.border}`, borderRadius: 8, padding: "14px 16px", fontSize: 14, lineHeight: 1.7, color: post ? B.text : B.muted, minHeight: 110, whiteSpace: "pre-wrap", marginBottom: 10, fontStyle: post ? "normal" : "italic" }}>
-            {generating ? "Generazione in corso..." : post || "Seleziona un argomento e premi \"Genera post\"."}
-          </div>
-          {post && !generating && (
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <button style={S.btnGhost} onClick={() => { navigator.clipboard.writeText(post); setCopied(true); setTimeout(() => setCopied(false), 2500); }}>
-                📋 Copia testo
-              </button>
-              {copied && <span style={{ fontSize: 12, color: B.green, fontWeight: 600 }}>✓ Copiato!</span>}
-            </div>
+          {postLibreria.filter(p => canalePost === "tutti" || p.canale === canalePost).length === 0 && (
+            <p style={{ fontSize: 14, color: B.muted, textAlign: "center", padding: "24px 0" }}>Nessun post disponibile. Il team MindSell aggiungerà presto nuovi contenuti!</p>
           )}
+          {postLibreria.filter(p => canalePost === "tutti" || p.canale === canalePost).map(p => (
+            <div key={p.id} style={{ background: B.surface, border: `1px solid ${B.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: B.text }}>{p.titolo}</span>
+                  <span style={{ fontSize: 11, color: p.canale === "linkedin" ? B.blue : B.purple, background: p.canale === "linkedin" ? B.blueDim : "rgba(124,58,237,0.1)", padding: "2px 8px", borderRadius: 20, marginLeft: 8, fontWeight: 500 }}>
+                    {p.canale === "linkedin" ? "LinkedIn" : "Instagram / FB"}
+                  </span>
+                </div>
+                <button onClick={() => copiaPost(p)} style={{ ...S.btnGhost, fontSize: 12, padding: "5px 12px", flexShrink: 0 }}>
+                  {copiedId === p.id ? "✓ Copiato!" : "📋 Copia"}
+                </button>
+              </div>
+              <div style={{ fontSize: 13, color: B.textSoft, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{p.testo}</div>
+            </div>
+          ))}
         </div>
       )}
+
     </div>
   );
 }
