@@ -2827,7 +2827,7 @@ function StudentPortal({ userData }) {
           </div>
           <nav className="ms-nav" style={{ padding:"0 10px", display:"flex", flexDirection:"column", gap:3, overflowX:"auto" }}>
             {tabs.map(t => (
-              <button key={t.id} style={{ display:"flex", alignItems:"center", gap:10, background:tab===t.id?C.purpleDim:"none", border:tab===t.id?`1px solid ${C.purple}44`:"1px solid transparent", color:tab===t.id?C.purpleGlow:C.muted, padding:"10px 14px", borderRadius:10, cursor:"pointer", fontSize:14, textAlign:"left", fontFamily:"inherit", boxShadow:tab===t.id?glow(C.purple,6):"none" }} onClick={()=>setTab(t.id)}>
+              <button key={t.id} style={{ display:"flex", alignItems:"center", gap:10, background:tab===t.id?C.purpleDim:"none", border:tab===t.id?`1px solid ${C.purple}44`:"1px solid transparent", color:tab===t.id?C.purpleGlow:"#C8D6E5", padding:"10px 14px", borderRadius:10, cursor:"pointer", fontSize:14, textAlign:"left", fontFamily:"inherit", boxShadow:tab===t.id?glow(C.purple,6):"none" }} onClick={()=>setTab(t.id)}>
                 <span style={{ fontSize:13, width:16 }}>{t.emoji}</span>{t.label}
               </button>
             ))}

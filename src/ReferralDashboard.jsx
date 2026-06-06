@@ -109,10 +109,10 @@ function LeadCard({ lead }) {
   return (
     <div style={{ background: B.surface, border: `1px solid ${B.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: B.text }}>{lead.nome} {lead.cognome}</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#FFFFFF" }}>{lead.nome} {lead.cognome}</span>
         <span style={{ fontSize: 11, color: B.muted }}>{dataStr}</span>
       </div>
-      <div style={{ fontSize: 12, color: B.textSoft, marginBottom: 10 }}>
+      <div style={{ fontSize: 13, color: "#C8D6E5", marginBottom: 10 }}>
         {lead.email}{lead.telefono && ` · ${lead.telefono}`}
         {lead.note && <><br /><span style={{ color: B.muted, fontStyle: "italic" }}>{lead.note}</span></>}
       </div>
@@ -242,7 +242,7 @@ export default function ReferralDashboard({ uid, userData }) {
     card: { background: B.card, border: `1px solid ${B.border}`, borderRadius: 12 },
     input: { background: B.surface, border: `1px solid ${B.border}`, borderRadius: 8, padding: "9px 12px", fontSize: 14, color: B.text, fontFamily: "inherit", width: "100%", outline: "none", resize: "none" },
     label: { fontSize: 12, color: B.textSoft, fontWeight: 500, display: "block", marginBottom: 4 },
-    secTitle: { fontSize: 11, fontWeight: 600, color: B.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 },
+    secTitle: { fontSize: 11, fontWeight: 700, color: "#A0B4C8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 },
     btnGreen: { background: B.green, color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "inherit", letterSpacing: "0.01em" },
     btnGhost: { background: "transparent", color: B.textSoft, border: `1px solid ${B.border}`, borderRadius: 8, padding: "9px 14px", fontSize: 13, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "inherit" },
   };
@@ -256,7 +256,7 @@ export default function ReferralDashboard({ uid, userData }) {
         <div style={{ position: "absolute", left: -40, bottom: -60, width: 180, height: 180, borderRadius: "50%", background: B.green, opacity: 0.08 }} />
         <div style={{ fontSize: 11, color: B.muted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, position: "relative" }}>↑ Referral Program</div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: B.text, margin: "0 0 6px", position: "relative" }}>Ciao, {firstName} 👋</h1>
-        <p style={{ fontSize: 13, color: B.textSoft, lineHeight: 1.6, margin: 0, position: "relative" }}>Ogni contatto che porti vale. Più lead acquisiti, più sali di livello.</p>
+        <p style={{ fontSize: 14, color: "#C8D6E5", lineHeight: 1.6, margin: 0, position: "relative" }}>Ogni contatto che porti vale. Più lead acquisiti, più sali di livello.</p>
       </div>
 
       {/* STATS */}
@@ -271,8 +271,8 @@ export default function ReferralDashboard({ uid, userData }) {
               <span style={{ fontSize: 28 }}>{s.icon}</span>
               <span style={{ fontSize: 11, color: s.color, background: `${s.color}22`, padding: "2px 8px", borderRadius: 20, fontWeight: 600 }}>attivo</span>
             </div>
-            <div style={{ fontSize: 30, fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.val}</div>
-            <div style={{ fontSize: 12, color: B.textSoft, marginTop: 5 }}>{s.label}</div>
+            <div style={{ fontSize: 34, fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.val}</div>
+            <div style={{ fontSize: 13, color: "#FFFFFF", marginTop: 6, fontWeight: 500 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -289,15 +289,15 @@ export default function ReferralDashboard({ uid, userData }) {
       <div style={{ ...S.card, padding: "1.25rem", marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 13, color: B.muted }}>Livello attuale</span>
+            <span style={{ fontSize: 13, color: "#FFFFFF", fontWeight: 500 }}>Livello attuale</span>
             <div style={{ background: "rgba(245,158,11,0.15)", color: B.amber, fontSize: 13, fontWeight: 600, padding: "4px 14px", borderRadius: 20, border: "1px solid rgba(245,158,11,0.4)" }}>🏅 {livello}</div>
           </div>
-          {nextTier && <span style={{ fontSize: 12, color: B.muted }}>Prossimo: {nextTier.id} — {nextTier.soglia} acquisiti</span>}
+          {nextTier && <span style={{ fontSize: 12, color: "#C8D6E5", fontWeight: 500 }}>Prossimo: {nextTier.id} — {nextTier.soglia} acquisiti</span>}
         </div>
         <div style={{ height: 8, background: "#1E2A35", borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
           <div style={{ height: "100%", width: `${progressPct}%`, background: B.green, borderRadius: 4, transition: "width .6s ease" }} />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: B.muted }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#C8D6E5", fontWeight: 500 }}>
           <span>{acquisiti} acquisiti</span>
           {nextTier && <span>{nextTier.soglia} per {nextTier.id}</span>}
         </div>
@@ -310,8 +310,8 @@ export default function ReferralDashboard({ uid, userData }) {
           return (
             <div key={t.id} style={{ background: active ? B.greenDim : B.surface, border: `1px solid ${active ? B.green : B.border}`, borderRadius: 10, padding: "12px 10px", textAlign: "center" }}>
               <div style={{ fontSize: 36, marginBottom: 6, lineHeight: 1 }}>{t.emoji}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: B.text, marginBottom: 3 }}>{t.id}</div>
-              <div style={{ fontSize: 11, color: active ? B.green : B.muted, fontWeight: active ? 600 : 400, marginBottom: 8 }}>{active ? "Livello attuale" : t.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF", marginBottom: 3 }}>{t.id}</div>
+              <div style={{ fontSize: 12, color: active ? B.green : "#C8D6E5", fontWeight: active ? 600 : 500, marginBottom: 8 }}>{active ? "Livello attuale" : t.label}</div>
               <div style={{ fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 20, background: B.greenDim, color: B.green, marginBottom: 4, display: "inline-block" }}>Comm. inclusa</div>
             </div>
           );
