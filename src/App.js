@@ -248,51 +248,6 @@ function CoachIntelligencePanel({ selected, C }) {
 
   return (
     <div>
-      {/* SEZIONE POST LIBRERIA */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem", marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>📝 Post da pubblicare per i procacciatori</div>
-          <button onClick={() => setAddingPost(!addingPost)} style={{ background: C.greenDim, color: C.green, border: `1px solid ${C.green}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-            {addingPost ? "Annulla" : "+ Aggiungi post"}
-          </button>
-        </div>
-        {postLibreria.map(p => (
-          <div key={p.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.titolo}</span>
-                <span style={{ fontSize: 11, color: p.canale === "linkedin" ? C.blue : C.purple, background: p.canale === "linkedin" ? C.blueDim : "rgba(124,58,237,0.1)", padding: "2px 8px", borderRadius: 20 }}>{p.canale === "linkedin" ? "LinkedIn" : "Instagram/FB"}</span>
-              </div>
-              <div style={{ fontSize: 12, color: C.muted, whiteSpace: "pre-wrap", maxHeight: 60, overflow: "hidden" }}>{p.testo}</div>
-            </div>
-            <button onClick={() => eliminaPost(p.id)} style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Rimuovi</button>
-          </div>
-        ))}
-        {postLibreria.length === 0 && !addingPost && <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nessun post ancora. Aggiungine uno!</p>}
-        {addingPost && (
-          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px", marginTop: 8 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-              <div>
-                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Titolo *</label>
-                <input value={newPost.titolo} onChange={e => setNewPost(p => ({ ...p, titolo: e.target.value }))} placeholder="Es. 5 errori fatali nella vendita" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Canale</label>
-                <select value={newPost.canale} onChange={e => setNewPost(p => ({ ...p, canale: e.target.value }))} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }}>
-                  <option value="linkedin">LinkedIn</option>
-                  <option value="instagram">Instagram / Facebook</option>
-                </select>
-              </div>
-              <div style={{ gridColumn: "1/-1" }}>
-                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Testo del post *</label>
-                <textarea value={newPost.testo} onChange={e => setNewPost(p => ({ ...p, testo: e.target.value }))} placeholder="Scrivi il testo completo del post..." style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none", resize: "vertical", minHeight: 120 }} />
-              </div>
-            </div>
-            <button onClick={salvaPost} style={{ background: C.green, color: "#fff", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Salva post</button>
-          </div>
-        )}
-      </div>
-
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         <div style={tabStyle("visuale")} onClick={() => setCoachIntelTab("visuale")}>👁 Visuale</div>
         <div style={tabStyle("simulatore")} onClick={() => setCoachIntelTab("simulatore")}>🧪 Simulatore</div>
@@ -3501,6 +3456,51 @@ function AdminReferral({ studenti }) {
             <button onClick={salvaBrochure} style={{ background: C.green, color: "#fff", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Salva documento</button>
           </div>
         )}
+      {/* SEZIONE POST LIBRERIA */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem", marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>📝 Post da pubblicare per i procacciatori</div>
+          <button onClick={() => setAddingPost(!addingPost)} style={{ background: C.greenDim, color: C.green, border: `1px solid ${C.green}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            {addingPost ? "Annulla" : "+ Aggiungi post"}
+          </button>
+        </div>
+        {postLibreria.map(p => (
+          <div key={p.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.titolo}</span>
+                <span style={{ fontSize: 11, color: p.canale === "linkedin" ? C.blue : C.purple, background: p.canale === "linkedin" ? C.blueDim : "rgba(124,58,237,0.1)", padding: "2px 8px", borderRadius: 20 }}>{p.canale === "linkedin" ? "LinkedIn" : "Instagram/FB"}</span>
+              </div>
+              <div style={{ fontSize: 12, color: C.muted, whiteSpace: "pre-wrap", maxHeight: 60, overflow: "hidden" }}>{p.testo}</div>
+            </div>
+            <button onClick={() => eliminaPost(p.id)} style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Rimuovi</button>
+          </div>
+        ))}
+        {postLibreria.length === 0 && !addingPost && <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nessun post ancora. Aggiungine uno!</p>}
+        {addingPost && (
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px", marginTop: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Titolo *</label>
+                <input value={newPost.titolo} onChange={e => setNewPost(p => ({ ...p, titolo: e.target.value }))} placeholder="Es. 5 errori fatali nella vendita" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Canale</label>
+                <select value={newPost.canale} onChange={e => setNewPost(p => ({ ...p, canale: e.target.value }))} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }}>
+                  <option value="linkedin">LinkedIn</option>
+                  <option value="instagram">Instagram / Facebook</option>
+                </select>
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Testo del post *</label>
+                <textarea value={newPost.testo} onChange={e => setNewPost(p => ({ ...p, testo: e.target.value }))} placeholder="Scrivi il testo completo del post..." style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none", resize: "vertical", minHeight: 120 }} />
+              </div>
+            </div>
+            <button onClick={salvaPost} style={{ background: C.green, color: "#fff", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Salva post</button>
+          </div>
+        )}
+      </div>
+
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
