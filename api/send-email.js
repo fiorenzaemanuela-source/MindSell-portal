@@ -6,7 +6,7 @@ module.exports = async function handler(req, res) {
   if (!tipo || !dati) return res.status(400).json({ error: "Parametri mancanti" });
 
   const apiKey = process.env.RESEND_API_KEY; console.log("ENV KEYS:", Object.keys(process.env).filter(k=>k.includes("RESEND")));
-  if (!apiKey) return res.status(500).json({ error: "RESEND_API_KEY non configurata", envKeys: Object.keys(process.env).slice(0,10) });
+  if (!apiKey) return res.status(500).json({ error: "RESEND_API_KEY non configurata", envKeys: Object.keys(process.env).filter(k=>k.includes("RESEND") || k.includes("resend")), allCount: Object.keys(process.env).length });
 
   try {
     let emailData = null;
