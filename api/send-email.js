@@ -14,7 +14,7 @@ module.exports = async function handler(req, res) {
     if (tipo === "nuovo_lead") {
       const { studenteName, nome, cognome, email, telefono, note } = dati;
       emailData = {
-        from: "MindSell Academy <noreply@academy.mindsell.it>",
+        from: "MindSell Academy <noreply@mindsell.it>",
         to: ["emanuela@mindsell.it"],
         subject: `Nuovo lead segnalato da ${studenteName}`,
         html: `
