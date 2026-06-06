@@ -3373,6 +3373,7 @@ function AdminReferral({ studenti }) {
   const [postLibreria, setPostLibreria] = useState([]);
   const [addingPost, setAddingPost] = useState(false);
   const [newPost, setNewPost] = useState({ titolo: "", testo: "", canale: "linkedin" });
+  console.log("[AdminReferral] postLibreria:", postLibreria.length, "addingPost:", addingPost);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "referralPost"), snap => {
