@@ -3373,8 +3373,8 @@ function AdminReferral({ studenti }) {
     console.log("✅ Acquisto salvato, commissione:", commissione);
   };
 
-  const generaPDF = (commissioniMese, mesiNomi, meseCorrente, annoCorrente) => {
-    const doc2 = new jsPDF();
+  const generaPDF = async (commissioniMese, mesiNomi, meseCorrente, annoCorrente) => {
+    const { jsPDF } = await import("jspdf"); const doc2 = new jsPDF();
     doc2.setFontSize(16);
     doc2.setTextColor(40, 40, 40);
     doc2.text("MindSell Academy - Riepilogo Commissioni", 20, 20);

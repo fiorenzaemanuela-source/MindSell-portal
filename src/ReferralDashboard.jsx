@@ -1,4 +1,3 @@
-import { jsPDF } from "jspdf";
 import { useState, useEffect } from "react";
 import { collection, addDoc, onSnapshot, orderBy, query, where, serverTimestamp, setDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
@@ -175,7 +174,8 @@ export default function ReferralDashboard({ uid, userData }) {
   const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
   const COMM_PERC_S = { Bronze: 10, Silver: 12, Gold: 14, Platinum: 18 };
 
-  function generaPDFStudente() {
+  async function generaPDFStudente() {
+    const { jsPDF } = await import("jspdf");
     const leadsAcquisiti = leads.filter(l => l.stato === "acquisito" && l.percorsoAcquistato);
     const righe = [];
     leadsAcquisiti.forEach(lead => {
