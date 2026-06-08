@@ -14,8 +14,8 @@ import {
 import {
   doc, getDoc, setDoc, collection, getDocs, deleteDoc,
   addDoc, updateDoc, query, orderBy, onSnapshot, serverTimestamp
-import { jsPDF } from "jspdf";
 } from "firebase/firestore";
+import { jsPDF } from "jspdf";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 const storage = getStorage();
 import AICoach from "./AICoach";
