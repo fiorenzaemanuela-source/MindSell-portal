@@ -3547,9 +3547,14 @@ function AdminReferral({ studenti }) {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: C.green }}>Totale: €{totaleMeseSel.toFixed(2)}</div>
-                  {commMeseSel.length > 0 && (
-                    <button onClick={() => generaPDF(commMeseSel, mesiNomi, meseSel, annoSel)} style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📄 Scarica PDF</button>
-                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {commMeseSel.length > 0 && (
+                      <button onClick={() => generaPDF(commMeseSel, mesiNomi, meseSel, annoSel)} style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📄 PDF mese</button>
+                    )}
+                    {filtro !== "tutti" && commMeseSel.length > 0 && (
+                      <button onClick={() => generaPDF(commMeseSel.filter(c => { const proc = studenti.find(s => s.uid === filtro); return c.procacciatore === proc?.name; }), mesiNomi, meseSel, annoSel)} style={{ background: C.purple, color: "#fff", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>👤 PDF procacciatore</button>
+                    )}
+                  </div>
                 </div>
               </div>
               {commMeseSel.length === 0 ? (
@@ -3697,25 +3702,37 @@ function AdminReferral({ studenti }) {
               </div>
             </div>
             {lead.percorsoAcquistato && (
-              <div style={{ background: C.surface, border: `1px solid ${C.green}44`, borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ background: C.surface, border: `1px solid ${C.green}44`, borderRadius: 8, padding: "12px 14px", marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                   <div>
-                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 2 }}>Percorso acquistato</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{lead.percorsoAcquistato} · €{lead.importoTotale?.toFixed(2)}</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{lead.tipoPagamento === "rate" ? `${lead.rate?.length} rate` : "Pagamento unico"}</div>
-                    {lead.tipoPagamento === "rate" && lead.rate && (
-                      <div style={{ marginTop: 4 }}>
-                        {lead.rate.map((r, i) => (
-                          <span key={i} style={{ fontSize: 11, color: C.muted, marginRight: 8 }}>Rata {i+1}: €{r.importo} — {r.scadenza ? new Date(r.scadenza).toLocaleDateString("it-IT") : "—"}</span>
-                        ))}
-                      </div>
-                    )}
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 2, textTransform: "uppercase", letterSpacing: "0.06em" }}>Percorso acquistato</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF" }}>{lead.percorsoAcquistato}</div>
+                    <div style={{ fontSize: 13, color: "#C8D6E5", marginTop: 2 }}>Importo totale: <strong>€{lead.importoTotale?.toFixed(2)}</strong> · {lead.tipoPagamento === "rate" ? `${lead.rate?.length} rate` : "Pagamento unico"}</div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
                     <div style={{ fontSize: 11, color: C.muted }}>Commissione ({lead.commissionePerc}%)</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: C.green }}>€{lead.commissione?.toFixed(2)}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: C.green }}>€{lead.commissione?.toFixed(2)}</div>
                   </div>
                 </div>
+                {lead.tipoPagamento === "rate" && lead.rate && (
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Dettaglio rate</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 6 }}>
+                      {lead.rate.map((r, i) => {
+                        const commRata = Math.round((parseFloat(r.importo)||0) * (lead.commissionePerc||10) / 100 * 100) / 100;
+                        const saldato = lead.rateSaldate?.[i] || false;
+                        return (
+                          <div key={i} style={{ background: saldato ? "#0d2e1a" : C.card, border: `1px solid ${saldato ? C.green : C.border}`, borderRadius: 7, padding: "8px 10px" }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#FFFFFF" }}>Rata {i+1}/{lead.rate.length} — €{r.importo}</div>
+                            <div style={{ fontSize: 11, color: C.muted }}>Scad: {r.scadenza ? new Date(r.scadenza).toLocaleDateString("it-IT") : "—"}</div>
+                            <div style={{ fontSize: 11, color: C.green }}>Comm: €{commRata.toFixed(2)}</div>
+                            {saldato && <div style={{ fontSize: 11, color: C.green, fontWeight: 600 }}>✓ Saldato</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

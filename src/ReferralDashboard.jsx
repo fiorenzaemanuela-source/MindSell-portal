@@ -168,6 +168,63 @@ export default function ReferralDashboard({ uid, userData }) {
   const [postLibreria, setPostLibreria] = useState([]);
   const [canalePost, setCanalePost] = useState("tutti");
   const [copiedId, setCopiedId] = useState(null);
+  const [mesePDF, setMesePDF] = useState(new Date().getMonth());
+  const [annoPDF, setAnnoPDF] = useState(new Date().getFullYear());
+
+  const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+  const COMM_PERC_S = { Bronze: 10, Silver: 12, Gold: 14, Platinum: 18 };
+
+  function generaPDFStudente() {
+    const leadsAcquisiti = leads.filter(l => l.stato === "acquisito" && l.percorsoAcquistato);
+    const righe = [];
+    leadsAcquisiti.forEach(lead => {
+      if (lead.tipoPagamento === "rate" && lead.rate) {
+        lead.rate.forEach((r, i) => {
+          if (!r.scadenza) return;
+          const scad = new Date(r.scadenza);
+          if (scad.getMonth() === mesePDF && scad.getFullYear() === annoPDF) {
+            const importoRata = parseFloat(r.importo) || 0;
+            const commRata = Math.round(importoRata * (lead.commissionePerc || 10) / 100 * 100) / 100;
+            righe.push({ nome: lead.nome + " " + lead.cognome, percorso: lead.percorsoAcquistato, commRata, commissionePerc: lead.commissionePerc, rata: i + 1, totaleRate: lead.rate.length, scadenza: r.scadenza, saldato: lead.rateSaldate?.[i] || false });
+          }
+        });
+      } else if (lead.tipoPagamento === "unico" && lead.dataAcquisto) {
+        const dataAcq = lead.dataAcquisto?.toDate ? lead.dataAcquisto.toDate() : new Date(lead.dataAcquisto);
+        if (dataAcq.getMonth() === mesePDF && dataAcq.getFullYear() === annoPDF) {
+          righe.push({ nome: lead.nome + " " + lead.cognome, percorso: lead.percorsoAcquistato, commRata: lead.commissione, commissionePerc: lead.commissionePerc, rata: null, scadenza: null, saldato: lead.commissioneSaldata || false });
+        }
+      }
+    });
+    if (righe.length === 0) { alert("Nessuna commissione per " + MESI[mesePDF] + " " + annoPDF); return; }
+    const doc2 = new jsPDF();
+    doc2.setFontSize(16);
+    doc2.text("MindSell Academy - Le mie Commissioni", 20, 20);
+    doc2.setFontSize(12);
+    doc2.text(`${userData?.name || ""} — ${MESI[mesePDF]} ${annoPDF}`, 20, 30);
+    doc2.line(20, 35, 190, 35);
+    let y = 45;
+    let totale = 0;
+    righe.forEach((r, i) => {
+      doc2.setFontSize(11);
+      doc2.setTextColor(40, 40, 40);
+      doc2.text(`${i + 1}. ${r.nome} | ${r.percorso}`, 20, y);
+      doc2.setFontSize(10);
+      doc2.setTextColor(100, 100, 100);
+      if (r.rata) doc2.text(`Rata ${r.rata}/${r.totaleRate} | Scadenza: ${r.scadenza ? new Date(r.scadenza).toLocaleDateString("it-IT") : "—"}`, 25, y + 6);
+      else doc2.text("Pagamento unico", 25, y + 6);
+      doc2.setFontSize(11);
+      doc2.setTextColor(40, 40, 40);
+      doc2.text(`€${r.commRata?.toFixed(2)} (${r.commissionePerc}%)`, 160, y, { align: "right" });
+      doc2.text(r.saldato ? "✓ Saldato" : "In attesa", 190, y, { align: "right" });
+      totale += r.commRata || 0;
+      y += 18;
+    });
+    doc2.line(20, y, 190, y);
+    y += 8;
+    doc2.setFontSize(13);
+    doc2.text(`TOTALE: €${totale.toFixed(2)}`, 190, y, { align: "right" });
+    doc2.save(`mie-commissioni-${MESI[mesePDF].toLowerCase()}-${annoPDF}.pdf`);
+  }
 
   // Brochure
   const [brochure, setBrochure] = useState([]);
@@ -334,7 +391,8 @@ export default function ReferralDashboard({ uid, userData }) {
               <div style={{ fontSize: 36, marginBottom: 6, lineHeight: 1 }}>{t.emoji}</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF", marginBottom: 3 }}>{t.id}</div>
               <div style={{ fontSize: 12, color: active ? B.green : "#C8D6E5", fontWeight: active ? 600 : 500, marginBottom: 8 }}>{active ? "Livello attuale" : t.label}</div>
-              <div style={{ fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 20, background: B.greenDim, color: B.green, marginBottom: 4, display: "inline-block" }}>Comm. inclusa</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: B.green, margin: "4px 0 2px", letterSpacing: "-0.5px" }}>{t.id === "Bronze" ? "10%" : t.id === "Silver" ? "12%" : t.id === "Gold" ? "14%" : "18%"}</div>
+              <div style={{ fontSize: 11, color: B.muted, marginBottom: 4 }}>di commissione</div>
             </div>
           );
         })}
@@ -437,6 +495,22 @@ export default function ReferralDashboard({ uid, userData }) {
             )}
           </div>
         </>
+      )}
+
+      {/* PANEL PDF COMMISSIONI */}
+      {activeTab === "leads" && leads.some(l => l.stato === "acquisito" && l.percorsoAcquistato) && (
+        <div style={{ ...S.card, padding: "1.25rem", marginTop: 12 }}>
+          <div style={S.secTitle}>📄 Scarica riepilogo commissioni</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <select value={mesePDF} onChange={e => setMesePDF(Number(e.target.value))} style={{ ...S.input, width: "auto", padding: "6px 10px", fontSize: 13 }}>
+              {MESI.map((m, i) => <option key={i} value={i}>{m}</option>)}
+            </select>
+            <select value={annoPDF} onChange={e => setAnnoPDF(Number(e.target.value))} style={{ ...S.input, width: "auto", padding: "6px 10px", fontSize: 13 }}>
+              {[2025, 2026, 2027].map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+            <button style={S.btnGreen} onClick={generaPDFStudente}>📄 Scarica PDF</button>
+          </div>
+        </div>
       )}
 
       {/* PANEL POST */}
