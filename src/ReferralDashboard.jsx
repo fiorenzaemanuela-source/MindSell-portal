@@ -117,7 +117,29 @@ function LeadCard({ lead }) {
         {lead.note && <><br /><span style={{ color: B.muted, fontStyle: "italic" }}>{lead.note}</span></>}
       </div>
       <PipelineBar stato={lead.stato} />
-      {lead.stato === "acquisito" && (
+      {lead.stato === "acquisito" && lead.percorsoAcquistato && (
+        <div style={{ background: B.greenDim, border: `1px solid ${B.green}66`, borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+            <div>
+              <div style={{ fontSize: 12, color: B.greenMid, fontWeight: 600, marginBottom: 2 }}>✅ {lead.percorsoAcquistato}</div>
+              <div style={{ fontSize: 11, color: B.muted }}>{lead.tipoPagamento === "rate" ? `${lead.rate?.length} rate` : "Pagamento unico"}</div>
+              {lead.tipoPagamento === "rate" && lead.rate && (
+                <div style={{ marginTop: 4 }}>
+                  {lead.rate.map((r, i) => (
+                    <div key={i} style={{ fontSize: 11, color: B.muted }}>Rata {i+1}: €{r.importo} — scad. {r.scadenza ? new Date(r.scadenza).toLocaleDateString("it-IT") : "—"}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+              <div style={{ fontSize: 11, color: B.muted }}>La tua commissione</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: B.green }}>€{lead.commissione?.toFixed(2) || "—"}</div>
+              <div style={{ fontSize: 11, color: B.muted }}>{lead.commissionePerc}% su €{lead.importoTotale?.toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+      )}
+      {lead.stato === "acquisito" && !lead.percorsoAcquistato && (
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: B.greenDim, border: `1px solid ${B.green}`, color: B.green, fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 20, marginTop: 8 }}>
           💰 Commissione attiva
         </div>

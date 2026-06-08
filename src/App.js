@@ -3438,6 +3438,66 @@ function AdminReferral({ studenti }) {
       <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 6px" }}>🤝 Referral — Lead ricevuti</h2>
       <p style={{ color: C.muted, fontSize: 13, margin: "0 0 20px" }}>{leads.length} lead totali · {leads.filter(l => l.stato === "acquisito").length} acquisiti</p>
 
+      {/* COMMISSIONI DEL MESE */}
+      {(() => {
+        const oggi = new Date();
+        const meseCorrente = oggi.getMonth();
+        const annoCorrente = oggi.getFullYear();
+        const mesiNomi = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+        
+        const commissioniMese = [];
+        leads.forEach(lead => {
+          if (lead.stato !== "acquisito" || !lead.commissione) return;
+          const proc = studenti.find(s => s.uid === lead.studenteUid);
+          const nomeProcacciatore = proc?.name || lead.studenteName || "—";
+          
+          if (lead.tipoPagamento === "rate" && lead.rate) {
+            lead.rate.forEach((r, i) => {
+              if (!r.scadenza) return;
+              const scad = new Date(r.scadenza);
+              if (scad.getMonth() === meseCorrente && scad.getFullYear() === annoCorrente) {
+                const importoRata = parseFloat(r.importo) || 0;
+                const commRata = Math.round(importoRata * (lead.commissionePerc || 10) / 100 * 100) / 100;
+                commissioniMese.push({ leadId: lead.id, nome: lead.nome + " " + lead.cognome, procacciatore: nomeProcacciatore, percorso: lead.percorsoAcquistato, commissionePerc: lead.commissionePerc, importoRata, commRata, scadenza: r.scadenza, rata: i + 1, totaleRate: lead.rate.length });
+              }
+            });
+          } else if (lead.tipoPagamento === "unico" && lead.dataAcquisto) {
+            const dataAcq = lead.dataAcquisto?.toDate ? lead.dataAcquisto.toDate() : new Date(lead.dataAcquisto);
+            if (dataAcq.getMonth() === meseCorrente && dataAcq.getFullYear() === annoCorrente) {
+              commissioniMese.push({ leadId: lead.id, nome: lead.nome + " " + lead.cognome, procacciatore: nomeProcacciatore, percorso: lead.percorsoAcquistato, commissionePerc: lead.commissionePerc, commRata: lead.commissione, scadenza: null, rata: null });
+            }
+          }
+        });
+
+        const totaleComm = commissioniMese.reduce((acc, c) => acc + c.commRata, 0);
+
+        return (
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem", marginBottom: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>💰 Commissioni da pagare — {mesiNomi[meseCorrente]} {annoCorrente}</div>
+              {totaleComm > 0 && <div style={{ fontSize: 16, fontWeight: 700, color: C.green }}>Totale: €{totaleComm.toFixed(2)}</div>}
+            </div>
+            {commissioniMese.length === 0 ? (
+              <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nessuna commissione da pagare questo mese.</p>
+            ) : (
+              commissioniMese.map((c, i) => (
+                <div key={i} style={{ background: C.surface, border: `1px solid ${C.green}44`, borderRadius: 8, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.procacciatore}</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Lead: {c.nome} · {c.percorso}{c.rata ? ` · Rata ${c.rata}/${c.totaleRate}` : " · Pagamento unico"}</div>
+                    {c.scadenza && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Scadenza: {new Date(c.scadenza).toLocaleDateString("it-IT")}</div>}
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: C.green }}>€{c.commRata.toFixed(2)}</div>
+                    <div style={{ fontSize: 11, color: C.muted }}>{c.commissionePerc}%</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        );
+      })()}
+
       {/* SEZIONE BROCHURE */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -3555,6 +3615,28 @@ function AdminReferral({ studenti }) {
                 <div style={{ fontSize: 12, color: C.purple, fontWeight: 500 }}>da {proc ? proc.name : lead.studenteName || "—"}</div>
               </div>
             </div>
+            {lead.percorsoAcquistato && (
+              <div style={{ background: C.surface, border: `1px solid ${C.green}44`, borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 2 }}>Percorso acquistato</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{lead.percorsoAcquistato} · €{lead.importoTotale?.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{lead.tipoPagamento === "rate" ? `${lead.rate?.length} rate` : "Pagamento unico"}</div>
+                    {lead.tipoPagamento === "rate" && lead.rate && (
+                      <div style={{ marginTop: 4 }}>
+                        {lead.rate.map((r, i) => (
+                          <span key={i} style={{ fontSize: 11, color: C.muted, marginRight: 8 }}>Rata {i+1}: €{r.importo} — {r.scadenza ? new Date(r.scadenza).toLocaleDateString("it-IT") : "—"}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                    <div style={{ fontSize: 11, color: C.muted }}>Commissione ({lead.commissionePerc}%)</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: C.green }}>€{lead.commissione?.toFixed(2)}</div>
+                  </div>
+                </div>
+              </div>
+            )}
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 12, color: C.muted }}>Stato:</span>
               <select value={lead.stato} onChange={e => cambiaStato(lead, e.target.value)} style={{ background: C.surface, border: `1px solid ${STATI_C[lead.stato] || C.border}`, borderRadius: 8, padding: "5px 10px", fontSize: 13, color: STATI_C[lead.stato] || C.text, fontFamily: "inherit", fontWeight: 500, cursor: "pointer", outline: "none" }}>
