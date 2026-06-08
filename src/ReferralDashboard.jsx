@@ -1,3 +1,4 @@
+import { jsPDF } from "jspdf";
 import { useState, useEffect } from "react";
 import { collection, addDoc, onSnapshot, orderBy, query, where, serverTimestamp, setDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
