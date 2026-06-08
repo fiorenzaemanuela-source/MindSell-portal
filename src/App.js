@@ -14,6 +14,7 @@ import {
 import {
   doc, getDoc, setDoc, collection, getDocs, deleteDoc,
   addDoc, updateDoc, query, orderBy, onSnapshot, serverTimestamp
+import { jsPDF } from "jspdf";
 } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 const storage = getStorage();
@@ -3323,6 +3324,8 @@ function AdminReferral({ studenti }) {
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState("tutti");
   const [acquistoForm, setAcquistoForm] = useState(null);
+  const [meseSel, setMeseSel] = useState(new Date().getMonth());
+  const [annoSel, setAnnoSel] = useState(new Date().getFullYear());
   const [brochure, setBrochure] = useState([]);
   const [addingBrochure, setAddingBrochure] = useState(false);
   const [newBrochure, setNewBrochure] = useState({ titolo: "", descrizione: "", url: "", obbligatoria: true });
@@ -3337,6 +3340,18 @@ function AdminReferral({ studenti }) {
     });
     return unsub;
   }, []);
+
+  const segnaRataSaldata = async (leadId, rataIndex, saldato) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return;
+    const rateSaldate = lead.rateSaldate || {};
+    rateSaldate[rataIndex] = saldato;
+    await setDoc(doc(db, "referrals", leadId), { rateSaldate }, { merge: true });
+  };
+
+  const segnaCommissioneSaldata = async (leadId, saldato) => {
+    await setDoc(doc(db, "referrals", leadId), { commissioneSaldata: saldato }, { merge: true });
+  };
 
   const salvaAcquisto = async () => {
     if (!acquistoForm || !acquistoForm.percorso || !acquistoForm.importo) return;
@@ -3356,6 +3371,42 @@ function AdminReferral({ studenti }) {
     await setDoc(doc(db, "referrals", acquistoForm.leadId), datiAcquisto, { merge: true });
     setAcquistoForm(null);
     console.log("✅ Acquisto salvato, commissione:", commissione);
+  };
+
+  const generaPDF = (commissioniMese, mesiNomi, meseCorrente, annoCorrente) => {
+    const doc2 = new jsPDF();
+    doc2.setFontSize(16);
+    doc2.setTextColor(40, 40, 40);
+    doc2.text("MindSell Academy - Riepilogo Commissioni", 20, 20);
+    doc2.setFontSize(12);
+    doc2.text(`${mesiNomi[meseCorrente]} ${annoCorrente}`, 20, 30);
+    doc2.setLineWidth(0.5);
+    doc2.line(20, 35, 190, 35);
+    let y = 45;
+    let totale = 0;
+    commissioniMese.forEach((c, i) => {
+      doc2.setFontSize(11);
+      doc2.setTextColor(40, 40, 40);
+      doc2.text(`${i + 1}. ${c.procacciatore}`, 20, y);
+      doc2.setFontSize(10);
+      doc2.setTextColor(100, 100, 100);
+      doc2.text(`Lead: ${c.nome} | Percorso: ${c.percorso}`, 25, y + 6);
+      if (c.rata) doc2.text(`Rata ${c.rata}/${c.totaleRate} | Scadenza: ${c.scadenza ? new Date(c.scadenza).toLocaleDateString("it-IT") : "—"}`, 25, y + 12);
+      else doc2.text("Pagamento unico", 25, y + 12);
+      doc2.setFontSize(11);
+      doc2.setTextColor(40, 40, 40);
+      doc2.text(`€${c.commRata.toFixed(2)} (${c.commissionePerc}%)`, 160, y, { align: "right" });
+      doc2.text(c.saldato ? "✓ Saldato" : "Da pagare", 190, y, { align: "right" });
+      totale += c.commRata;
+      y += 20;
+      if (y > 260) { doc2.addPage(); y = 20; }
+    });
+    doc2.line(20, y, 190, y);
+    y += 8;
+    doc2.setFontSize(13);
+    doc2.setTextColor(40, 40, 40);
+    doc2.text(`TOTALE DA PAGARE: €${totale.toFixed(2)}`, 190, y, { align: "right" });
+    doc2.save(`commissioni-mindsell-${mesiNomi[meseCorrente].toLowerCase()}-${annoCorrente}.pdf`);
   };
 
   const salvaPost = async () => {
@@ -3438,67 +3489,97 @@ function AdminReferral({ studenti }) {
       <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 6px" }}>🤝 Referral — Lead ricevuti</h2>
       <p style={{ color: C.muted, fontSize: 13, margin: "0 0 20px" }}>{leads.length} lead totali · {leads.filter(l => l.stato === "acquisito").length} acquisiti</p>
 
-      {/* COMMISSIONI DEL MESE */}
+      {/* PANORAMICA COMPLETA */}
       {(() => {
-        const oggi = new Date();
-        const meseCorrente = oggi.getMonth();
-        const annoCorrente = oggi.getFullYear();
         const mesiNomi = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
-        
-        const commissioniMese = [];
+        const totaleAcquisito = leads.filter(l => l.stato === "acquisito" && l.importoTotale).reduce((acc, l) => acc + (l.importoTotale || 0), 0);
+        const totaleCommissioni = leads.filter(l => l.stato === "acquisito" && l.commissione).reduce((acc, l) => acc + (l.commissione || 0), 0);
+        const commissioniFuture = [];
         leads.forEach(lead => {
           if (lead.stato !== "acquisito" || !lead.commissione) return;
           const proc = studenti.find(s => s.uid === lead.studenteUid);
           const nomeProcacciatore = proc?.name || lead.studenteName || "—";
-          
           if (lead.tipoPagamento === "rate" && lead.rate) {
             lead.rate.forEach((r, i) => {
               if (!r.scadenza) return;
               const scad = new Date(r.scadenza);
-              if (scad.getMonth() === meseCorrente && scad.getFullYear() === annoCorrente) {
-                const importoRata = parseFloat(r.importo) || 0;
-                const commRata = Math.round(importoRata * (lead.commissionePerc || 10) / 100 * 100) / 100;
-                commissioniMese.push({ leadId: lead.id, nome: lead.nome + " " + lead.cognome, procacciatore: nomeProcacciatore, percorso: lead.percorsoAcquistato, commissionePerc: lead.commissionePerc, importoRata, commRata, scadenza: r.scadenza, rata: i + 1, totaleRate: lead.rate.length });
-              }
+              const importoRata = parseFloat(r.importo) || 0;
+              const commRata = Math.round(importoRata * (lead.commissionePerc || 10) / 100 * 100) / 100;
+              const saldato = lead.rateSaldate?.[i] || false;
+              commissioniFuture.push({ leadId: lead.id, nome: lead.nome + " " + lead.cognome, procacciatore: nomeProcacciatore, percorso: lead.percorsoAcquistato, commissionePerc: lead.commissionePerc, importoRata, commRata, scadenza: r.scadenza, rata: i + 1, totaleRate: lead.rate.length, mese: scad.getMonth(), anno: scad.getFullYear(), saldato });
             });
           } else if (lead.tipoPagamento === "unico" && lead.dataAcquisto) {
             const dataAcq = lead.dataAcquisto?.toDate ? lead.dataAcquisto.toDate() : new Date(lead.dataAcquisto);
-            if (dataAcq.getMonth() === meseCorrente && dataAcq.getFullYear() === annoCorrente) {
-              commissioniMese.push({ leadId: lead.id, nome: lead.nome + " " + lead.cognome, procacciatore: nomeProcacciatore, percorso: lead.percorsoAcquistato, commissionePerc: lead.commissionePerc, commRata: lead.commissione, scadenza: null, rata: null });
-            }
+            const saldato = lead.commissioneSaldata || false;
+            commissioniFuture.push({ leadId: lead.id, nome: lead.nome + " " + lead.cognome, procacciatore: nomeProcacciatore, percorso: lead.percorsoAcquistato, commissionePerc: lead.commissionePerc, commRata: lead.commissione, scadenza: null, rata: null, mese: dataAcq.getMonth(), anno: dataAcq.getFullYear(), saldato });
           }
         });
-
-        const totaleComm = commissioniMese.reduce((acc, c) => acc + c.commRata, 0);
+        const commMeseSel = commissioniFuture.filter(c => c.mese === meseSel && c.anno === annoSel);
+        const totaleMeseSel = commMeseSel.reduce((acc, c) => acc + c.commRata, 0);
 
         return (
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem", marginBottom: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>💰 Commissioni da pagare — {mesiNomi[meseCorrente]} {annoCorrente}</div>
-              {totaleComm > 0 && <div style={{ fontSize: 16, fontWeight: 700, color: C.green }}>Totale: €{totaleComm.toFixed(2)}</div>}
-            </div>
-            {commissioniMese.length === 0 ? (
-              <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nessuna commissione da pagare questo mese.</p>
-            ) : (
-              commissioniMese.map((c, i) => (
-                <div key={i} style={{ background: C.surface, border: `1px solid ${C.green}44`, borderRadius: 8, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.procacciatore}</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Lead: {c.nome} · {c.percorso}{c.rata ? ` · Rata ${c.rata}/${c.totaleRate}` : " · Pagamento unico"}</div>
-                    {c.scadenza && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Scadenza: {new Date(c.scadenza).toLocaleDateString("it-IT")}</div>}
-                  </div>
-                  <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: C.green }}>€{c.commRata.toFixed(2)}</div>
-                    <div style={{ fontSize: 11, color: C.muted }}>{c.commissionePerc}%</div>
-                  </div>
+          <div style={{ marginBottom: 24 }}>
+            {/* KPI */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
+              {[
+                { label: "Fatturato totale generato", val: `€${totaleAcquisito.toFixed(2)}`, color: C.green },
+                { label: "Commissioni totali maturate", val: `€${totaleCommissioni.toFixed(2)}`, color: "#f59e0b" },
+                { label: "Commissioni da pagare (mese sel.)", val: `€${commMeseSel.filter(c=>!c.saldato).reduce((a,c)=>a+c.commRata,0).toFixed(2)}`, color: C.purple },
+              ].map((k, i) => (
+                <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px" }}>
+                  <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6, fontWeight: 600 }}>{k.label}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: k.color }}>{k.val}</div>
                 </div>
-              ))
-            )}
+              ))}
+            </div>
+
+            {/* SELETTORE MESE */}
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: "0.07em" }}>💰 Commissioni — {mesiNomi[meseSel]} {annoSel}</div>
+                  <select value={meseSel} onChange={e => setMeseSel(Number(e.target.value))} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 7, padding: "4px 8px", fontSize: 12, color: C.text, fontFamily: "inherit", outline: "none" }}>
+                    {mesiNomi.map((m, i) => <option key={i} value={i}>{m}</option>)}
+                  </select>
+                  <select value={annoSel} onChange={e => setAnnoSel(Number(e.target.value))} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 7, padding: "4px 8px", fontSize: 12, color: C.text, fontFamily: "inherit", outline: "none" }}>
+                    {[2025, 2026, 2027].map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: C.green }}>Totale: €{totaleMeseSel.toFixed(2)}</div>
+                  {commMeseSel.length > 0 && (
+                    <button onClick={() => generaPDF(commMeseSel, mesiNomi, meseSel, annoSel)} style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📄 Scarica PDF</button>
+                  )}
+                </div>
+              </div>
+              {commMeseSel.length === 0 ? (
+                <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nessuna commissione per {mesiNomi[meseSel]} {annoSel}.</p>
+              ) : (
+                commMeseSel.map((c, i) => (
+                  <div key={i} style={{ background: c.saldato ? "#0d2e1a" : C.surface, border: `1px solid ${c.saldato ? C.green : C.border}`, borderRadius: 8, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF" }}>{c.procacciatore}</div>
+                      <div style={{ fontSize: 12, color: "#C8D6E5", marginTop: 2 }}>Lead: {c.nome} · {c.percorso}{c.rata ? ` · Rata ${c.rata}/${c.totaleRate}` : " · Pagamento unico"}</div>
+                      {c.scadenza && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Scadenza: {new Date(c.scadenza).toLocaleDateString("it-IT")}</div>}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 12 }}>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 20, fontWeight: 700, color: C.green }}>€{c.commRata.toFixed(2)}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{c.commissionePerc}%</div>
+                      </div>
+                      <button onClick={() => c.rata ? segnaRataSaldata(c.leadId, c.rata - 1, !c.saldato) : segnaCommissioneSaldata(c.leadId, !c.saldato)} style={{ background: c.saldato ? C.greenDim : C.surface, color: c.saldato ? C.green : C.muted, border: `1px solid ${c.saldato ? C.green : C.border}`, borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                        {c.saldato ? "✓ Saldato" : "Segna saldato"}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         );
       })()}
 
-      {/* SEZIONE BROCHURE */}
+            {/* SEZIONE BROCHURE */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>📋 Brochure e materiali per procacciatori</div>
