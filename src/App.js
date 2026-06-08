@@ -3322,6 +3322,7 @@ function AdminReferral({ studenti }) {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState("tutti");
+  const [acquistoForm, setAcquistoForm] = useState(null);
   const [brochure, setBrochure] = useState([]);
   const [addingBrochure, setAddingBrochure] = useState(false);
   const [newBrochure, setNewBrochure] = useState({ titolo: "", descrizione: "", url: "", obbligatoria: true });
@@ -3336,6 +3337,26 @@ function AdminReferral({ studenti }) {
     });
     return unsub;
   }, []);
+
+  const salvaAcquisto = async () => {
+    if (!acquistoForm || !acquistoForm.percorso || !acquistoForm.importo) return;
+    const perc = COMM_PERC[acquistoForm.livello] || 10;
+    const importoNum = parseFloat(acquistoForm.importo.replace(",", ".")) || 0;
+    const commissione = Math.round(importoNum * perc / 100 * 100) / 100;
+    const datiAcquisto = {
+      percorsoAcquistato: acquistoForm.percorso,
+      importoTotale: importoNum,
+      tipoPagamento: acquistoForm.tipoPagamento,
+      commissione,
+      commissionePerc: perc,
+      livelloAlMomento: acquistoForm.livello,
+      ...(acquistoForm.tipoPagamento === "rate" ? { rate: acquistoForm.rate } : {}),
+      dataAcquisto: serverTimestamp(),
+    };
+    await setDoc(doc(db, "referrals", acquistoForm.leadId), datiAcquisto, { merge: true });
+    setAcquistoForm(null);
+    console.log("✅ Acquisto salvato, commissione:", commissione);
+  };
 
   const salvaPost = async () => {
     if (!newPost.titolo || !newPost.testo) return;
@@ -3379,6 +3400,8 @@ function AdminReferral({ studenti }) {
   const STATI_L = { segnalato:"Segnalato", contattato:"Contattato", appuntamento:"Appuntamento", proposta:"Proposta", acquisito:"Acquisito", perso:"Perso" };
   const STATI_C = { segnalato:C.muted, contattato:C.blue, appuntamento:"#f59e0b", proposta:C.purple, acquisito:C.green, perso:C.red };
 
+  const COMM_PERC = { Bronze: 10, Silver: 12, Gold: 14, Platinum: 18 };
+
   const cambiaStato = async (lead, stato) => {
     await setDoc(doc(db, "referrals", lead.id), { stato }, { merge: true });
     const leadsAggiornati = leads.map(l => l.id === lead.id ? { ...l, stato } : l);
@@ -3388,6 +3411,7 @@ function AdminReferral({ studenti }) {
     else if (acquisiti >= 7) livello = "Gold";
     else if (acquisiti >= 3) livello = "Silver";
     await setDoc(doc(db, "studenti", lead.studenteUid), { referralAcquisiti: acquisiti, referralLivello: livello }, { merge: true });
+    if (stato === "acquisito") setAcquistoForm({ leadId: lead.id, studenteUid: lead.studenteUid, livello, percorso: "", importo: "", tipoPagamento: "unico", rate: [{ importo: "", scadenza: "" }] });
     // Notifica campanella allo studente
     const STATI_MSG = {
       contattato: "Il tuo lead " + lead.nome + " " + lead.cognome + " è stato contattato dal nostro team.",
@@ -3540,6 +3564,28 @@ function AdminReferral({ studenti }) {
           </div>
         );
       })}
+
+      {acquistoForm && (
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.7)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"2rem", width:"100%", maxWidth:500, boxShadow:"0 20px 60px rgba(0,0,0,0.5)" }}>
+            <h3 style={{ fontSize:18, fontWeight:700, color:C.text, margin:"0 0 4px" }}>Dettagli acquisto</h3>
+            <p style={{ fontSize:13, color:C.muted, margin:"0 0 20px" }}>Compila i dati del percorso acquistato</p>
+            <div style={{ display:"grid", gap:12, marginBottom:16 }}>
+              <div><label style={{ fontSize:12, color:C.muted, display:"block", marginBottom:4 }}>Percorso acquistato *</label><input value={acquistoForm.percorso} onChange={e=>setAcquistoForm(p=>({...p,percorso:e.target.value}))} placeholder="Es. MindSell Starter..." style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"9px 12px", fontSize:14, color:C.text, fontFamily:"inherit", width:"100%", outline:"none" }} /></div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                <div><label style={{ fontSize:12, color:C.muted, display:"block", marginBottom:4 }}>Importo totale (€) *</label><input value={acquistoForm.importo} onChange={e=>setAcquistoForm(p=>({...p,importo:e.target.value}))} placeholder="Es. 1500" style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"9px 12px", fontSize:14, color:C.text, fontFamily:"inherit", width:"100%", outline:"none" }} /></div>
+                <div><label style={{ fontSize:12, color:C.muted, display:"block", marginBottom:4 }}>Tipo pagamento</label><select value={acquistoForm.tipoPagamento} onChange={e=>setAcquistoForm(p=>({...p,tipoPagamento:e.target.value}))} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"9px 12px", fontSize:14, color:C.text, fontFamily:"inherit", width:"100%", outline:"none" }}><option value="unico">Pagamento unico</option><option value="rate">Rate</option></select></div>
+              </div>
+              {acquistoForm.tipoPagamento==="rate" && (<div><label style={{ fontSize:12, color:C.muted, display:"block", marginBottom:8 }}>Rate e scadenze</label>{acquistoForm.rate.map((r,i)=>(<div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr auto", gap:8, marginBottom:8 }}><input value={r.importo} onChange={e=>{const rate=[...acquistoForm.rate];rate[i]={...rate[i],importo:e.target.value};setAcquistoForm(p=>({...p,rate}));}} placeholder={`Rata ${i+1} €`} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:7, padding:"7px 10px", fontSize:13, color:C.text, fontFamily:"inherit", outline:"none" }} /><input type="date" value={r.scadenza} onChange={e=>{const rate=[...acquistoForm.rate];rate[i]={...rate[i],scadenza:e.target.value};setAcquistoForm(p=>({...p,rate}));}} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:7, padding:"7px 10px", fontSize:13, color:C.text, fontFamily:"inherit", outline:"none" }} />{acquistoForm.rate.length>1&&<button onClick={()=>setAcquistoForm(p=>({...p,rate:p.rate.filter((_,j)=>j!==i)}))} style={{ background:"transparent", color:C.red, border:`1px solid ${C.red}`, borderRadius:7, padding:"7px 10px", fontSize:12, cursor:"pointer" }}>x</button>}</div>))}<button onClick={()=>setAcquistoForm(p=>({...p,rate:[...p.rate,{importo:"",scadenza:""}]}))} style={{ background:"transparent", color:C.green, border:`1px solid ${C.green}`, borderRadius:7, padding:"6px 12px", fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>+ Aggiungi rata</button></div>)}
+              {acquistoForm.importo&&(<div style={{ background:C.greenDim, border:`1px solid ${C.green}`, borderRadius:8, padding:"10px 14px" }}><div style={{ fontSize:12, color:C.muted, marginBottom:2 }}>Commissione ({COMM_PERC[acquistoForm.livello]}% — livello {acquistoForm.livello})</div><div style={{ fontSize:20, fontWeight:700, color:C.green }}>€ {(Math.round((parseFloat(acquistoForm.importo.replace(",","."))||0)*(COMM_PERC[acquistoForm.livello]||10)/100*100)/100).toFixed(2)}</div></div>)}
+            </div>
+            <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+              <button onClick={()=>setAcquistoForm(null)} style={{ background:"transparent", color:C.muted, border:`1px solid ${C.border}`, borderRadius:8, padding:"9px 16px", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Annulla</button>
+              <button onClick={salvaAcquisto} style={{ background:C.green, color:"#fff", border:"none", borderRadius:8, padding:"9px 20px", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Salva acquisto</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
