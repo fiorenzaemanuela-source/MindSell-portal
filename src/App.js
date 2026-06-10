@@ -3070,6 +3070,34 @@ const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.
         )}
 
         {/* MATERIALI */}
+        {tab==="materiali" && <MaterialiStudente uid={uid} moduli={data?.moduli||[]} studentName={data?.name||""} />}
+        {tab==="strumenti" && <SetupStrumenti studentName={data?.name||""} guideIds={data?.guide||[]} />}
+        {tab==="coach" && <AICoach userData={localData} uid={uid} />}
+        {tab==="referral" && <ReferralDashboard uid={uid} userData={localData || data} />}
+      </main>
+
+      {activeRec && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.95)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, padding:20 }} onClick={()=>setActiveRec(null)}>
+          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:20, width:"100%", maxWidth:860, position:"relative", overflow:"hidden" }} onClick={e=>e.stopPropagation()}>
+            <button style={{ position:"absolute", top:14, right:14, background:"rgba(0,0,0,0.6)", border:`1px solid ${C.border}`, color:"#fff", width:32, height:32, borderRadius:"50%", cursor:"pointer", fontSize:14, fontFamily:"inherit", zIndex:10 }} onClick={()=>setActiveRec(null)}>✕</button>
+            <div style={{ position:"relative", paddingTop:"56.25%", background:"#000" }}>
+              <iframe
+                src={activeRec.recordingUrl || activeRec.url}
+                style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", border:"none" }}
+                allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture"
+                allowFullScreen
+                title={activeRec.title}
+              />
+            </div>
+            <div style={{ padding:"20px 24px" }}>
+              <h3 style={{ margin:0, fontSize:18, fontWeight:800, color:C.text }}>{activeRec.title}</h3>
+              <p style={{ color:C.muted, fontSize:13, margin:"4px 0 0" }}>{activeRec.date}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+
             {adminTab === "materiali" && (
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
