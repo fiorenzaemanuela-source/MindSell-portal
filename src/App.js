@@ -2674,6 +2674,28 @@ function StudentPortal({ userData }) {
   const [bookPkg, setBookPkg] = useState(null);
   const [bookConfirmed, setBookConfirmed] = useState(false);
   const [activeRec, setActiveRec] = useState(null);
+  const [sessioniDrive, setSessioniDrive] = useState([]);
+  const [sessioniDriveLoading, setSessioniDriveLoading] = useState(true);
+
+  useEffect(() => {
+    if (!uid) return;
+    const loadSessions = async () => {
+      try {
+        const { collection: col2, query: q2, orderBy: ob2, onSnapshot: snap2 } = await import("firebase/firestore");
+        const { db: db2 } = await import("./firebase");
+        const ref = col2(db2, "studenti", uid, "sessions");
+        const q = q2(ref, ob2("date", "desc"));
+        snap2(q, (snapshot) => {
+          setSessioniDrive(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+          setSessioniDriveLoading(false);
+        });
+      } catch (e) {
+        console.warn("Sessioni Drive non disponibili:", e.message);
+        setSessioniDriveLoading(false);
+      }
+    };
+    loadSessions();
+  }, [uid]);
   const [bookForm, setBookForm] = useState({ date: "", time: "", note: "" });
   const [expandedModulo, setExpandedModulo] = useState(null);
   const [modalAcquisto, setModalAcquisto] = useState(false);
@@ -3004,44 +3026,49 @@ const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.
 
         {/* REGISTRAZIONI */}
         {tab==="registrazioni"&&(
-          (!data.recordings||data.recordings.length===0)
-            ?<EmptyState emoji="⏺" text="Nessuna registrazione." sub="Le sessioni live registrate appariranno qui."/>
-            :<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
-              {[
-                { key:"aula", label:"Aule Didattiche", emoji:"📚", color:"#B44FFF" },
-                { key:"roleplay", label:"Roleplay", emoji:"🎭", color:"#2B6CC4" },
-                { key:"onetoone", label:"One to One", emoji:"🎯", color:"#6DBF3E" },
-                { key:"onboarding", label:"Onboarding / Storage", emoji:"🚀", color:"#FF9500" },
-              ].map(cat => {
-                const recs = (data.recordings||[]).filter(r => (r.tipo||"aula") === cat.key);
-                return (
-                  <div key={cat.key} style={{ background:"#0E1318", border:`1px solid ${cat.color}44`, borderTop:`3px solid ${cat.color}`, borderRadius:16, overflow:"hidden" }}>
-                    <div style={{ padding:"16px 20px", borderBottom:"1px solid #1C2530", display:"flex", alignItems:"center", gap:10 }}>
-                      <span style={{ fontSize:22 }}>{cat.emoji}</span>
-                      <div>
-                        <div style={{ fontWeight:800, fontSize:15, color:"#E8EDF5" }}>{cat.label}</div>
-                        <div style={{ fontSize:12, color:cat.color }}>{recs.length} {recs.length===1?"registrazione":"registrazioni"}</div>
+          sessioniDriveLoading
+            ?<div style={{ color:"#6B7A8D", fontSize:14, padding:"40px 0", textAlign:"center" }}>Caricamento registrazioni...</div>
+            :sessioniDrive.length===0
+              ?<EmptyState emoji="⏺" text="Nessuna registrazione." sub="Le sessioni live registrate appariranno qui."/>
+              :<div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
+                {[
+                  { key:"aula", label:"Aule Didattiche", emoji:"📚", color:"#B44FFF" },
+                  { key:"roleplay", label:"Roleplay", emoji:"🎭", color:"#2B6CC4" },
+                  { key:"onetoone", label:"One to One", emoji:"🎯", color:"#6DBF3E" },
+                  { key:"onboarding", label:"Onboarding / Storage", emoji:"🚀", color:"#FF9500" },
+                ].map(cat => {
+                  const recs = sessioniDrive.filter(r => (r.tipo||"aula") === cat.key);
+                  return (
+                    <div key={cat.key} style={{ background:"#0E1318", border:`1px solid ${cat.color}44`, borderTop:`3px solid ${cat.color}`, borderRadius:16, overflow:"hidden" }}>
+                      <div style={{ padding:"16px 20px", borderBottom:"1px solid #1C2530", display:"flex", alignItems:"center", gap:10 }}>
+                        <span style={{ fontSize:22 }}>{cat.emoji}</span>
+                        <div>
+                          <div style={{ fontWeight:800, fontSize:15, color:"#E8EDF5" }}>{cat.label}</div>
+                          <div style={{ fontSize:12, color:cat.color }}>{recs.length} {recs.length===1?"registrazione":"registrazioni"}</div>
+                        </div>
+                      </div>
+                      <div style={{ padding:"12px 16px", display:"flex", flexDirection:"column", gap:10, maxHeight:340, overflowY:"auto" }}>
+                        {recs.length===0
+                          ?<div style={{ color:"#6B7A8D", fontSize:13, padding:"8px 0" }}>Nessuna registrazione</div>
+                          :recs.map((r,i)=>(
+                            <div key={i} style={{ background:"#121820", border:`1px solid ${cat.color}22`, borderRadius:10, padding:"12px 14px" }}>
+                              <div style={{ fontWeight:700, fontSize:14, color:"#E8EDF5", marginBottom:3 }}>{r.title}</div>
+                              <div style={{ fontSize:12, color:"#6B7A8D", marginBottom:8 }}>{r.date}</div>
+                              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                                <button style={{ background:cat.color+"22", border:"1px solid "+cat.color+"55", color:cat.color, borderRadius:8, padding:"5px 14px", fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>setActiveRec(r)}>▶ Guarda</button>
+                                {r.notesUrl && <a href={r.notesUrl} target="_blank" rel="noreferrer" style={{ background:"#1C253022", border:"1px solid #1C253055", color:"#6B7A8D", borderRadius:8, padding:"5px 14px", fontWeight:700, fontSize:12, fontFamily:"inherit", textDecoration:"none", display:"inline-flex", alignItems:"center" }}>📄 Appunti</a>}
+                              </div>
+                            </div>
+                          ))
+                        }
                       </div>
                     </div>
-                    <div style={{ padding:"12px 16px", display:"flex", flexDirection:"column", gap:10, maxHeight:340, overflowY:"auto" }}>
-                      {recs.length===0
-                        ?<div style={{ color:"#6B7A8D", fontSize:13, padding:"8px 0" }}>Nessuna registrazione</div>
-                        :recs.map((r,i)=>(
-                          <div key={i} style={{ background:"#121820", border:`1px solid ${cat.color}22`, borderRadius:10, padding:"12px 14px" }}>
-                            <div style={{ fontWeight:700, fontSize:14, color:"#E8EDF5", marginBottom:3 }}>{r.title}</div>
-                            <div style={{ fontSize:12, color:"#6B7A8D", marginBottom:8 }}>{r.date} · {r.duration}</div>
-                            <button style={{ background:cat.color+"22", border:"1px solid "+cat.color+"55", color:cat.color, borderRadius:8, padding:"5px 14px", fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"inherit" }} onClick={()=>setActiveRec(r)}>▶ Guarda</button>
-                          </div>
-                        ))
-                      }
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
         )}
 
-        {/* MATERIALI */}
+                {/* MATERIALI */}
         {tab==="materiali" && <MaterialiStudente uid={uid} moduli={data?.moduli||[]} studentName={data?.name||""} />}
         {tab==="strumenti" && <SetupStrumenti studentName={data?.name||""} guideIds={data?.guide||[]} />}
         {tab==="coach" && <AICoach userData={localData} uid={uid} />}
@@ -3124,7 +3151,7 @@ const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.
             <button style={{ position:"absolute", top:14, right:14, background:"rgba(0,0,0,0.6)", border:`1px solid ${C.border}`, color:"#fff", width:32, height:32, borderRadius:"50%", cursor:"pointer", fontSize:14, fontFamily:"inherit", zIndex:10 }} onClick={()=>setActiveRec(null)}>✕</button>
             <div style={{ position:"relative", paddingTop:"56.25%", background:"#000" }}>
               <iframe
-                src={extractBunnyUrl(activeRec.url)}
+                src={activeRec.recordingUrl || activeRec.url}
                 style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", border:"none" }}
                 allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture"
                 allowFullScreen
@@ -3133,7 +3160,7 @@ const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.
             </div>
             <div style={{ padding:"20px 24px" }}>
               <h3 style={{ margin:0, fontSize:18, fontWeight:800, color:C.text }}>{activeRec.title}</h3>
-              <p style={{ color:C.muted, fontSize:13, margin:"4px 0 0" }}>{activeRec.coach} · {activeRec.date} · {activeRec.duration}</p>
+              <p style={{ color:C.muted, fontSize:13, margin:"4px 0 0" }}>{activeRec.date}</p>
             </div>
           </div>
         </div>
