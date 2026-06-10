@@ -2686,6 +2686,8 @@ function StudentPortal({ userData }) {
         const ref = col2(db2, "studenti", uid, "sessions");
         const q = q2(ref, ob2("date", "desc"));
         snap2(q, (snapshot) => {
+          console.log("[DEBUG sessions] totale docs:", snapshot.docs.length);
+          snapshot.docs.forEach(d => console.log("[DEBUG]", d.data().tipo, "|", d.data().title, "|", d.data().date));
           setSessioniDrive(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
           setSessioniDriveLoading(false);
         });
