@@ -173,7 +173,7 @@ async function searchRelevantLessons(db, userModuli, userMessage, intentHint) {
 }
 
 // ── Costruisce il system prompt dinamico ──────────────────────────────────────
-function buildSystemPrompt(intentHint, userData, patterns, linguistic, sessionCount, lessonsContext = [], roleplayInsights = null, noteCoachUmano = "", sessioniLive = []) {
+function buildSystemPrompt(intentHint, userData, patterns, linguistic, sessionCount, lessonsContext = [], roleplayInsights = null, noteCoachUmano = "", sessioniLive = [], roleplayProgressione = null) {
   const name = userData?.name || "lo studente";
   const firstName = name.split(" ")[0];
   const moduli = (userData?.moduli || []).map(m => m.title).filter(Boolean);
@@ -890,7 +890,8 @@ export default function AICoach({ userData, uid }) {
         relevantLessons,
         roleplayInsights,
         noteCoachUmano,
-        sessioniLive
+        sessioniLive,
+        roleplayProgressione
       );
 
       const apiMessages = newMessages.map(m => ({
