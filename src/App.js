@@ -15,6 +15,7 @@ import {
   doc, getDoc, setDoc, collection, getDocs, deleteDoc,
   addDoc, updateDoc, query, orderBy, onSnapshot, serverTimestamp
 } from "firebase/firestore";
+import { jsPDF } from "jspdf";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 const storage = getStorage();
 import AICoach from "./AICoach";
@@ -1002,7 +1003,7 @@ function AdminPanel({ adminUser }) {
           <img src="/logo_mindsell.png" alt="" style={{ height: 30, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
           <span style={{ fontWeight: 800, fontSize: 18, background: `linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>MindSell Admin</span>
           <div style={{ display: "flex", gap: 4, marginLeft: 8, overflowX: "auto", maxWidth: "60vw" }}>
-            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["guide", "⚙️ Guide Strumenti"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"], ["comunicazioni", "📣 Comunicazioni"]].map(([id, label]) => (
+            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["guide", "⚙️ Guide Strumenti"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"], ["comunicazioni", "📣 Comunicazioni"], ["referral", "🤝 Referral"]].map(([id, label]) => (
               <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit", position: "relative" }}
                 onClick={() => { setSection(id); setView("lista"); }}>{id === "chat" && unreadChats > 0 ? <span style={{ position:"relative" }}>{label}<span style={{ position:"absolute", top:-8, right:-14, background:"#FF4444", color:"#fff", borderRadius:"50%", width:16, height:16, fontSize:10, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{unreadChats}</span></span> : label}</button>
             ))}
@@ -1091,6 +1092,7 @@ function AdminPanel({ adminUser }) {
       {section==="bacheca" && <AdminBacheca />}
       {section === "chat" && <AdminChat />}
       {section === "comunicazioni" && <AdminComunicazioni />}
+      {section === "referral" && <AdminReferral studenti={studenti} />}
 
 
         {/* OFFERTE GLOBALI */}
@@ -1272,6 +1274,11 @@ function AdminPanel({ adminUser }) {
                       <div style={{ position: "absolute", top: 2, left: selected.strumenti ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
                     </div>
                     <span style={{ fontSize: 11, color: selected.strumenti ? C.green : C.muted, fontWeight: 700 }}>{selected.strumenti ? "ON" : "OFF"}</span>
+                    <span style={{ fontSize: 12, color: C.muted, marginLeft: 8 }}>🤝 Referral</span>
+                    <div onClick={() => upd(s => s.referral = !s.referral)} style={{ width: 36, height: 20, borderRadius: 10, background: selected.referral ? C.green : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                      <div style={{ position: "absolute", top: 2, left: selected.referral ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: selected.referral ? C.green : C.muted, fontWeight: 700 }}>{selected.referral ? "ON" : "OFF"}</span>
                     <span style={{ fontSize: 12, color: C.muted, marginLeft: 8 }}>🧠 AI Coach</span>
                     <div onClick={() => upd(s => s.aiCoach = !s.aiCoach)} style={{ width: 36, height: 20, borderRadius: 10, background: selected.aiCoach ? C.purple : C.border, cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
                       <div style={{ position: "absolute", top: 2, left: selected.aiCoach ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
@@ -1435,7 +1442,7 @@ function AdminPanel({ adminUser }) {
                       <div style={{ flex: 1 }}>
                         <input style={{ background: "none", border: "none", color: C.text, fontWeight: 700, fontSize: 15, width: "100%", outline: "none", fontFamily: "inherit" }} value={r.title} onChange={e => upd(s => s.recordings[idx].title = e.target.value)} />
                         <div style={{ display: "flex", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
-                          {[["coach", "Coach"], ["date", "Data"], ["duration", "Durata"], ["url", "URL iframe Bunny"]].map(([f, ph]) => (
+                          {[["coach", "Coach"], ["date", "Data"], ["duration", "Durata"], ["url", "URL Drive o Bunny"]].map(([f, ph]) => (
                             <input key={f} style={{ ...inp(), padding: "4px 8px", fontSize: 12, width: f === "url" ? 220 : 120 }} placeholder={ph} value={r[f]} onChange={e => upd(s => s.recordings[idx][f] = e.target.value)} />
                           ))}
                         </div>
@@ -1743,7 +1750,7 @@ function AdminPanel({ adminUser }) {
 
       {modalRec && (
         <Modal onClose={() => setModalRec(false)} title="⏺ Nuova registrazione">
-          {[["title","Titolo"],["coach","Coach"],["date","Data es. 14 Feb 2026"],["duration","Durata es. 1:18:40"],["url","URL iframe Bunny"]].map(([k,ph]) => (
+          {[["title","Titolo"],["coach","Coach"],["date","Data es. 14 Feb 2026"],["duration","Durata es. 1:18:40"],["url","URL Drive o Bunny"]].map(([k,ph]) => (
             <input key={k} style={inp()} placeholder={ph} value={fRec[k]} onChange={e => setFRec({...fRec,[k]:e.target.value})} />
           ))}
           <select style={{...inp(), color: C.text}} value={fRec.tipo||"aula"} onChange={e => setFRec({...fRec, tipo: e.target.value})}>
@@ -2787,10 +2794,7 @@ function StudentPortal({ userData }) {
   
   const initials = data.name?.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase() || "MS";
 
-  useEffect(() => {
-    const t = setTimeout(() => setShowPromo(true), 3500);
-    return () => clearTimeout(t);
-  }, []);
+
 
   const tabs = [
     { id: "moduli", label: "I miei Corsi", emoji: "▶" },
@@ -2824,14 +2828,14 @@ function StudentPortal({ userData }) {
           </div>
           <nav className="ms-nav" style={{ padding:"0 10px", display:"flex", flexDirection:"column", gap:3, overflowX:"auto" }}>
             {tabs.map(t => (
-              <button key={t.id} style={{ display:"flex", alignItems:"center", gap:10, background:tab===t.id?C.purpleDim:"none", border:tab===t.id?`1px solid ${C.purple}44`:"1px solid transparent", color:tab===t.id?C.purpleGlow:C.muted, padding:"10px 14px", borderRadius:10, cursor:"pointer", fontSize:14, textAlign:"left", fontFamily:"inherit", boxShadow:tab===t.id?glow(C.purple,6):"none" }} onClick={()=>setTab(t.id)}>
+              <button key={t.id} style={{ display:"flex", alignItems:"center", gap:10, background:tab===t.id?C.purpleDim:"none", border:tab===t.id?`1px solid ${C.purple}44`:"1px solid transparent", color:tab===t.id?C.purpleGlow:"#C8D6E5", padding:"10px 14px", borderRadius:10, cursor:"pointer", fontSize:14, textAlign:"left", fontFamily:"inherit", boxShadow:tab===t.id?glow(C.purple,6):"none" }} onClick={()=>setTab(t.id)}>
                 <span style={{ fontSize:13, width:16 }}>{t.emoji}</span>{t.label}
               </button>
             ))}
           </nav>
         </div>
         <div className="ms-sidebar-bottom" style={{ padding:"0 10px", display:"flex", flexDirection:"column", gap:8 }}>
-          <button style={{ background:`linear-gradient(135deg,${C.green},${C.blue})`, border:"none", borderRadius:10, color:"#fff", padding:"11px 14px", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit" }} onClick={()=>setShowPromo(true)}>✦ Offerte per te</button>
+
           <a href="https://www.google.com/search?client=ms-android-samsung-ss&hs=xzxU&sca_esv=c6b7077b8ab86951&hl=it-IT&cs=0&sxsrf=ANbL-n6Ux6ZpU3R5vG0ZBmpqhRGv4HD5MA:1775120442587&q=recensioni+di+mindsell.academy&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOf6rRF0ZkcFdJQ8vNOXTuwRtcBtqPXf0PaTaxjrjdTLygfAxjlGMn_LHXzgSrHAHAWpYqEuxMrg0sJYVgOxRjYh_fhW1vANSvUwKzN_T3VLA0tKo-g%3D%3D&sa=X&ved=2ahUKEwiHraf75s6TAxXMxQIHHRUiHZkQ9qsLegQIHBAJ&biw=384&bih=699&dpr=2.81" target="_blank" rel="noreferrer" style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, background:C.card, border:`1px solid ${C.green}44`, borderRadius:10, padding:"10px 14px", cursor:"pointer", textDecoration:"none" }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.7 7.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.5 0 10.5-1.9 14.3-5l-6.6-5.4C29.7 37 27 38 24 38c-6.1 0-11.3-4.1-13.1-9.7l-7 5.4C7.5 41.8 15.2 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-1 2.8-2.8 5.1-5.2 6.6l6.6 5.4C41.4 37.3 45 31.2 45 24c0-1.3-.2-2.7-.5-4z"/></svg>
@@ -3314,6 +3318,459 @@ function ChatWidget({ studentUid, studentName }) {
 // ═══════════════════════════════════════════════════════════════
 // CHAT ADMIN — pannello messaggi
 // ═══════════════════════════════════════════════════════════════
+
+function AdminReferral({ studenti }) {
+  const [leads, setLeads] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filtro, setFiltro] = useState("tutti");
+  const [acquistoForm, setAcquistoForm] = useState(null);
+  const [meseSel, setMeseSel] = useState(new Date().getMonth());
+  const [annoSel, setAnnoSel] = useState(new Date().getFullYear());
+  const [brochure, setBrochure] = useState([]);
+  const [addingBrochure, setAddingBrochure] = useState(false);
+  const [newBrochure, setNewBrochure] = useState({ titolo: "", descrizione: "", url: "", obbligatoria: true });
+  const [postLibreria, setPostLibreria] = useState([]);
+  const [addingPost, setAddingPost] = useState(false);
+  const [newPost, setNewPost] = useState({ titolo: "", testo: "", canale: "linkedin" });
+  console.log("[AdminReferral] postLibreria:", postLibreria.length, "addingPost:", addingPost);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "referralPost"), snap => {
+      setPostLibreria(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, []);
+
+  const segnaRataSaldata = async (leadId, rataIndex, saldato) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return;
+    const rateSaldate = lead.rateSaldate || {};
+    rateSaldate[rataIndex] = saldato;
+    await setDoc(doc(db, "referrals", leadId), { rateSaldate }, { merge: true });
+  };
+
+  const segnaCommissioneSaldata = async (leadId, saldato) => {
+    await setDoc(doc(db, "referrals", leadId), { commissioneSaldata: saldato }, { merge: true });
+  };
+
+  const salvaAcquisto = async () => {
+    if (!acquistoForm || !acquistoForm.percorso || !acquistoForm.importo) return;
+    const perc = COMM_PERC[acquistoForm.livello] || 10;
+    const importoNum = parseFloat(acquistoForm.importo.replace(",", ".")) || 0;
+    const commissione = Math.round(importoNum * perc / 100 * 100) / 100;
+    const datiAcquisto = {
+      percorsoAcquistato: acquistoForm.percorso,
+      importoTotale: importoNum,
+      tipoPagamento: acquistoForm.tipoPagamento,
+      commissione,
+      commissionePerc: perc,
+      livelloAlMomento: acquistoForm.livello,
+      ...(acquistoForm.tipoPagamento === "rate" ? { rate: acquistoForm.rate } : {}),
+      dataAcquisto: serverTimestamp(),
+    };
+    await setDoc(doc(db, "referrals", acquistoForm.leadId), datiAcquisto, { merge: true });
+    setAcquistoForm(null);
+    console.log("✅ Acquisto salvato, commissione:", commissione);
+  };
+
+  const generaPDF = async (commissioniMese, mesiNomi, meseCorrente, annoCorrente) => {
+    const { jsPDF } = await import("jspdf"); const doc2 = new jsPDF();
+    doc2.setFontSize(16);
+    doc2.setTextColor(40, 40, 40);
+    doc2.text("MindSell Academy - Riepilogo Commissioni", 20, 20);
+    doc2.setFontSize(12);
+    doc2.text(`${mesiNomi[meseCorrente]} ${annoCorrente}`, 20, 30);
+    doc2.setLineWidth(0.5);
+    doc2.line(20, 35, 190, 35);
+    let y = 45;
+    let totale = 0;
+    commissioniMese.forEach((c, i) => {
+      doc2.setFontSize(11);
+      doc2.setTextColor(40, 40, 40);
+      doc2.text(`${i + 1}. ${c.procacciatore}`, 20, y);
+      doc2.setFontSize(10);
+      doc2.setTextColor(100, 100, 100);
+      doc2.text(`Lead: ${c.nome} | Percorso: ${c.percorso}`, 25, y + 6);
+      if (c.rata) doc2.text(`Rata ${c.rata}/${c.totaleRate} | Scadenza: ${c.scadenza ? new Date(c.scadenza).toLocaleDateString("it-IT") : "—"}`, 25, y + 12);
+      else doc2.text("Pagamento unico", 25, y + 12);
+      doc2.setFontSize(11);
+      doc2.setTextColor(40, 40, 40);
+      doc2.text(`€${c.commRata.toFixed(2)} (${c.commissionePerc}%)`, 160, y, { align: "right" });
+      doc2.text(c.saldato ? "✓ Saldato" : "Da pagare", 190, y, { align: "right" });
+      totale += c.commRata;
+      y += 20;
+      if (y > 260) { doc2.addPage(); y = 20; }
+    });
+    doc2.line(20, y, 190, y);
+    y += 8;
+    doc2.setFontSize(13);
+    doc2.setTextColor(40, 40, 40);
+    doc2.text(`TOTALE DA PAGARE: €${totale.toFixed(2)}`, 190, y, { align: "right" });
+    doc2.save(`commissioni-mindsell-${mesiNomi[meseCorrente].toLowerCase()}-${annoCorrente}.pdf`);
+  };
+
+  const salvaPost = async () => {
+    if (!newPost.titolo || !newPost.testo) return;
+    await addDoc(collection(db, "referralPost"), { ...newPost, dataCreazione: serverTimestamp() });
+    setNewPost({ titolo: "", testo: "", canale: "linkedin" });
+    setAddingPost(false);
+  };
+
+  const eliminaPost = async (id) => {
+    await deleteDoc(doc(db, "referralPost", id));
+  };
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "referralBrochure"), snap => {
+      setBrochure(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, []);
+
+  const salvaBrochure = async () => {
+    if (!newBrochure.titolo) return;
+    await addDoc(collection(db, "referralBrochure"), { ...newBrochure, dataCreazione: serverTimestamp() });
+    setNewBrochure({ titolo: "", descrizione: "", url: "", obbligatoria: true });
+    setAddingBrochure(false);
+  };
+
+  const eliminaBrochure = async (id) => {
+    await deleteDoc(doc(db, "referralBrochure", id));
+  };
+
+  useEffect(() => {
+    const q = query(collection(db, "referrals"), orderBy("dataCreazione", "desc"));
+    const unsub = onSnapshot(q, snap => {
+      setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  const STATI = ["segnalato","contattato","appuntamento","proposta","acquisito","perso"];
+  const STATI_L = { segnalato:"Segnalato", contattato:"Contattato", appuntamento:"Appuntamento", proposta:"Proposta", acquisito:"Acquisito", perso:"Perso" };
+  const STATI_C = { segnalato:C.muted, contattato:C.blue, appuntamento:"#f59e0b", proposta:C.purple, acquisito:C.green, perso:C.red };
+
+  const COMM_PERC = { Bronze: 10, Silver: 12, Gold: 14, Platinum: 18 };
+
+  const cambiaStato = async (lead, stato) => {
+    await setDoc(doc(db, "referrals", lead.id), { stato }, { merge: true });
+    const leadsAggiornati = leads.map(l => l.id === lead.id ? { ...l, stato } : l);
+    const acquisiti = leadsAggiornati.filter(l => l.studenteUid === lead.studenteUid && l.stato === "acquisito").length;
+    let livello = "Bronze";
+    if (acquisiti >= 15) livello = "Platinum";
+    else if (acquisiti >= 7) livello = "Gold";
+    else if (acquisiti >= 3) livello = "Silver";
+    await setDoc(doc(db, "studenti", lead.studenteUid), { referralAcquisiti: acquisiti, referralLivello: livello }, { merge: true });
+    if (stato === "acquisito") setAcquistoForm({ leadId: lead.id, studenteUid: lead.studenteUid, livello, percorso: "", importo: "", tipoPagamento: "unico", rate: [{ importo: "", scadenza: "" }] });
+    // Notifica campanella allo studente
+    const STATI_MSG = {
+      contattato: "Il tuo lead " + lead.nome + " " + lead.cognome + " è stato contattato dal nostro team.",
+      appuntamento: "Il tuo lead " + lead.nome + " " + lead.cognome + " ha fissato un appuntamento! 📅",
+      proposta: "Al tuo lead " + lead.nome + " " + lead.cognome + " è stata inviata una proposta commerciale.",
+      acquisito: "🎉 Il tuo lead " + lead.nome + " " + lead.cognome + " è diventato cliente MindSell! Commissione attiva.",
+      perso: "Il lead " + lead.nome + " " + lead.cognome + " non ha proceduto. Continua a segnalare nuovi contatti!",
+    };
+    if (STATI_MSG[stato]) {
+      await addDoc(collection(db, "notifiche", lead.studenteUid, "lista"), {
+        testo: STATI_MSG[stato],
+        tipo: stato === "acquisito" ? "successo" : stato === "perso" ? "info" : "aggiornamento",
+        letto: false,
+        data: serverTimestamp(),
+      });
+    }
+  };
+
+  const studentiConLead = studenti.filter(s => leads.some(l => l.studenteUid === s.uid));
+  const leadsFiltrati = filtro === "tutti" ? leads : leads.filter(l => l.studenteUid === filtro);
+
+  return (
+    <div style={{ padding: "32px 40px", maxWidth: 900 }}>
+      <h2 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 6px" }}>🤝 Referral — Lead ricevuti</h2>
+      <p style={{ color: C.muted, fontSize: 13, margin: "0 0 20px" }}>{leads.length} lead totali · {leads.filter(l => l.stato === "acquisito").length} acquisiti</p>
+
+      {/* PANORAMICA COMPLETA */}
+      {(() => {
+        const mesiNomi = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+        const totaleAcquisito = leads.filter(l => l.stato === "acquisito" && l.importoTotale).reduce((acc, l) => acc + (l.importoTotale || 0), 0);
+        const totaleCommissioni = leads.filter(l => l.stato === "acquisito" && l.commissione).reduce((acc, l) => acc + (l.commissione || 0), 0);
+        const commissioniFuture = [];
+        leads.forEach(lead => {
+          if (lead.stato !== "acquisito" || !lead.commissione) return;
+          const proc = studenti.find(s => s.uid === lead.studenteUid);
+          const nomeProcacciatore = proc?.name || lead.studenteName || "—";
+          if (lead.tipoPagamento === "rate" && lead.rate) {
+            lead.rate.forEach((r, i) => {
+              if (!r.scadenza) return;
+              const scad = new Date(r.scadenza);
+              const importoRata = parseFloat(r.importo) || 0;
+              const commRata = Math.round(importoRata * (lead.commissionePerc || 10) / 100 * 100) / 100;
+              const saldato = lead.rateSaldate?.[i] || false;
+              commissioniFuture.push({ leadId: lead.id, nome: lead.nome + " " + lead.cognome, procacciatore: nomeProcacciatore, percorso: lead.percorsoAcquistato, commissionePerc: lead.commissionePerc, importoRata, commRata, scadenza: r.scadenza, rata: i + 1, totaleRate: lead.rate.length, mese: scad.getMonth(), anno: scad.getFullYear(), saldato });
+            });
+          } else if (lead.tipoPagamento === "unico" && lead.dataAcquisto) {
+            const dataAcq = lead.dataAcquisto?.toDate ? lead.dataAcquisto.toDate() : new Date(lead.dataAcquisto);
+            const saldato = lead.commissioneSaldata || false;
+            commissioniFuture.push({ leadId: lead.id, nome: lead.nome + " " + lead.cognome, procacciatore: nomeProcacciatore, percorso: lead.percorsoAcquistato, commissionePerc: lead.commissionePerc, commRata: lead.commissione, scadenza: null, rata: null, mese: dataAcq.getMonth(), anno: dataAcq.getFullYear(), saldato });
+          }
+        });
+        const commMeseSel = commissioniFuture.filter(c => c.mese === meseSel && c.anno === annoSel);
+        const totaleMeseSel = commMeseSel.reduce((acc, c) => acc + c.commRata, 0);
+
+        return (
+          <div style={{ marginBottom: 24 }}>
+            {/* KPI */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
+              {[
+                { label: "Fatturato totale generato", val: `€${totaleAcquisito.toFixed(2)}`, color: C.green },
+                { label: "Commissioni totali maturate", val: `€${totaleCommissioni.toFixed(2)}`, color: "#f59e0b" },
+                { label: "Commissioni da pagare (mese sel.)", val: `€${commMeseSel.filter(c=>!c.saldato).reduce((a,c)=>a+c.commRata,0).toFixed(2)}`, color: C.purple },
+              ].map((k, i) => (
+                <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px" }}>
+                  <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6, fontWeight: 600 }}>{k.label}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: k.color }}>{k.val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* SELETTORE MESE */}
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: "0.07em" }}>💰 Commissioni — {mesiNomi[meseSel]} {annoSel}</div>
+                  <select value={meseSel} onChange={e => setMeseSel(Number(e.target.value))} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 7, padding: "4px 8px", fontSize: 12, color: C.text, fontFamily: "inherit", outline: "none" }}>
+                    {mesiNomi.map((m, i) => <option key={i} value={i}>{m}</option>)}
+                  </select>
+                  <select value={annoSel} onChange={e => setAnnoSel(Number(e.target.value))} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 7, padding: "4px 8px", fontSize: 12, color: C.text, fontFamily: "inherit", outline: "none" }}>
+                    {[2025, 2026, 2027].map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: C.green }}>Totale: €{totaleMeseSel.toFixed(2)}</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {commMeseSel.length > 0 && (
+                      <button onClick={() => generaPDF(commMeseSel, mesiNomi, meseSel, annoSel)} style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📄 PDF mese</button>
+                    )}
+                    {filtro !== "tutti" && commMeseSel.length > 0 && (
+                      <button onClick={() => generaPDF(commMeseSel.filter(c => { const proc = studenti.find(s => s.uid === filtro); return c.procacciatore === proc?.name; }), mesiNomi, meseSel, annoSel)} style={{ background: C.purple, color: "#fff", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>👤 PDF procacciatore</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {commMeseSel.length === 0 ? (
+                <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nessuna commissione per {mesiNomi[meseSel]} {annoSel}.</p>
+              ) : (
+                commMeseSel.map((c, i) => (
+                  <div key={i} style={{ background: c.saldato ? "#0d2e1a" : C.surface, border: `1px solid ${c.saldato ? C.green : C.border}`, borderRadius: 8, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF" }}>{c.procacciatore}</div>
+                      <div style={{ fontSize: 12, color: "#C8D6E5", marginTop: 2 }}>Lead: {c.nome} · {c.percorso}{c.rata ? ` · Rata ${c.rata}/${c.totaleRate}` : " · Pagamento unico"}</div>
+                      {c.scadenza && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Scadenza: {new Date(c.scadenza).toLocaleDateString("it-IT")}</div>}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 12 }}>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 20, fontWeight: 700, color: C.green }}>€{c.commRata.toFixed(2)}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{c.commissionePerc}%</div>
+                      </div>
+                      <button onClick={() => c.rata ? segnaRataSaldata(c.leadId, c.rata - 1, !c.saldato) : segnaCommissioneSaldata(c.leadId, !c.saldato)} style={{ background: c.saldato ? C.greenDim : C.surface, color: c.saldato ? C.green : C.muted, border: `1px solid ${c.saldato ? C.green : C.border}`, borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                        {c.saldato ? "✓ Saldato" : "Segna saldato"}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+            {/* SEZIONE BROCHURE */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem", marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>📋 Brochure e materiali per procacciatori</div>
+          <button onClick={() => setAddingBrochure(!addingBrochure)} style={{ background: C.greenDim, color: C.green, border: `1px solid ${C.green}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            {addingBrochure ? "Annulla" : "+ Aggiungi"}
+          </button>
+        </div>
+        {brochure.map(b => (
+          <div key={b.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>📄 {b.titolo}{b.obbligatoria && " 🔴"}</div>
+              {b.descrizione && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{b.descrizione}</div>}
+              {b.url && <div style={{ fontSize: 11, color: C.blue, marginTop: 2 }}>{b.url}</div>}
+            </div>
+            <button onClick={() => eliminaBrochure(b.id)} style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Rimuovi</button>
+          </div>
+        ))}
+        {brochure.length === 0 && !addingBrochure && <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nessun materiale aggiunto.</p>}
+        {addingBrochure && (
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px", marginTop: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Titolo *</label>
+                <input value={newBrochure.titolo} onChange={e => setNewBrochure(p => ({ ...p, titolo: e.target.value }))} placeholder="Es. Presentazione MindSell Academy" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>URL PDF</label>
+                <input value={newBrochure.url} onChange={e => setNewBrochure(p => ({ ...p, url: e.target.value }))} placeholder="https://..." style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }} />
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Descrizione</label>
+                <input value={newBrochure.descrizione} onChange={e => setNewBrochure(p => ({ ...p, descrizione: e.target.value }))} placeholder="Breve descrizione del documento" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }} />
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <input type="checkbox" id="obbl" checked={newBrochure.obbligatoria} onChange={e => setNewBrochure(p => ({ ...p, obbligatoria: e.target.checked }))} />
+              <label htmlFor="obbl" style={{ fontSize: 13, color: C.textSoft, cursor: "pointer" }}>🔴 Lettura obbligatoria (blocca il form fino alla conferma)</label>
+            </div>
+            <button onClick={salvaBrochure} style={{ background: C.green, color: "#fff", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Salva documento</button>
+          </div>
+        )}
+      {/* SEZIONE POST LIBRERIA */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem", marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>📝 Post da pubblicare per i procacciatori</div>
+          <button onClick={() => setAddingPost(!addingPost)} style={{ background: C.greenDim, color: C.green, border: `1px solid ${C.green}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            {addingPost ? "Annulla" : "+ Aggiungi post"}
+          </button>
+        </div>
+        {postLibreria.map(p => (
+          <div key={p.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.titolo}</span>
+                <span style={{ fontSize: 11, color: p.canale === "linkedin" ? C.blue : C.purple, background: p.canale === "linkedin" ? C.blueDim : "rgba(124,58,237,0.1)", padding: "2px 8px", borderRadius: 20 }}>{p.canale === "linkedin" ? "LinkedIn" : "Instagram/FB"}</span>
+              </div>
+              <div style={{ fontSize: 12, color: C.muted, whiteSpace: "pre-wrap", maxHeight: 60, overflow: "hidden" }}>{p.testo}</div>
+            </div>
+            <button onClick={() => eliminaPost(p.id)} style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Rimuovi</button>
+          </div>
+        ))}
+        {postLibreria.length === 0 && !addingPost && <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nessun post ancora. Aggiungine uno!</p>}
+        {addingPost && (
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px", marginTop: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Titolo *</label>
+                <input value={newPost.titolo} onChange={e => setNewPost(p => ({ ...p, titolo: e.target.value }))} placeholder="Es. 5 errori fatali nella vendita" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Canale</label>
+                <select value={newPost.canale} onChange={e => setNewPost(p => ({ ...p, canale: e.target.value }))} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none" }}>
+                  <option value="linkedin">LinkedIn</option>
+                  <option value="instagram">Instagram / Facebook</option>
+                </select>
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Testo del post *</label>
+                <textarea value={newPost.testo} onChange={e => setNewPost(p => ({ ...p, testo: e.target.value }))} placeholder="Scrivi il testo completo del post..." style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none", resize: "vertical", minHeight: 120 }} />
+              </div>
+            </div>
+            <button onClick={salvaPost} style={{ background: C.green, color: "#fff", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Salva post</button>
+          </div>
+        )}
+      </div>
+
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+        <button onClick={() => setFiltro("tutti")} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${filtro === "tutti" ? C.green : C.border}`, background: filtro === "tutti" ? C.greenDim : C.surface, color: filtro === "tutti" ? C.green : C.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+          Tutti ({leads.length})
+        </button>
+        {studentiConLead.map(s => (
+          <button key={s.uid} onClick={() => setFiltro(s.uid)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${filtro === s.uid ? C.green : C.border}`, background: filtro === s.uid ? C.greenDim : C.surface, color: filtro === s.uid ? C.green : C.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+            {s.name} ({leads.filter(l => l.studenteUid === s.uid).length})
+          </button>
+        ))}
+      </div>
+      {loading && <p style={{ color: C.muted, fontSize: 13 }}>Caricamento...</p>}
+      {!loading && leadsFiltrati.length === 0 && <EmptyState emoji="🤝" text="Nessun lead ancora." sub="I lead segnalati appariranno qui." />}
+      {leadsFiltrati.map(lead => {
+        const proc = studenti.find(s => s.uid === lead.studenteUid);
+        const dataStr = lead.dataCreazione && lead.dataCreazione.toDate ? lead.dataCreazione.toDate().toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }) : "";
+        return (
+          <div key={lead.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 20px", marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{lead.nome} {lead.cognome}</div>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{lead.email}{lead.telefono && ` · ${lead.telefono}`}</div>
+                {lead.note && <div style={{ fontSize: 12, color: C.muted, marginTop: 2, fontStyle: "italic" }}>{lead.note}</div>}
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>{dataStr}</div>
+                <div style={{ fontSize: 12, color: C.purple, fontWeight: 500 }}>da {proc ? proc.name : lead.studenteName || "—"}</div>
+              </div>
+            </div>
+            {lead.percorsoAcquistato && (
+              <div style={{ background: C.surface, border: `1px solid ${C.green}44`, borderRadius: 8, padding: "12px 14px", marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 2, textTransform: "uppercase", letterSpacing: "0.06em" }}>Percorso acquistato</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF" }}>{lead.percorsoAcquistato}</div>
+                    <div style={{ fontSize: 13, color: "#C8D6E5", marginTop: 2 }}>Importo totale: <strong>€{lead.importoTotale?.toFixed(2)}</strong> · {lead.tipoPagamento === "rate" ? `${lead.rate?.length} rate` : "Pagamento unico"}</div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                    <div style={{ fontSize: 11, color: C.muted }}>Commissione ({lead.commissionePerc}%)</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: C.green }}>€{lead.commissione?.toFixed(2)}</div>
+                  </div>
+                </div>
+                {lead.tipoPagamento === "rate" && lead.rate && (
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Dettaglio rate</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 6 }}>
+                      {lead.rate.map((r, i) => {
+                        const commRata = Math.round((parseFloat(r.importo)||0) * (lead.commissionePerc||10) / 100 * 100) / 100;
+                        const saldato = lead.rateSaldate?.[i] || false;
+                        return (
+                          <div key={i} style={{ background: saldato ? "#0d2e1a" : C.card, border: `1px solid ${saldato ? C.green : C.border}`, borderRadius: 7, padding: "8px 10px" }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#FFFFFF" }}>Rata {i+1}/{lead.rate.length} — €{r.importo}</div>
+                            <div style={{ fontSize: 11, color: C.muted }}>Scad: {r.scadenza ? new Date(r.scadenza).toLocaleDateString("it-IT") : "—"}</div>
+                            <div style={{ fontSize: 11, color: C.green }}>Comm: €{commRata.toFixed(2)}</div>
+                            {saldato && <div style={{ fontSize: 11, color: C.green, fontWeight: 600 }}>✓ Saldato</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 12, color: C.muted }}>Stato:</span>
+              <select value={lead.stato} onChange={e => cambiaStato(lead, e.target.value)} style={{ background: C.surface, border: `1px solid ${STATI_C[lead.stato] || C.border}`, borderRadius: 8, padding: "5px 10px", fontSize: 13, color: STATI_C[lead.stato] || C.text, fontFamily: "inherit", fontWeight: 500, cursor: "pointer", outline: "none" }}>
+                {STATI.map(s => <option key={s} value={s} style={{ color: C.text, background: C.card }}>{STATI_L[s]}</option>)}
+              </select>
+            </div>
+          </div>
+        );
+      })}
+
+      {acquistoForm && (
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.7)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:"2rem", width:"100%", maxWidth:500, boxShadow:"0 20px 60px rgba(0,0,0,0.5)" }}>
+            <h3 style={{ fontSize:18, fontWeight:700, color:C.text, margin:"0 0 4px" }}>Dettagli acquisto</h3>
+            <p style={{ fontSize:13, color:C.muted, margin:"0 0 20px" }}>Compila i dati del percorso acquistato</p>
+            <div style={{ display:"grid", gap:12, marginBottom:16 }}>
+              <div><label style={{ fontSize:12, color:C.muted, display:"block", marginBottom:4 }}>Percorso acquistato *</label><input value={acquistoForm.percorso} onChange={e=>setAcquistoForm(p=>({...p,percorso:e.target.value}))} placeholder="Es. MindSell Starter..." style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"9px 12px", fontSize:14, color:C.text, fontFamily:"inherit", width:"100%", outline:"none" }} /></div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                <div><label style={{ fontSize:12, color:C.muted, display:"block", marginBottom:4 }}>Importo totale (€) *</label><input value={acquistoForm.importo} onChange={e=>setAcquistoForm(p=>({...p,importo:e.target.value}))} placeholder="Es. 1500" style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"9px 12px", fontSize:14, color:C.text, fontFamily:"inherit", width:"100%", outline:"none" }} /></div>
+                <div><label style={{ fontSize:12, color:C.muted, display:"block", marginBottom:4 }}>Tipo pagamento</label><select value={acquistoForm.tipoPagamento} onChange={e=>setAcquistoForm(p=>({...p,tipoPagamento:e.target.value}))} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"9px 12px", fontSize:14, color:C.text, fontFamily:"inherit", width:"100%", outline:"none" }}><option value="unico">Pagamento unico</option><option value="rate">Rate</option></select></div>
+              </div>
+              {acquistoForm.tipoPagamento==="rate" && (<div><label style={{ fontSize:12, color:C.muted, display:"block", marginBottom:8 }}>Rate e scadenze</label>{acquistoForm.rate.map((r,i)=>(<div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr auto", gap:8, marginBottom:8 }}><input value={r.importo} onChange={e=>{const rate=[...acquistoForm.rate];rate[i]={...rate[i],importo:e.target.value};setAcquistoForm(p=>({...p,rate}));}} placeholder={`Rata ${i+1} €`} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:7, padding:"7px 10px", fontSize:13, color:C.text, fontFamily:"inherit", outline:"none" }} /><input type="date" value={r.scadenza} onChange={e=>{const rate=[...acquistoForm.rate];rate[i]={...rate[i],scadenza:e.target.value};setAcquistoForm(p=>({...p,rate}));}} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:7, padding:"7px 10px", fontSize:13, color:C.text, fontFamily:"inherit", outline:"none" }} />{acquistoForm.rate.length>1&&<button onClick={()=>setAcquistoForm(p=>({...p,rate:p.rate.filter((_,j)=>j!==i)}))} style={{ background:"transparent", color:C.red, border:`1px solid ${C.red}`, borderRadius:7, padding:"7px 10px", fontSize:12, cursor:"pointer" }}>x</button>}</div>))}<button onClick={()=>setAcquistoForm(p=>({...p,rate:[...p.rate,{importo:"",scadenza:""}]}))} style={{ background:"transparent", color:C.green, border:`1px solid ${C.green}`, borderRadius:7, padding:"6px 12px", fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>+ Aggiungi rata</button></div>)}
+              {acquistoForm.importo&&(<div style={{ background:C.greenDim, border:`1px solid ${C.green}`, borderRadius:8, padding:"10px 14px" }}><div style={{ fontSize:12, color:C.muted, marginBottom:2 }}>Commissione ({COMM_PERC[acquistoForm.livello]}% — livello {acquistoForm.livello})</div><div style={{ fontSize:20, fontWeight:700, color:C.green }}>€ {(Math.round((parseFloat(acquistoForm.importo.replace(",","."))||0)*(COMM_PERC[acquistoForm.livello]||10)/100*100)/100).toFixed(2)}</div></div>)}
+            </div>
+            <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+              <button onClick={()=>setAcquistoForm(null)} style={{ background:"transparent", color:C.muted, border:`1px solid ${C.border}`, borderRadius:8, padding:"9px 16px", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Annulla</button>
+              <button onClick={salvaAcquisto} style={{ background:C.green, color:"#fff", border:"none", borderRadius:8, padding:"9px 20px", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>Salva acquisto</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function AdminGuide({ guide, studenti, onRefresh }) {
   const [form, setForm] = useState({ titolo: "", descrizione: "", emoji: "⚙️", tipo: "ai_vendita", aiEnabled: false, aiPrompt: "" });
   const [editId, setEditId] = useState(null);
