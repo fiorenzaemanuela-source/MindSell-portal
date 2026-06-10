@@ -1442,7 +1442,7 @@ function AdminPanel({ adminUser }) {
                       <div style={{ flex: 1 }}>
                         <input style={{ background: "none", border: "none", color: C.text, fontWeight: 700, fontSize: 15, width: "100%", outline: "none", fontFamily: "inherit" }} value={r.title} onChange={e => upd(s => s.recordings[idx].title = e.target.value)} />
                         <div style={{ display: "flex", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
-                          {[["coach", "Coach"], ["date", "Data"], ["duration", "Durata"], ["url", "URL iframe Bunny"]].map(([f, ph]) => (
+                          {[["coach", "Coach"], ["date", "Data"], ["duration", "Durata"], ["url", "URL Drive o Bunny"]].map(([f, ph]) => (
                             <input key={f} style={{ ...inp(), padding: "4px 8px", fontSize: 12, width: f === "url" ? 220 : 120 }} placeholder={ph} value={r[f]} onChange={e => upd(s => s.recordings[idx][f] = e.target.value)} />
                           ))}
                         </div>
@@ -1750,7 +1750,7 @@ function AdminPanel({ adminUser }) {
 
       {modalRec && (
         <Modal onClose={() => setModalRec(false)} title="⏺ Nuova registrazione">
-          {[["title","Titolo"],["coach","Coach"],["date","Data es. 14 Feb 2026"],["duration","Durata es. 1:18:40"],["url","URL iframe Bunny"]].map(([k,ph]) => (
+          {[["title","Titolo"],["coach","Coach"],["date","Data es. 14 Feb 2026"],["duration","Durata es. 1:18:40"],["url","URL Drive o Bunny"]].map(([k,ph]) => (
             <input key={k} style={inp()} placeholder={ph} value={fRec[k]} onChange={e => setFRec({...fRec,[k]:e.target.value})} />
           ))}
           <select style={{...inp(), color: C.text}} value={fRec.tipo||"aula"} onChange={e => setFRec({...fRec, tipo: e.target.value})}>

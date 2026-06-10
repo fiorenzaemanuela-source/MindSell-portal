@@ -173,7 +173,7 @@ async function searchRelevantLessons(db, userModuli, userMessage, intentHint) {
 }
 
 // ── Costruisce il system prompt dinamico ──────────────────────────────────────
-function buildSystemPrompt(intentHint, userData, patterns, linguistic, sessionCount, lessonsContext = [], roleplayInsights = null, noteCoachUmano = "") {
+function buildSystemPrompt(intentHint, userData, patterns, linguistic, sessionCount, lessonsContext = [], roleplayInsights = null, noteCoachUmano = "", sessioniLive = []) {
   const name = userData?.name || "lo studente";
   const firstName = name.split(" ")[0];
   const moduli = (userData?.moduli || []).map(m => m.title).filter(Boolean);
@@ -378,6 +378,29 @@ Queste note hanno priorità alta — integrале nel tuo ragionamento e usale p
     return "\n" + parti.join("\n\n") + "\n\nUsa questi dati per personalizzare ogni risposta. Affronta gli errori persistenti. Non rispiegare ciò che ha già superato.";
   })();
 
+  // ── Blocco 5c: Sessioni Live con Appunti Gemini ───────────────────────────
+  const hasSessioniLive = sessioniLive && sessioniLive.length > 0;
+  const blocco_sessioni_live = (() => {
+    if (!hasSessioniLive) return "";
+    const parti = [];
+    parti.push(`STORICO SESSIONI LIVE DI ${firstName.toUpperCase()} (ultime ${sessioniLive.length} sessioni — fonte: Appunti Gemini):`);
+    parti.push(`Usa questo contesto per personalizzare ogni risposta. Conosci il percorso reale di ${firstName}, non solo la teoria.`);
+    sessioniLive.forEach((s, i) => {
+      const labelTipo = { aula: "Aula Didattica", roleplay: "Roleplay", onetoone: "One to One", onboarding: "Onboarding" }[s.tipo] || s.tipo;
+      const notes = typeof s.notes === "string" ? JSON.parse(s.notes) : (s.notes || {});
+      const parti_sessione = [];
+      parti_sessione.push(`SESSIONE ${i + 1}: ${labelTipo} — ${s.date || s.title}`);
+      if (notes.riepilogo) parti_sessione.push(`Riepilogo: ${notes.riepilogo.slice(0, 400)}`);
+      if (notes.temi && notes.temi.length > 0) parti_sessione.push(`Temi trattati: ${notes.temi.join(", ")}`);
+      if (notes.actionItems && notes.actionItems.length > 0) {
+        const items = notes.actionItems.slice(0, 4).join(" | ");
+        parti_sessione.push(`Action items: ${items}`);
+      }
+      parti.push(parti_sessione.join("\n"));
+    });
+    return "\n" + parti.join("\n\n") + "\n\nRicorda: hai accesso a questo storico reale. Usalo per essere specifico, non generico.";
+  })();
+
   // ── Blocco 6: Confini ─────────────────────────────────────────────────────
   // Moduli assegnati ma non ancora iniziati (0% su tutte le lezioni)
   const moduliNonIniziati = (userData?.moduli || [])
@@ -513,6 +536,7 @@ REGOLE:
     blocco_linguistic,
     blocco_note_coach,
     blocco_roleplay,
+    blocco_sessioni_live,
     blocco_lezioni,
     blocco_confini,
     intentBlocks[intentHint] || "",
@@ -614,6 +638,7 @@ export default function AICoach({ userData, uid }) {
   const [noteCoachUmano, setNoteCoachUmano] = useState("");
   const [sessionCount, setSessionCount] = useState(0);
   const [recentSessions, setRecentSessions] = useState([]);
+  const [sessioniLive, setSessioniLive] = useState([]);
   const [isFirstSession, setIsFirstSession] = useState(false);
   const [coachReady, setCoachReady] = useState(false);
   const [showMemory, setShowMemory] = useState(true);
@@ -652,13 +677,26 @@ export default function AICoach({ userData, uid }) {
           setRoleplayProgressione(rpSnap.data().progressione || null);
         }
 
-        // Sessioni recenti
+        // Sessioni recenti AI Coach (aiCoach/{uid}/sessioni)
         const sessionsRef = collection(db, "aiCoach", uid, "sessioni");
         const q = query(sessionsRef, orderBy("creata_il", "desc"), limit(3));
         const snap = await new Promise((res) => {
           const unsub = onSnapshot(q, (s) => { res(s); unsub(); });
         });
         setRecentSessions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+        // Sessioni live reali (studenti/{uid}/sessions) — Appunti Gemini
+        try {
+          const { collection: col2, query: q2, orderBy: ob2, limit: lim2, getDocs } = await import("firebase/firestore");
+          const liveRef = col2(db, "studenti", uid, "sessions");
+          const liveQ = q2(liveRef, ob2("date", "desc"), lim2(5));
+          const liveSnap = await getDocs(liveQ);
+          if (!liveSnap.empty) {
+            setSessioniLive(liveSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          }
+        } catch (e) {
+          console.warn("Sessioni live non disponibili:", e.message);
+        }
 
       } catch (e) {
         console.error("Errore caricamento dati coach:", e);
@@ -851,7 +889,8 @@ export default function AICoach({ userData, uid }) {
         sessionCount,
         relevantLessons,
         roleplayInsights,
-        noteCoachUmano
+        noteCoachUmano,
+        sessioniLive
       );
 
       const apiMessages = newMessages.map(m => ({
