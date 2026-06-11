@@ -1,5 +1,5 @@
 // build-force: 1780400383220
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { auth, db, firebaseConfig } from "./firebase";
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -792,7 +792,7 @@ function VLVideoForm({ initialValues, studentNames, onSave, onCancel, saving, la
 // ═══════════════════════════════════════════════════════════════
 // ADMIN VIDEO LIBRARY
 // ═══════════════════════════════════════════════════════════════
-const AdminVideoLibrary = React.memo(function AdminVideoLibrary({ studenti }) {
+const AdminVideoLibrary = memo(function AdminVideoLibrary({ studenti }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalAdd, setModalAdd] = useState(false);
