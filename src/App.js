@@ -1,5 +1,5 @@
 // build-force: 1780400383220
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { auth, db, firebaseConfig } from "./firebase";
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -724,65 +724,18 @@ function RoleplayAnalisiList({ uid }) {
 
 // ADMIN PANEL
 // ═══════════════════════════════════════════════════════════════
-// ADMIN VIDEO LIBRARY
+// ADMIN VIDEO LIBRARY — sottocomponenti a livello modulo
+// (devono stare FUORI da AdminVideoLibrary per avere identità stabile
+//  e non perdere il focus ad ogni keystroke)
 // ═══════════════════════════════════════════════════════════════
-function AdminVideoLibrary({ studenti }) {
-  const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modalAdd, setModalAdd] = useState(false);
-  const [modalEdit, setModalEdit] = useState(null);
-  const [fAdd, setFAdd] = useState({ title: "", description: "", url: "", categoria: "webinar", accesso: "tutti", visible: true });
-  const [fEdit, setFEdit] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [vlToast, setVlToast] = useState("");
+function VLAccessoBadge({ accesso }) {
+  if (accesso === "tutti") return <span style={{ fontSize:11, padding:"2px 8px", borderRadius:20, background:"#6DBF3E22", color:"#6DBF3E", fontWeight:700 }}>Tutti</span>;
+  if (Array.isArray(accesso)) return <span style={{ fontSize:11, padding:"2px 8px", borderRadius:20, background:"#2B6CC422", color:"#4A8FE0", fontWeight:700 }}>{accesso.length} studenti</span>;
+  return null;
+}
 
-  const catColors = { webinar: "#FF9500", masterclass: "#B44FFF", bonus: "#6DBF3E", altro: "#2B6CC4" };
-  const showVlToast = (msg) => { setVlToast(msg); setTimeout(() => setVlToast(""), 3000); };
-
-  useEffect(() => {
-    const unsub = onSnapshot(
-      query(collection(db, "videoLibrary"), orderBy("createdAt", "desc")),
-      snap => { setVideos(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setLoading(false); },
-      () => setLoading(false)
-    );
-    return unsub;
-  }, []);
-
-  const openEdit = (v) => { setFEdit({ ...v }); setModalEdit(v); };
-
-  const saveEdit = async () => {
-    if (!fEdit?.id) return;
-    setSaving(true);
-    try {
-      const { id, ...data } = fEdit;
-      await updateDoc(doc(db, "videoLibrary", id), data);
-      showVlToast("✅ Salvato!");
-      setModalEdit(null);
-    } catch { showVlToast("❌ Errore nel salvataggio."); }
-    setSaving(false);
-  };
-
-  const addVideo = async () => {
-    if (!fAdd.title || !fAdd.url) { showVlToast("⚠️ Titolo e URL sono obbligatori."); return; }
-    setSaving(true);
-    try {
-      await addDoc(collection(db, "videoLibrary"), { ...fAdd, createdAt: new Date().toISOString() });
-      showVlToast("✅ Video aggiunto!");
-      setModalAdd(false);
-      setFAdd({ title: "", description: "", url: "", categoria: "webinar", accesso: "tutti", visible: true });
-    } catch { showVlToast("❌ Errore."); }
-    setSaving(false);
-  };
-
-  const studentNames = studenti.map(s => s.name).filter(Boolean).sort();
-
-  const AccessoBadge = ({ accesso }) => {
-    if (accesso === "tutti") return <span style={{ fontSize:11, padding:"2px 8px", borderRadius:20, background:"#6DBF3E22", color:"#6DBF3E", fontWeight:700 }}>Tutti</span>;
-    if (Array.isArray(accesso)) return <span style={{ fontSize:11, padding:"2px 8px", borderRadius:20, background:"#2B6CC422", color:"#4A8FE0", fontWeight:700 }}>{accesso.length} studenti</span>;
-    return null;
-  };
-
-  const AccessoEditor = ({ value, onChange }) => (
+function VLAccessoEditor({ value, onChange, studentNames }) {
+  return (
     <div>
       <select value={value === "tutti" ? "tutti" : "seleziona"} onChange={e => onChange(e.target.value === "tutti" ? "tutti" : [])} style={{ ...inp(false), marginBottom:8 }}>
         <option value="tutti">Tutti gli studenti</option>
@@ -800,26 +753,90 @@ function AdminVideoLibrary({ studenti }) {
       )}
     </div>
   );
+}
 
-  const VideoForm = ({ f, setF }) => (
-    <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-      <input style={inp(false)} placeholder="Titolo *" value={f.title||""} onChange={e => setF({...f, title:e.target.value})} />
-      <textarea style={{ ...inp(false), minHeight:60, resize:"vertical" }} placeholder="Descrizione" value={f.description||""} onChange={e => setF({...f, description:e.target.value})} />
-      <input style={inp(false)} placeholder="URL Drive preview (es. https://drive.google.com/file/d/.../preview) *" value={f.url||""} onChange={e => setF({...f, url:e.target.value})} />
-      <select style={inp(false)} value={f.categoria||"webinar"} onChange={e => setF({...f, categoria:e.target.value})}>
-        <option value="webinar">Webinar</option>
-        <option value="masterclass">Masterclass</option>
-        <option value="bonus">Bonus</option>
-        <option value="altro">Altro</option>
-      </select>
-      <div style={{ fontSize:13, color:C.muted }}>Accesso</div>
-      <AccessoEditor value={f.accesso||"tutti"} onChange={val => setF({...f, accesso:val})} />
-      <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, cursor:"pointer", color:C.text }}>
-        <input type="checkbox" checked={!!f.visible} onChange={e => setF({...f, visible:e.target.checked})} />
-        Visibile agli studenti
-      </label>
+// Stato locale per il form: le modifiche non propagano al parent fino al salvataggio
+function VLVideoForm({ initialValues, studentNames, onSave, onCancel, saving, label }) {
+  const [f, setF] = useState(initialValues);
+  const upd = useCallback((k, v) => setF(prev => ({ ...prev, [k]: v })), []);
+  return (
+    <div>
+      <div style={{ fontWeight:700, fontSize:16, marginBottom:8 }}>{label}</div>
+      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+        <input style={inp(false)} placeholder="Titolo *" value={f.title||""} onChange={e => upd("title", e.target.value)} />
+        <textarea style={{ ...inp(false), minHeight:60, resize:"vertical" }} placeholder="Descrizione" value={f.description||""} onChange={e => upd("description", e.target.value)} />
+        <input style={inp(false)} placeholder="URL Drive preview (es. https://drive.google.com/file/d/.../preview) *" value={f.url||""} onChange={e => upd("url", e.target.value)} />
+        <select style={inp(false)} value={f.categoria||"webinar"} onChange={e => upd("categoria", e.target.value)}>
+          <option value="webinar">Webinar</option>
+          <option value="masterclass">Masterclass</option>
+          <option value="bonus">Bonus</option>
+          <option value="altro">Altro</option>
+        </select>
+        <div style={{ fontSize:13, color:C.muted }}>Accesso</div>
+        <VLAccessoEditor value={f.accesso||"tutti"} onChange={val => upd("accesso", val)} studentNames={studentNames} />
+        <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, cursor:"pointer", color:C.text }}>
+          <input type="checkbox" checked={!!f.visible} onChange={e => upd("visible", e.target.checked)} />
+          Visibile agli studenti
+        </label>
+      </div>
+      <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:16 }}>
+        <button style={{ background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:8, padding:"8px 18px", cursor:"pointer", fontFamily:"inherit", fontSize:13 }} onClick={onCancel}>Annulla</button>
+        <button style={{ ...btn(C.green), padding:"8px 20px", fontSize:13, opacity:saving?0.7:1 }} onClick={() => onSave(f)} disabled={saving}>
+          {saving ? "Salvataggio..." : label.startsWith("＋") ? "＋ Aggiungi" : "💾 Salva"}
+        </button>
+      </div>
     </div>
   );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN VIDEO LIBRARY
+// ═══════════════════════════════════════════════════════════════
+const AdminVideoLibrary = React.memo(function AdminVideoLibrary({ studenti }) {
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalAdd, setModalAdd] = useState(false);
+  const [modalEdit, setModalEdit] = useState(null); // oggetto video in modifica
+  const [saving, setSaving] = useState(false);
+  const [vlToast, setVlToast] = useState("");
+
+  const catColors = { webinar: "#FF9500", masterclass: "#B44FFF", bonus: "#6DBF3E", altro: "#2B6CC4" };
+  const showVlToast = (msg) => { setVlToast(msg); setTimeout(() => setVlToast(""), 3000); };
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      query(collection(db, "videoLibrary"), orderBy("createdAt", "desc")),
+      snap => { setVideos(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setLoading(false); },
+      () => setLoading(false)
+    );
+    return unsub;
+  }, []);
+
+  const saveEdit = async (data) => {
+    if (!modalEdit?.id) return;
+    setSaving(true);
+    try {
+      const { id, ...fields } = data;
+      await updateDoc(doc(db, "videoLibrary", modalEdit.id), fields);
+      showVlToast("✅ Salvato!");
+      setModalEdit(null);
+    } catch { showVlToast("❌ Errore nel salvataggio."); }
+    setSaving(false);
+  };
+
+  const addVideo = async (data) => {
+    if (!data.title || !data.url) { showVlToast("⚠️ Titolo e URL sono obbligatori."); return; }
+    setSaving(true);
+    try {
+      await addDoc(collection(db, "videoLibrary"), { ...data, createdAt: new Date().toISOString() });
+      showVlToast("✅ Video aggiunto!");
+      setModalAdd(false);
+    } catch { showVlToast("❌ Errore."); }
+    setSaving(false);
+  };
+
+  const studentNames = studenti.map(s => s.name).filter(Boolean).sort();
+  const defaultAdd = { title: "", description: "", url: "", categoria: "webinar", accesso: "tutti", visible: true };
 
   return (
     <div>
@@ -847,10 +864,10 @@ function AdminVideoLibrary({ studenti }) {
                     {v.description && <div style={{ fontSize:12, color:C.muted, marginBottom:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{v.description}</div>}
                     <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
                       <span style={{ fontSize:11, padding:"2px 8px", borderRadius:20, background:catColors[v.categoria||"altro"]+"22", color:catColors[v.categoria||"altro"], fontWeight:700, textTransform:"capitalize" }}>{v.categoria||"altro"}</span>
-                      <AccessoBadge accesso={v.accesso} />
+                      <VLAccessoBadge accesso={v.accesso} />
                     </div>
                   </div>
-                  <button style={{ background:"#2B6CC422", border:"1px solid #2B6CC455", color:"#4A8FE0", borderRadius:8, padding:"6px 16px", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }} onClick={() => openEdit(v)}>✏️ Modifica</button>
+                  <button style={{ background:"#2B6CC422", border:"1px solid #2B6CC455", color:"#4A8FE0", borderRadius:8, padding:"6px 16px", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }} onClick={() => setModalEdit(v)}>✏️ Modifica</button>
                 </div>
               ))}
             </div>
@@ -858,28 +875,34 @@ function AdminVideoLibrary({ studenti }) {
 
       {modalAdd && (
         <Modal onClose={() => setModalAdd(false)}>
-          <div style={{ fontWeight:700, fontSize:16, marginBottom:8 }}>＋ Aggiungi video</div>
-          <VideoForm f={fAdd} setF={setFAdd} />
-          <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-            <button style={{ background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:8, padding:"8px 18px", cursor:"pointer", fontFamily:"inherit", fontSize:13 }} onClick={() => setModalAdd(false)}>Annulla</button>
-            <button style={{ ...btn(C.green), padding:"8px 20px", fontSize:13, opacity:saving?0.7:1 }} onClick={addVideo} disabled={saving}>{saving?"Salvataggio...":"＋ Aggiungi"}</button>
-          </div>
+          <VLVideoForm
+            key="add"
+            initialValues={defaultAdd}
+            studentNames={studentNames}
+            onSave={addVideo}
+            onCancel={() => setModalAdd(false)}
+            saving={saving}
+            label="＋ Aggiungi video"
+          />
         </Modal>
       )}
 
-      {modalEdit && fEdit && (
+      {modalEdit && (
         <Modal onClose={() => setModalEdit(null)}>
-          <div style={{ fontWeight:700, fontSize:16, marginBottom:8 }}>✏️ Modifica video</div>
-          <VideoForm f={fEdit} setF={setFEdit} />
-          <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-            <button style={{ background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:8, padding:"8px 18px", cursor:"pointer", fontFamily:"inherit", fontSize:13 }} onClick={() => setModalEdit(null)}>Annulla</button>
-            <button style={{ ...btn(C.green), padding:"8px 20px", fontSize:13, opacity:saving?0.7:1 }} onClick={saveEdit} disabled={saving}>{saving?"Salvataggio...":"💾 Salva"}</button>
-          </div>
+          <VLVideoForm
+            key={modalEdit.id}
+            initialValues={modalEdit}
+            studentNames={studentNames}
+            onSave={saveEdit}
+            onCancel={() => setModalEdit(null)}
+            saving={saving}
+            label="✏️ Modifica video"
+          />
         </Modal>
       )}
     </div>
   );
-}
+});
 
 // ═══════════════════════════════════════════════════════════════
 function AdminPanel({ adminUser }) {
