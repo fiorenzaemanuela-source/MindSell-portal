@@ -1179,27 +1179,29 @@ function AdminPanel({ adminUser }) {
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Segoe UI',sans-serif", color: C.text }}>
-      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "14px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <img src="/logo_mindsell.png" alt="" style={{ height: 30, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
-          <span style={{ fontWeight: 800, fontSize: 18, background: `linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>MindSell Admin</span>
-          <div style={{ display: "flex", gap: 4, marginLeft: 8, overflowX: "auto", maxWidth: "60vw" }}>
-            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["guide", "⚙️ Guide Strumenti"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"], ["comunicazioni", "📣 Comunicazioni"], ["referral", "🤝 Referral"], ["videoLibrary", "🎬 Video Library"]].map(([id, label]) => (
-              <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit", position: "relative" }}
-                onClick={() => { setSection(id); setView("lista"); }}>{id === "chat" && unreadChats > 0 ? <span style={{ position:"relative" }}>{label}<span style={{ position:"absolute", top:-8, right:-14, background:"#FF4444", color:"#fff", borderRadius:"50%", width:16, height:16, fontSize:10, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{unreadChats}</span></span> : label}</button>
-            ))}
+      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "12px 32px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <img src="/logo_mindsell.png" alt="" style={{ height: 28, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
+            <span style={{ fontWeight: 800, fontSize: 18, background: `linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>MindSell Admin</span>
+            {view === "dettaglio" && section === "studenti" && (
+              <button style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }} onClick={() => setView("lista")}>← Tutti gli studenti</button>
+            )}
           </div>
-          {view === "dettaglio" && section === "studenti" && (
-            <button style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }} onClick={() => setView("lista")}>← Tutti gli studenti</button>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {toast && <span style={{ fontSize: 13, color: C.green, background: C.greenDim, padding: "6px 14px", borderRadius: 20 }}>{toast}</span>}
+            <button style={{ ...btn(C.red), padding: "7px 14px", fontSize: 13 }} onClick={() => signOut(auth)}>Esci</button>
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {toast && <span style={{ fontSize: 13, color: C.green, background: C.greenDim, padding: "6px 14px", borderRadius: 20 }}>{toast}</span>}
-          <button style={{ ...btn(C.red), padding: "7px 14px", fontSize: 13 }} onClick={() => signOut(auth)}>Esci</button>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["guide", "⚙️ Guide Strumenti"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"], ["comunicazioni", "📣 Comunicazioni"], ["referral", "🤝 Referral"], ["videoLibrary", "🎬 Video Library"]].map(([id, label]) => (
+            <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit", position: "relative", whiteSpace: "nowrap" }}
+              onClick={() => { setSection(id); setView("lista"); }}>{id === "chat" && unreadChats > 0 ? <span style={{ position:"relative" }}>{label}<span style={{ position:"absolute", top:-8, right:-14, background:"#FF4444", color:"#fff", borderRadius:"50%", width:16, height:16, fontSize:10, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{unreadChats}</span></span> : label}</button>
+          ))}
         </div>
       </div>
 
-      <div style={{ padding: "32px 40px", maxWidth: 1100, margin: "0 auto" }}>
+            <div style={{ padding: "32px 40px", maxWidth: 1100, margin: "0 auto" }}>
 
         {/* CHAT */}
         {section === "dashboard" && (() => {
