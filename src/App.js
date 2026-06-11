@@ -724,6 +724,164 @@ function RoleplayAnalisiList({ uid }) {
 
 // ADMIN PANEL
 // ═══════════════════════════════════════════════════════════════
+// ADMIN VIDEO LIBRARY
+// ═══════════════════════════════════════════════════════════════
+function AdminVideoLibrary({ studenti }) {
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalAdd, setModalAdd] = useState(false);
+  const [modalEdit, setModalEdit] = useState(null);
+  const [fAdd, setFAdd] = useState({ title: "", description: "", url: "", categoria: "webinar", accesso: "tutti", visible: true });
+  const [fEdit, setFEdit] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [vlToast, setVlToast] = useState("");
+
+  const catColors = { webinar: "#FF9500", masterclass: "#B44FFF", bonus: "#6DBF3E", altro: "#2B6CC4" };
+  const showVlToast = (msg) => { setVlToast(msg); setTimeout(() => setVlToast(""), 3000); };
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      query(collection(db, "videoLibrary"), orderBy("createdAt", "desc")),
+      snap => { setVideos(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setLoading(false); },
+      () => setLoading(false)
+    );
+    return unsub;
+  }, []);
+
+  const openEdit = (v) => { setFEdit({ ...v }); setModalEdit(v); };
+
+  const saveEdit = async () => {
+    if (!fEdit?.id) return;
+    setSaving(true);
+    try {
+      const { id, ...data } = fEdit;
+      await updateDoc(doc(db, "videoLibrary", id), data);
+      showVlToast("✅ Salvato!");
+      setModalEdit(null);
+    } catch { showVlToast("❌ Errore nel salvataggio."); }
+    setSaving(false);
+  };
+
+  const addVideo = async () => {
+    if (!fAdd.title || !fAdd.url) { showVlToast("⚠️ Titolo e URL sono obbligatori."); return; }
+    setSaving(true);
+    try {
+      await addDoc(collection(db, "videoLibrary"), { ...fAdd, createdAt: new Date().toISOString() });
+      showVlToast("✅ Video aggiunto!");
+      setModalAdd(false);
+      setFAdd({ title: "", description: "", url: "", categoria: "webinar", accesso: "tutti", visible: true });
+    } catch { showVlToast("❌ Errore."); }
+    setSaving(false);
+  };
+
+  const studentNames = studenti.map(s => s.name).filter(Boolean).sort();
+
+  const AccessoBadge = ({ accesso }) => {
+    if (accesso === "tutti") return <span style={{ fontSize:11, padding:"2px 8px", borderRadius:20, background:"#6DBF3E22", color:"#6DBF3E", fontWeight:700 }}>Tutti</span>;
+    if (Array.isArray(accesso)) return <span style={{ fontSize:11, padding:"2px 8px", borderRadius:20, background:"#2B6CC422", color:"#4A8FE0", fontWeight:700 }}>{accesso.length} studenti</span>;
+    return null;
+  };
+
+  const AccessoEditor = ({ value, onChange }) => (
+    <div>
+      <select value={value === "tutti" ? "tutti" : "seleziona"} onChange={e => onChange(e.target.value === "tutti" ? "tutti" : [])} style={{ ...inp(false), marginBottom:8 }}>
+        <option value="tutti">Tutti gli studenti</option>
+        <option value="seleziona">Seleziona studenti specifici</option>
+      </select>
+      {value !== "tutti" && Array.isArray(value) && (
+        <div style={{ maxHeight:180, overflowY:"auto", border:`1px solid ${C.border}`, borderRadius:8, padding:8, display:"flex", flexDirection:"column", gap:4 }}>
+          {studentNames.map(name => (
+            <label key={name} style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, cursor:"pointer", color:C.text }}>
+              <input type="checkbox" checked={value.includes(name)} onChange={e => onChange(e.target.checked ? [...value, name] : value.filter(n => n !== name))} />
+              {name}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const VideoForm = ({ f, setF }) => (
+    <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+      <input style={inp(false)} placeholder="Titolo *" value={f.title||""} onChange={e => setF({...f, title:e.target.value})} />
+      <textarea style={{ ...inp(false), minHeight:60, resize:"vertical" }} placeholder="Descrizione" value={f.description||""} onChange={e => setF({...f, description:e.target.value})} />
+      <input style={inp(false)} placeholder="URL Drive preview (es. https://drive.google.com/file/d/.../preview) *" value={f.url||""} onChange={e => setF({...f, url:e.target.value})} />
+      <select style={inp(false)} value={f.categoria||"webinar"} onChange={e => setF({...f, categoria:e.target.value})}>
+        <option value="webinar">Webinar</option>
+        <option value="masterclass">Masterclass</option>
+        <option value="bonus">Bonus</option>
+        <option value="altro">Altro</option>
+      </select>
+      <div style={{ fontSize:13, color:C.muted }}>Accesso</div>
+      <AccessoEditor value={f.accesso||"tutti"} onChange={val => setF({...f, accesso:val})} />
+      <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, cursor:"pointer", color:C.text }}>
+        <input type="checkbox" checked={!!f.visible} onChange={e => setF({...f, visible:e.target.checked})} />
+        Visibile agli studenti
+      </label>
+    </div>
+  );
+
+  return (
+    <div>
+      {vlToast && <div style={{ position:"fixed", bottom:30, left:"50%", transform:"translateX(-50%)", background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 24px", fontSize:14, fontWeight:600, color:C.text, zIndex:999, boxShadow:"0 8px 32px rgba(0,0,0,0.4)" }}>{vlToast}</div>}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
+        <div>
+          <h2 style={{ margin:0, fontSize:22, fontWeight:800 }}>🎬 Video Library ({videos.length})</h2>
+          <p style={{ color:C.muted, fontSize:13, margin:"4px 0 0" }}>Gestisci i video condivisi con gli studenti</p>
+        </div>
+        <button style={btn(C.green)} onClick={() => setModalAdd(true)}>＋ Aggiungi video</button>
+      </div>
+
+      {loading
+        ? <div style={{ color:C.muted, fontSize:14, padding:"40px 0", textAlign:"center" }}>Caricamento...</div>
+        : videos.length === 0
+          ? <div style={{ color:C.muted, fontSize:14, padding:"40px 0", textAlign:"center" }}>Nessun video nella libreria.</div>
+          : <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {videos.map(v => (
+                <div key={v.id} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 20px", display:"flex", alignItems:"center", gap:16 }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:4 }}>
+                      <span style={{ fontWeight:700, fontSize:15, color:C.text }}>{v.title}</span>
+                      {!v.visible && <span style={{ fontSize:11, padding:"2px 8px", borderRadius:20, background:"#FF555522", color:C.red, fontWeight:700 }}>Nascosto</span>}
+                    </div>
+                    {v.description && <div style={{ fontSize:12, color:C.muted, marginBottom:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{v.description}</div>}
+                    <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+                      <span style={{ fontSize:11, padding:"2px 8px", borderRadius:20, background:catColors[v.categoria||"altro"]+"22", color:catColors[v.categoria||"altro"], fontWeight:700, textTransform:"capitalize" }}>{v.categoria||"altro"}</span>
+                      <AccessoBadge accesso={v.accesso} />
+                    </div>
+                  </div>
+                  <button style={{ background:"#2B6CC422", border:"1px solid #2B6CC455", color:"#4A8FE0", borderRadius:8, padding:"6px 16px", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }} onClick={() => openEdit(v)}>✏️ Modifica</button>
+                </div>
+              ))}
+            </div>
+      }
+
+      {modalAdd && (
+        <Modal onClose={() => setModalAdd(false)}>
+          <div style={{ fontWeight:700, fontSize:16, marginBottom:8 }}>＋ Aggiungi video</div>
+          <VideoForm f={fAdd} setF={setFAdd} />
+          <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
+            <button style={{ background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:8, padding:"8px 18px", cursor:"pointer", fontFamily:"inherit", fontSize:13 }} onClick={() => setModalAdd(false)}>Annulla</button>
+            <button style={{ ...btn(C.green), padding:"8px 20px", fontSize:13, opacity:saving?0.7:1 }} onClick={addVideo} disabled={saving}>{saving?"Salvataggio...":"＋ Aggiungi"}</button>
+          </div>
+        </Modal>
+      )}
+
+      {modalEdit && fEdit && (
+        <Modal onClose={() => setModalEdit(null)}>
+          <div style={{ fontWeight:700, fontSize:16, marginBottom:8 }}>✏️ Modifica video</div>
+          <VideoForm f={fEdit} setF={setFEdit} />
+          <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
+            <button style={{ background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:8, padding:"8px 18px", cursor:"pointer", fontFamily:"inherit", fontSize:13 }} onClick={() => setModalEdit(null)}>Annulla</button>
+            <button style={{ ...btn(C.green), padding:"8px 20px", fontSize:13, opacity:saving?0.7:1 }} onClick={saveEdit} disabled={saving}>{saving?"Salvataggio...":"💾 Salva"}</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 function AdminPanel({ adminUser }) {
   const [section, setSection] = useState("studenti");
   const [unreadChats, setUnreadChats] = useState(0);
@@ -1003,7 +1161,7 @@ function AdminPanel({ adminUser }) {
           <img src="/logo_mindsell.png" alt="" style={{ height: 30, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
           <span style={{ fontWeight: 800, fontSize: 18, background: `linear-gradient(90deg,${C.green},${C.blue})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>MindSell Admin</span>
           <div style={{ display: "flex", gap: 4, marginLeft: 8, overflowX: "auto", maxWidth: "60vw" }}>
-            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["guide", "⚙️ Guide Strumenti"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"], ["comunicazioni", "📣 Comunicazioni"], ["referral", "🤝 Referral"]].map(([id, label]) => (
+            {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["guide", "⚙️ Guide Strumenti"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"], ["comunicazioni", "📣 Comunicazioni"], ["referral", "🤝 Referral"], ["videoLibrary", "🎬 Video Library"]].map(([id, label]) => (
               <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit", position: "relative" }}
                 onClick={() => { setSection(id); setView("lista"); }}>{id === "chat" && unreadChats > 0 ? <span style={{ position:"relative" }}>{label}<span style={{ position:"absolute", top:-8, right:-14, background:"#FF4444", color:"#fff", borderRadius:"50%", width:16, height:16, fontSize:10, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{unreadChats}</span></span> : label}</button>
             ))}
@@ -1093,6 +1251,7 @@ function AdminPanel({ adminUser }) {
       {section === "chat" && <AdminChat />}
       {section === "comunicazioni" && <AdminComunicazioni />}
       {section === "referral" && <AdminReferral studenti={studenti} />}
+      {section === "videoLibrary" && <AdminVideoLibrary studenti={studenti} />}
 
 
         {/* OFFERTE GLOBALI */}
@@ -2676,6 +2835,8 @@ function StudentPortal({ userData }) {
   const [activeRec, setActiveRec] = useState(null);
   const [sessioniDrive, setSessioniDrive] = useState([]);
   const [sessioniDriveLoading, setSessioniDriveLoading] = useState(true);
+  const [videoLibrary, setVideoLibrary] = useState([]);
+  const [videoLibraryLoading, setVideoLibraryLoading] = useState(true);
 
   useEffect(() => {
     if (!uid) return;
@@ -2696,6 +2857,17 @@ function StudentPortal({ userData }) {
     };
     loadSessions();
   }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+    const unsub = onSnapshot(
+      query(collection(db, "videoLibrary"), orderBy("createdAt", "desc")),
+      snap => { setVideoLibrary(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setVideoLibraryLoading(false); },
+      () => setVideoLibraryLoading(false)
+    );
+    return unsub;
+  }, [uid]);
+
   const [bookForm, setBookForm] = useState({ date: "", time: "", note: "" });
   const [expandedModulo, setExpandedModulo] = useState(null);
   const [modalAcquisto, setModalAcquisto] = useState(false);
@@ -2824,6 +2996,7 @@ function StudentPortal({ userData }) {
     ...(data?.referral || userData?.referral || localData?.referral ? [{ id: "referral", label: "Referral", emoji: "🤝" }] : []),
     { id: "bacheca", label: "Bacheca", emoji: "📋" },
     { id: "registrazioni", label: "Registrazioni", emoji: "⏺" },
+    { id: "libreria", label: "Libreria", emoji: "🎬" },
     { id: "materiali", label: "Materiali", emoji: "📎" },
     ...((data?.guide?.length > 0 || data?.strumenti) ? [{ id: "strumenti", label: "Strumenti", emoji: "⚙️" }] : []),
     ...(data?.aiCoach ? [{ id: "coach", label: "AI Coach", emoji: "🧠" }] : []),
@@ -2908,7 +3081,7 @@ function StudentPortal({ userData }) {
           <div>
             <h2 style={{ fontSize:24, fontWeight:800, margin:0, letterSpacing:"-0.5px" }}>
               {tab==="moduli"&&"I miei Corsi 🧠"}{tab==="sessioni"&&"Le mie Sessioni 🎯"}
-              {tab==="registrazioni"&&"Registrazioni Live ⏺"}{tab==="materiali"&&"Materiali Condivisi 📎"}{tab==="coach"&&"AI Coach 🧠"}
+              {tab==="registrazioni"&&"Registrazioni Live ⏺"}{tab==="libreria"&&"Video Library 🎬"}{tab==="materiali"&&"Materiali Condivisi 📎"}{tab==="coach"&&"AI Coach 🧠"}
             </h2>
             <p style={{ color:C.muted, fontSize:13, margin:"4px 0 0" }}>{new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
           </div>
@@ -3067,6 +3240,37 @@ const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.
                 })}
               </div>
         )}
+
+        {/* VIDEO LIBRARY */}
+        {tab==="libreria"&&(()=>{
+          const catColors = { webinar:"#FF9500", masterclass:"#B44FFF", bonus:"#6DBF3E", altro:"#2B6CC4" };
+          const studentName = data?.name || "";
+          const visibili = videoLibrary.filter(v =>
+            v.visible &&
+            (v.accesso === "tutti" || (Array.isArray(v.accesso) && v.accesso.includes(studentName)))
+          );
+          if (videoLibraryLoading) return <div style={{ color:C.muted, fontSize:14, padding:"40px 0", textAlign:"center" }}>Caricamento Video Library...</div>;
+          if (visibili.length === 0) return <EmptyState emoji="🎬" text="Nessun video disponibile." sub="I contenuti video appariranno qui quando saranno disponibili." />;
+          return (
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:16 }}>
+              {visibili.map(v => {
+                const cc = catColors[v.categoria] || catColors.altro;
+                return (
+                  <div key={v.id} style={{ background:"#0E1318", border:`1px solid ${cc}44`, borderTop:`3px solid ${cc}`, borderRadius:16, overflow:"hidden", display:"flex", flexDirection:"column" }}>
+                    <div style={{ padding:"16px 20px", flex:1 }}>
+                      <span style={{ fontSize:11, padding:"2px 8px", borderRadius:20, background:cc+"22", color:cc, fontWeight:700, textTransform:"capitalize", display:"inline-block", marginBottom:8 }}>{v.categoria||"altro"}</span>
+                      <div style={{ fontWeight:800, fontSize:15, color:"#E8EDF5", marginBottom:4 }}>{v.title}</div>
+                      {v.description && <div style={{ fontSize:12, color:"#6B7A8D", marginBottom:10 }}>{v.description}</div>}
+                    </div>
+                    <div style={{ padding:"12px 16px", borderTop:`1px solid ${cc}22` }}>
+                      <button style={{ background:cc+"22", border:`1px solid ${cc}55`, color:cc, borderRadius:8, padding:"6px 16px", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }} onClick={() => setActiveRec({ title:v.title, url:v.url, date:v.createdAt ? new Date(v.createdAt).toLocaleDateString("it-IT") : "" })}>▶ Guarda</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
                 {/* MATERIALI */}
         {tab==="materiali" && <MaterialiStudente uid={uid} moduli={data?.moduli||[]} studentName={data?.name||""} />}
