@@ -20,6 +20,10 @@ import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, de
 const storage = getStorage();
 import AICoach from "./AICoach";
 import ReferralDashboard from "./ReferralDashboard";
+import NDAGate from "./NDAGate";
+import StudentDocumenti from "./StudentDocumenti";
+import AdminNDA from "./AdminNDA";
+import { NDA_ACTIVE_VERSION } from "./ndaConfig";
 
 const ADMIN_EMAIL = "emanuela@mindsell.it";
 
@@ -110,6 +114,9 @@ export default function App() {
   if (loading) return <Splash />;
   if (!user) return <LoginPage />;
   if (user.email === ADMIN_EMAIL) return <AdminPanel adminUser={user} />;
+  if (!(userData?.ndaAccepted === true && userData?.ndaVersion === NDA_ACTIVE_VERSION)) {
+    return <NDAGate uid={user.uid} email={user.email} ruolo={userData?.ruolo} />;
+  }
   return <StudentPortal userData={userData} />;
 }
 
@@ -1194,7 +1201,7 @@ function AdminPanel({ adminUser }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["guide", "⚙️ Guide Strumenti"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"], ["comunicazioni", "📣 Comunicazioni"], ["referral", "🤝 Referral"], ["videoLibrary", "🎬 Video Library"]].map(([id, label]) => (
+          {[["dashboard", "📊 Dashboard"], ["studenti", "👥 Studenti"], ["libreria", "📚 Libreria Moduli"], ["offerte", "🎁 Offerte"], ["materiali", "📎 Materiali"], ["guide", "⚙️ Guide Strumenti"], ["bacheca", "📋 Bacheca"], ["chat", "💬 Messaggi"], ["comunicazioni", "📣 Comunicazioni"], ["referral", "🤝 Referral"], ["videoLibrary", "🎬 Video Library"], ["nda", "📋 NDA"]].map(([id, label]) => (
             <button key={id} style={{ background: section === id ? C.purpleDim : "none", border: `1px solid ${section === id ? C.purple + "66" : "transparent"}`, color: section === id ? C.purpleGlow : C.muted, borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit", position: "relative", whiteSpace: "nowrap" }}
               onClick={() => { setSection(id); setView("lista"); }}>{id === "chat" && unreadChats > 0 ? <span style={{ position:"relative" }}>{label}<span style={{ position:"absolute", top:-8, right:-14, background:"#FF4444", color:"#fff", borderRadius:"50%", width:16, height:16, fontSize:10, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{unreadChats}</span></span> : label}</button>
           ))}
@@ -1277,6 +1284,7 @@ function AdminPanel({ adminUser }) {
       {section === "comunicazioni" && <AdminComunicazioni />}
       {section === "referral" && <AdminReferral studenti={studenti} />}
       {section === "videoLibrary" && <AdminVideoLibrary studenti={studenti} />}
+      {section === "nda" && <AdminNDA studenti={studenti} />}
 
 
         {/* OFFERTE GLOBALI */}
@@ -3025,6 +3033,7 @@ function StudentPortal({ userData }) {
     { id: "materiali", label: "Materiali", emoji: "📎" },
     ...((data?.guide?.length > 0 || data?.strumenti) ? [{ id: "strumenti", label: "Strumenti", emoji: "⚙️" }] : []),
     ...(data?.aiCoach ? [{ id: "coach", label: "AI Coach", emoji: "🧠" }] : []),
+    { id: "documenti", label: "Documenti", emoji: "📄" },
   ];
 
   return (
@@ -3302,6 +3311,7 @@ const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.
         {tab==="strumenti" && <SetupStrumenti studentName={data?.name||""} guideIds={data?.guide||[]} />}
         {tab==="coach" && <AICoach userData={localData} uid={uid} />}
             {tab==="referral" && <ReferralDashboard uid={uid} userData={localData || data} />}
+        {tab==="documenti" && <StudentDocumenti uid={uid} />}
       </main>
 
       {/* ── VIDEO MODAL con player Bunny integrato ── */}
