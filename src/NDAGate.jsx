@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import { signOut } from "firebase/auth";
 import { doc, getDoc, writeBatch, serverTimestamp } from "firebase/firestore";
-import { db } from "./firebase";
+import { auth, db } from "./firebase";
 import { NDA_ACTIVE_VERSION } from "./ndaConfig";
 
 const GREEN = "#6AB309";
@@ -66,9 +67,20 @@ export default function NDAGate({ uid, email, ruolo }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "#080B10", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 1000, fontFamily: "'Segoe UI',sans-serif" }}>
       <div style={{ background: "#0E1318", border: `1px solid ${BLUE}55`, borderRadius: 18, width: "100%", maxWidth: 640, maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: `0 0 30px ${BLUE}33` }}>
-        <div style={{ padding: "22px 28px", borderBottom: "1px solid #1C2530", background: `linear-gradient(90deg, ${GREEN}22, ${BLUE}22)` }}>
-          <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: "#E8EDF5" }}>Accordo di Riservatezza (NDA)</h2>
-          <p style={{ margin: "6px 0 0", fontSize: 13, color: "#6B7A8D" }}>Per accedere alla piattaforma è necessario accettare l'Accordo di Riservatezza.</p>
+        <div style={{ padding: "22px 28px", borderBottom: "1px solid #1C2530", background: `linear-gradient(90deg, ${GREEN}22, ${BLUE}22)`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: "#E8EDF5" }}>Accordo di Riservatezza (NDA)</h2>
+            <p style={{ margin: "6px 0 0", fontSize: 13, color: "#6B7A8D" }}>Per accedere alla piattaforma è necessario accettare l'Accordo di Riservatezza.</p>
+          </div>
+          <button
+            onClick={() => signOut(auth)}
+            style={{
+              background: "none", border: "none", color: "#6B7A8D", fontSize: 12,
+              cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", padding: 0, textDecoration: "underline",
+            }}
+          >
+            Esci
+          </button>
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px" }}>
