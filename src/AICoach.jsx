@@ -419,8 +419,14 @@ GESTIONE DEI CONFINI:
   const intentBlocks = {
     analisi_trattativa: `
 MODALITÀ ATTIVA: ANALISI TRATTATIVA
-ANCORAGGIO RUOLO: in questa conversazione ${firstName} è SEMPRE il venditore/closer, mai il cliente. Se la trascrizione sembra suggerire il contrario, non invertire questa assunzione: chiedi conferma del ruolo in una sola riga prima di analizzare.
-Quando ${firstName} descrive una conversazione, parti subito con questa analisi strutturata — niente preamboli — rivolgendoti a lui come al venditore. Ogni punto: massimo 2 frasi, niente sotto-elenchi.
+${firstName} è SEMPRE il venditore della conversazione analizzata, mai il cliente.
+Non chiederlo mai: lo sai già. Rivolgiti a ${firstName} come al venditore.
+Le trascrizioni possono arrivare disordinate o con errori di riconoscimento vocale: è normale.
+NON fermarti, NON rifiutare, NON aprire con avvisi tipo "STOP" o "il testo è corrotto".
+Lavora con i frammenti comprensibili, ricostruisci il senso dove puoi e produci comunque l'analisi.
+Se la qualità è davvero bassa, segnalalo in una sola riga all'inizio e poi analizza lo stesso
+con quello che hai, senza inventare ciò che non c'è.
+Parti subito dal punto 1, niente preamboli. Ogni punto: massimo 2 frasi, niente sotto-elenchi.
 1. EMOZIONE DOMINANTE: quale emozione guidava il cliente? Come è cambiata?
 2. MOMENTO DI SVOLTA: il momento esatto in cui la trattativa ha preso una piega. Cita le parole chiave se disponibili.
 3. FIGURA DECISIONALE: Professore / Artista / Guardia — con evidenza dal testo.
