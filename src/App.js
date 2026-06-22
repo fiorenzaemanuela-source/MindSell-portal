@@ -2541,7 +2541,7 @@ function BachecaStudente({ uid, studentName }) {
                 <span style={{ fontWeight: 800, fontSize: 14 }}>{a.titolo}</span>
                 <span style={{ fontSize: 11, color: C.muted, marginLeft: "auto" }}>{a.ts?.toDate?.()?.toLocaleDateString("it-IT") || ""}</span>
               </div>
-              <p style={{ color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{a.testo}</p>
+              <p style={{ color: C.text, fontSize: 13, margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{a.testo}</p>
               {a.urlPulsante && (
                 <a href={a.urlPulsante} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: C.green, color: "#000", borderRadius: 8, padding: "8px 16px", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
                   {a.testoPulsante || "Scopri di più"}
