@@ -2906,6 +2906,45 @@ function StudentPortal({ userData }) {
     return unsub;
   }, [uid]);
 
+  // ── Badge "NEW" Bacheca: confronta ultima visita con annunci/domande ──
+  const [ultimaVisitaBacheca, setUltimaVisitaBacheca] = useState(null);
+  const [ultimaAttivitaBacheca, setUltimaAttivitaBacheca] = useState(null);
+
+  useEffect(() => {
+    if (!uid) return;
+    getDoc(doc(db, "studenti", uid, "letti", "bacheca")).then(snap => {
+      setUltimaVisitaBacheca(snap.exists() ? snap.data().ultimaVisita : null);
+    });
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+    const toMs = (t) => t?.toMillis ? t.toMillis() : 0;
+    const aggiornaAttivita = (ms) => setUltimaAttivitaBacheca(prev => Math.max(prev || 0, ms));
+    const u1 = onSnapshot(query(collection(db, "annunci"), orderBy("ts", "desc")), snap => {
+      aggiornaAttivita(toMs(snap.docs[0]?.data()?.ts));
+    });
+    const u2 = onSnapshot(query(collection(db, "domande"), orderBy("ts", "desc")), snap => {
+      let max = 0;
+      snap.docs.forEach(d => {
+        const data = d.data();
+        max = Math.max(max, toMs(data.ts), toMs(data.rispostaTs));
+      });
+      aggiornaAttivita(max);
+    });
+    return () => { u1(); u2(); };
+  }, [uid]);
+
+  const bachecaHasNew = ultimaAttivitaBacheca > 0 && ultimaAttivitaBacheca > (ultimaVisitaBacheca?.toMillis ? ultimaVisitaBacheca.toMillis() : 0);
+
+  const apriTab = (id) => {
+    setTab(id);
+    if (id === "bacheca" && uid) {
+      setUltimaVisitaBacheca({ toMillis: () => Date.now() });
+      setDoc(doc(db, "studenti", uid, "letti", "bacheca"), { ultimaVisita: serverTimestamp() }, { merge: true }).catch(() => {});
+    }
+  };
+
   const [bookForm, setBookForm] = useState({ date: "", time: "", note: "" });
   const [expandedModulo, setExpandedModulo] = useState(null);
   const [modalAcquisto, setModalAcquisto] = useState(false);
@@ -3062,8 +3101,11 @@ function StudentPortal({ userData }) {
           </div>
           <nav className="ms-nav" style={{ padding:"0 10px", display:"flex", flexDirection:"column", gap:3, overflowX:"auto" }}>
             {tabs.map(t => (
-              <button key={t.id} style={{ display:"flex", alignItems:"center", gap:10, background:tab===t.id?C.purpleDim:"none", border:tab===t.id?`1px solid ${C.purple}44`:"1px solid transparent", color:tab===t.id?C.purpleGlow:"#C8D6E5", padding:"10px 14px", borderRadius:10, cursor:"pointer", fontSize:14, textAlign:"left", fontFamily:"inherit", boxShadow:tab===t.id?glow(C.purple,6):"none" }} onClick={()=>setTab(t.id)}>
+              <button key={t.id} style={{ display:"flex", alignItems:"center", gap:10, background:tab===t.id?C.purpleDim:"none", border:tab===t.id?`1px solid ${C.purple}44`:"1px solid transparent", color:tab===t.id?C.purpleGlow:"#C8D6E5", padding:"10px 14px", borderRadius:10, cursor:"pointer", fontSize:14, textAlign:"left", fontFamily:"inherit", boxShadow:tab===t.id?glow(C.purple,6):"none" }} onClick={()=>apriTab(t.id)}>
                 <span style={{ fontSize:13, width:16 }}>{t.emoji}</span>{t.label}
+                {t.id === "bacheca" && bachecaHasNew && (
+                  <span style={{ background:"#6AB309", color:"#fff", fontSize:10, borderRadius:20, padding:"2px 8px" }}>NEW</span>
+                )}
               </button>
             ))}
           </nav>
