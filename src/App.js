@@ -1105,17 +1105,17 @@ function AdminPanel({ adminUser }) {
 
   // ── SEZIONE COMUNICAZIONI ──
   const AdminComunicazioni = () => {
-    const [studenti, setStudenti] = React.useState([]);
-    const [destinatari, setDestinatari] = React.useState("tutti");
-    const [selezionati, setSelezionati] = React.useState([]);
-    const [emoji, setEmoji] = React.useState("📣");
-    const [titolo, setTitolo] = React.useState("");
-    const [testo, setTesto] = React.useState("");
-    const [importante, setImportante] = React.useState(false);
-    const [inviando, setInviando] = React.useState(false);
-    const [inviato, setInviato] = React.useState(false);
+    const [studenti, setStudenti] = useState([]);
+    const [destinatari, setDestinatari] = useState("tutti");
+    const [selezionati, setSelezionati] = useState([]);
+    const [emoji, setEmoji] = useState("📣");
+    const [titolo, setTitolo] = useState("");
+    const [testo, setTesto] = useState("");
+    const [importante, setImportante] = useState(false);
+    const [inviando, setInviando] = useState(false);
+    const [inviato, setInviato] = useState(false);
 
-    React.useEffect(() => {
+    useEffect(() => {
       getDocs(collection(db, "studenti")).then(snap => {
         setStudenti(snap.docs.map(d => ({ uid: d.id, ...d.data() })));
       });
