@@ -2541,7 +2541,12 @@ function BachecaStudente({ uid, studentName }) {
                 <span style={{ fontWeight: 800, fontSize: 14 }}>{a.titolo}</span>
                 <span style={{ fontSize: 11, color: C.muted, marginLeft: "auto" }}>{a.ts?.toDate?.()?.toLocaleDateString("it-IT") || ""}</span>
               </div>
-              <p style={{ color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }}>{a.testo}</p>
+              <p style={{ color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{a.testo}</p>
+              {a.urlPulsante && (
+                <a href={a.urlPulsante} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: C.green, color: "#000", borderRadius: 8, padding: "8px 16px", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
+                  {a.testoPulsante || "Scopri di più"}
+                </a>
+              )}
             </div>
           ))}
         </div>
@@ -4441,7 +4446,7 @@ function AdminMateriali() {
 function AdminBacheca() {
   const [annunci, setAnnunci] = useState([]);
   const [domande, setDomande] = useState([]);
-  const [form, setForm] = useState({ emoji: "📣", titolo: "", testo: "" });
+  const [form, setForm] = useState({ emoji: "📣", titolo: "", testo: "", urlPulsante: "", testoPulsante: "" });
   const [risposte, setRisposte] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -4459,7 +4464,7 @@ function AdminBacheca() {
     if (!form.titolo.trim() || !form.testo.trim()) return;
     setLoading(true);
     await addDoc(collection(db, "annunci"), { ...form, ts: serverTimestamp() });
-    setForm({ emoji: "📣", titolo: "", testo: "" });
+    setForm({ emoji: "📣", titolo: "", testo: "", urlPulsante: "", testoPulsante: "" });
     setLoading(false);
   };
 
@@ -4498,6 +4503,14 @@ function AdminBacheca() {
           placeholder="Testo dell'annuncio..."
           rows={3}
           style={{ width: "100%", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", color: C.text, fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 10 }} />
+        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+          <input value={form.urlPulsante} onChange={e => setForm(p => ({ ...p, urlPulsante: e.target.value }))}
+            placeholder="URL pulsante (opzionale)"
+            style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit" }} />
+          <input value={form.testoPulsante} onChange={e => setForm(p => ({ ...p, testoPulsante: e.target.value }))}
+            placeholder="Testo pulsante (opzionale)"
+            style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", color: C.text, fontSize: 13, fontFamily: "inherit" }} />
+        </div>
         <button onClick={pubblicaAnnuncio} disabled={loading}
           style={{ background: C.green, border: "none", color: "#000", borderRadius: 8, padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
           {loading ? "Pubblicando..." : "Pubblica annuncio"}
