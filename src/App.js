@@ -3645,6 +3645,8 @@ function AdminReferral({ studenti }) {
   const [postLibreria, setPostLibreria] = useState([]);
   const [addingPost, setAddingPost] = useState(false);
   const [newPost, setNewPost] = useState({ titolo: "", testo: "", canale: "linkedin" });
+  const [postExpanded, setPostExpanded] = useState({});
+  const LIMITE_CARATTERI = { linkedin: 3000, instagram: 2200 };
   console.log("[AdminReferral] postLibreria:", postLibreria.length, "addingPost:", addingPost);
 
   useEffect(() => {
@@ -3947,18 +3949,24 @@ function AdminReferral({ studenti }) {
             {addingPost ? "Annulla" : "+ Aggiungi post"}
           </button>
         </div>
-        {postLibreria.map(p => (
-          <div key={p.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.titolo}</span>
-                <span style={{ fontSize: 11, color: p.canale === "linkedin" ? C.blue : C.purple, background: p.canale === "linkedin" ? C.blueDim : "rgba(124,58,237,0.1)", padding: "2px 8px", borderRadius: 20 }}>{p.canale === "linkedin" ? "LinkedIn" : "Instagram/FB"}</span>
+        {postLibreria.map(p => {
+          const espanso = !!postExpanded[p.id];
+          return (
+            <div key={p.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.titolo}</span>
+                  <span style={{ fontSize: 11, color: p.canale === "linkedin" ? C.blue : C.purple, background: p.canale === "linkedin" ? C.blueDim : "rgba(124,58,237,0.1)", padding: "2px 8px", borderRadius: 20 }}>{p.canale === "linkedin" ? "LinkedIn" : "Instagram/FB"}</span>
+                </div>
+                <div style={{ fontSize: 12, color: C.muted, whiteSpace: "pre-wrap", maxHeight: espanso ? "none" : 60, overflow: espanso ? "visible" : "hidden" }}>{p.testo}</div>
+                <button onClick={() => setPostExpanded(prev => ({ ...prev, [p.id]: !prev[p.id] }))} style={{ background: "none", border: "none", color: C.blue, fontSize: 11, cursor: "pointer", padding: "4px 0 0", fontFamily: "inherit" }}>
+                  {espanso ? "▲ Comprimi" : "▼ Espandi"}
+                </button>
               </div>
-              <div style={{ fontSize: 12, color: C.muted, whiteSpace: "pre-wrap", maxHeight: 60, overflow: "hidden" }}>{p.testo}</div>
+              <button onClick={() => eliminaPost(p.id)} style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Rimuovi</button>
             </div>
-            <button onClick={() => eliminaPost(p.id)} style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Rimuovi</button>
-          </div>
-        ))}
+          );
+        })}
         {postLibreria.length === 0 && !addingPost && <p style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nessun post ancora. Aggiungine uno!</p>}
         {addingPost && (
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px", marginTop: 8 }}>
@@ -3977,6 +3985,19 @@ function AdminReferral({ studenti }) {
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Testo del post *</label>
                 <textarea value={newPost.testo} onChange={e => setNewPost(p => ({ ...p, testo: e.target.value }))} placeholder="Scrivi il testo completo del post..." style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, padding: "7px 10px", fontSize: 13, color: C.text, fontFamily: "inherit", width: "100%", outline: "none", resize: "vertical", minHeight: 120 }} />
+                <div style={{ textAlign: "right", fontSize: 11, marginTop: 4, color: newPost.testo.length > LIMITE_CARATTERI[newPost.canale] ? C.red : C.muted }}>
+                  {newPost.testo.length} / {LIMITE_CARATTERI[newPost.canale]} caratteri
+                </div>
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 4 }}>Anteprima</label>
+                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{newPost.titolo || "(titolo)"}</span>
+                    <span style={{ fontSize: 11, color: newPost.canale === "linkedin" ? C.blue : C.purple, background: newPost.canale === "linkedin" ? C.blueDim : "rgba(124,58,237,0.1)", padding: "2px 8px", borderRadius: 20 }}>{newPost.canale === "linkedin" ? "LinkedIn" : "Instagram/FB"}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{newPost.testo || "Il testo del post apparirà qui..."}</div>
+                </div>
               </div>
             </div>
             <button onClick={salvaPost} style={{ background: C.green, color: "#fff", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Salva post</button>
