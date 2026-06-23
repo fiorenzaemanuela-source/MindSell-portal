@@ -3646,6 +3646,7 @@ function AdminReferral({ studenti }) {
   const [addingPost, setAddingPost] = useState(false);
   const [newPost, setNewPost] = useState({ titolo: "", testo: "", canale: "linkedin" });
   const [postExpanded, setPostExpanded] = useState({});
+  const [editingPostId, setEditingPostId] = useState(null);
   const LIMITE_CARATTERI = { linkedin: 3000, instagram: 2200 };
   console.log("[AdminReferral] postLibreria:", postLibreria.length, "addingPost:", addingPost);
 
@@ -3726,9 +3727,26 @@ function AdminReferral({ studenti }) {
 
   const salvaPost = async () => {
     if (!newPost.titolo || !newPost.testo) return;
-    await addDoc(collection(db, "referralPost"), { ...newPost, dataCreazione: serverTimestamp() });
+    if (editingPostId) {
+      await setDoc(doc(db, "referralPost", editingPostId), { ...newPost, dataAggiornamento: serverTimestamp() }, { merge: true });
+    } else {
+      await addDoc(collection(db, "referralPost"), { ...newPost, dataCreazione: serverTimestamp() });
+    }
     setNewPost({ titolo: "", testo: "", canale: "linkedin" });
+    setEditingPostId(null);
     setAddingPost(false);
+  };
+
+  const iniziaModificaPost = (p) => {
+    setNewPost({ titolo: p.titolo, testo: p.testo, canale: p.canale });
+    setEditingPostId(p.id);
+    setAddingPost(true);
+  };
+
+  const annullaFormPost = () => {
+    setAddingPost(false);
+    setEditingPostId(null);
+    setNewPost({ titolo: "", testo: "", canale: "linkedin" });
   };
 
   const eliminaPost = async (id) => {
@@ -3945,7 +3963,7 @@ function AdminReferral({ studenti }) {
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "1.25rem", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>📝 Post da pubblicare per i procacciatori</div>
-          <button onClick={() => setAddingPost(!addingPost)} style={{ background: C.greenDim, color: C.green, border: `1px solid ${C.green}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+          <button onClick={() => addingPost ? annullaFormPost() : setAddingPost(true)} style={{ background: C.greenDim, color: C.green, border: `1px solid ${C.green}`, borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
             {addingPost ? "Annulla" : "+ Aggiungi post"}
           </button>
         </div>
@@ -3963,7 +3981,10 @@ function AdminReferral({ studenti }) {
                   {espanso ? "▲ Comprimi" : "▼ Espandi"}
                 </button>
               </div>
-              <button onClick={() => eliminaPost(p.id)} style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Rimuovi</button>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <button onClick={() => iniziaModificaPost(p)} style={{ background: "transparent", color: C.blue, border: `1px solid ${C.blue}`, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Modifica</button>
+                <button onClick={() => eliminaPost(p.id)} style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Rimuovi</button>
+              </div>
             </div>
           );
         })}
@@ -4000,7 +4021,7 @@ function AdminReferral({ studenti }) {
                 </div>
               </div>
             </div>
-            <button onClick={salvaPost} style={{ background: C.green, color: "#fff", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Salva post</button>
+            <button onClick={salvaPost} style={{ background: C.green, color: "#fff", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{editingPostId ? "Aggiorna post" : "Salva post"}</button>
           </div>
         )}
       </div>
