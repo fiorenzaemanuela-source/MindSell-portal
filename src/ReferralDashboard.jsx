@@ -170,6 +170,7 @@ export default function ReferralDashboard({ uid, userData }) {
   const [copiedId, setCopiedId] = useState(null);
   const [mesePDF, setMesePDF] = useState(new Date().getMonth());
   const [annoPDF, setAnnoPDF] = useState(new Date().getFullYear());
+  const [guidaOpen, setGuidaOpen] = useState(false);
 
   const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
   const COMM_PERC_S = { Bronze: 10, Silver: 12, Gold: 14, Platinum: 18 };
@@ -334,7 +335,12 @@ export default function ReferralDashboard({ uid, userData }) {
       <div style={{ background: B.card, border: `1px solid ${B.border}`, borderRadius: 14, padding: "1.75rem", marginBottom: 16, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: -60, top: -60, width: 240, height: 240, borderRadius: "50%", background: B.blue, opacity: 0.07 }} />
         <div style={{ position: "absolute", left: -40, bottom: -60, width: 180, height: 180, borderRadius: "50%", background: B.green, opacity: 0.08 }} />
-        <div style={{ fontSize: 11, color: B.muted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, position: "relative" }}>↑ Referral Program</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
+          <div style={{ fontSize: 11, color: B.muted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>↑ Referral Program</div>
+          <button onClick={() => setGuidaOpen(true)} style={{ background: B.greenDim, color: B.green, border: `1px solid ${B.green}`, borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            ❓ Come funziona
+          </button>
+        </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: B.text, margin: "0 0 6px", position: "relative" }}>Ciao, {firstName} 👋</h1>
         <p style={{ fontSize: 14, color: "#C8D6E5", lineHeight: 1.6, margin: 0, position: "relative" }}>Ogni contatto che porti vale. Più lead acquisiti, più sali di livello.</p>
       </div>
@@ -547,6 +553,73 @@ export default function ReferralDashboard({ uid, userData }) {
               <div style={{ fontSize: 13, color: B.textSoft, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{p.testo}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* GUIDA PROGRAMMA REFERRAL */}
+      {guidaOpen && (
+        <div onClick={() => setGuidaOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 1000 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: B.card, border: `1px solid ${B.border}`, borderRadius: 16, width: "100%", maxWidth: 640, maxHeight: "80vh", overflowY: "auto", padding: "2rem", position: "relative" }}>
+            <button onClick={() => setGuidaOpen(false)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: B.muted, fontSize: 22, cursor: "pointer", lineHeight: 1, fontFamily: "inherit" }}>×</button>
+
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: B.text, margin: "0 0 16px" }}>Benvenuto nel Programma Referral MindSell 🤝</h2>
+            <p style={{ fontSize: 14, color: B.text, lineHeight: 1.7, margin: "0 0 24px" }}>Hai vissuto il metodo MindSell dall'interno. Ora puoi trasformare quella esperienza in un'opportunità concreta — segnala i tuoi contatti e guadagna una commissione su ogni cliente acquisito.</p>
+
+            <div style={{ fontSize: 13, fontWeight: 700, color: B.green, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>📌 Come funziona</div>
+            <p style={{ fontSize: 14, color: B.text, lineHeight: 1.7, margin: "0 0 24px" }}>Il programma è semplice: segnali un contatto interessato alla formazione alla vendita, noi lo seguiamo, e se diventa cliente ricevi una commissione sul valore del percorso acquistato. Non devi vendere nulla. Il tuo compito è mettere in contatto le persone giuste con noi.</p>
+
+            <div style={{ fontSize: 13, fontWeight: 700, color: B.green, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>🏆 I livelli e le commissioni</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: "0 0 10px" }}>
+              <p style={{ fontSize: 14, color: B.textSoft, margin: 0 }}>🥉 <strong style={{ color: B.text }}>Bronze</strong> — 10% di commissione (livello di partenza)</p>
+              <p style={{ fontSize: 14, color: B.textSoft, margin: 0 }}>🥈 <strong style={{ color: B.text }}>Silver</strong> — 12% (da 3 clienti acquisiti)</p>
+              <p style={{ fontSize: 14, color: B.textSoft, margin: 0 }}>🥇 <strong style={{ color: B.text }}>Gold</strong> — 14% (da 7 clienti acquisiti)</p>
+              <p style={{ fontSize: 14, color: B.textSoft, margin: 0 }}>💎 <strong style={{ color: B.text }}>Platinum</strong> — 18% (da 15 clienti acquisiti)</p>
+            </div>
+            <p style={{ fontSize: 14, color: B.text, lineHeight: 1.7, margin: "0 0 24px" }}>Il livello sale automaticamente man mano che i tuoi contatti diventano clienti.</p>
+
+            <div style={{ fontSize: 13, fontWeight: 700, color: B.green, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>🎯 Chi puoi segnalare</div>
+            <p style={{ fontSize: 14, color: B.text, lineHeight: 1.7, margin: "0 0 8px" }}>Segnala solo persone che hanno espresso un reale interesse per la formazione alla vendita. I profili più adatti sono:</p>
+            <ul style={{ margin: "0 0 12px", paddingLeft: 20 }}>
+              <li style={{ fontSize: 14, color: B.textSoft, lineHeight: 1.7 }}>Liberi professionisti che vogliono migliorare le proprie vendite</li>
+              <li style={{ fontSize: 14, color: B.textSoft, lineHeight: 1.7 }}>Titolari di piccole imprese con un team commerciale</li>
+              <li style={{ fontSize: 14, color: B.textSoft, lineHeight: 1.7 }}>Venditori e commerciali che vogliono strutturare meglio il loro approccio</li>
+            </ul>
+            <div style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 24, display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+              <p style={{ fontSize: 13, color: B.amber, lineHeight: 1.6, margin: 0 }}>Segnala solo contatti qualificati — un contatto non interessato rallenta il processo per tutti e non ti avvicina al prossimo livello.</p>
+            </div>
+
+            <div style={{ fontSize: 13, fontWeight: 700, color: B.green, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>📋 Come segnalare un contatto</div>
+            <ol style={{ margin: "0 0 8px", paddingLeft: 20 }}>
+              <li style={{ fontSize: 14, color: B.text, lineHeight: 1.7 }}>Vai nella tab "I miei lead"</li>
+              <li style={{ fontSize: 14, color: B.text, lineHeight: 1.7 }}>Compila il form con nome, cognome, email e telefono del contatto</li>
+              <li style={{ fontSize: 14, color: B.text, lineHeight: 1.7 }}>Aggiungi una nota su come hai verificato il suo interesse</li>
+              <li style={{ fontSize: 14, color: B.text, lineHeight: 1.7 }}>Clicca "Invia segnalazione"</li>
+            </ol>
+            <p style={{ fontSize: 14, color: B.text, lineHeight: 1.7, margin: "0 0 24px" }}>Il nostro team prenderà in carico il contatto entro 24/48 ore.</p>
+
+            <div style={{ fontSize: 13, fontWeight: 700, color: B.green, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>🔔 Seguire l'avanzamento</div>
+            <p style={{ fontSize: 14, color: B.text, lineHeight: 1.7, margin: "0 0 8px" }}>Nella sezione "Stato avanzamento" puoi seguire in tempo reale cosa succede con ogni contatto. Riceverai una notifica nella campanella 🔔 ad ogni aggiornamento.</p>
+            <p style={{ fontSize: 14, color: B.text, lineHeight: 1.7, margin: "0 0 8px" }}>Gli stati possibili sono:</p>
+            <ul style={{ margin: "0 0 24px", paddingLeft: 20 }}>
+              <li style={{ fontSize: 14, color: B.textSoft, lineHeight: 1.7 }}>Segnalato — abbiamo ricevuto il contatto</li>
+              <li style={{ fontSize: 14, color: B.textSoft, lineHeight: 1.7 }}>Contattato — il nostro team ha preso contatto</li>
+              <li style={{ fontSize: 14, color: B.textSoft, lineHeight: 1.7 }}>Appuntamento — è fissato un incontro</li>
+              <li style={{ fontSize: 14, color: B.textSoft, lineHeight: 1.7 }}>Proposta — è stata inviata una proposta commerciale</li>
+              <li style={{ fontSize: 14, color: B.textSoft, lineHeight: 1.7 }}>Acquisito — è diventato cliente ✅</li>
+              <li style={{ fontSize: 14, color: B.textSoft, lineHeight: 1.7 }}>Perso — la trattativa non è andata a buon fine</li>
+            </ul>
+
+            <div style={{ fontSize: 13, fontWeight: 700, color: B.green, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>💰 Quando ricevi la commissione</div>
+            <ul style={{ margin: "0 0 8px", paddingLeft: 20 }}>
+              <li style={{ fontSize: 14, color: B.textSoft, lineHeight: 1.7 }}>Pagamento unico — la commissione viene liquidata nel mese in cui il cliente ha pagato</li>
+              <li style={{ fontSize: 14, color: B.textSoft, lineHeight: 1.7 }}>Pagamento a rate — ricevi la commissione su ogni rata, nel mese della sua scadenza</li>
+            </ul>
+            <p style={{ fontSize: 14, color: B.text, lineHeight: 1.7, margin: "0 0 24px" }}>Riceverai un riepilogo mensile scaricabile in PDF dalla sezione "I miei lead".</p>
+
+            <div style={{ fontSize: 13, fontWeight: 700, color: B.green, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>📣 I post da pubblicare</div>
+            <p style={{ fontSize: 14, color: B.text, lineHeight: 1.7, margin: 0 }}>Nella tab "Post da pubblicare" trovi contenuti pronti da condividere sui tuoi profili social. Sono scritti per sembrare autentici — usali così come sono per ottenere il miglior risultato.</p>
+          </div>
         </div>
       )}
 
