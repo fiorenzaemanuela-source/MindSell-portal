@@ -103,6 +103,7 @@ export default function App() {
             setUserData(snap.exists() ? snap.data() : {});
             setLoading(false);
           });
+          setDoc(doc(db, "studenti", u.uid), { ultimoAccesso: serverTimestamp() }, { merge: true }).catch(() => {});
         } catch { setUserData({}); setLoading(false); }
       } else {
         setLoading(false);
@@ -1224,6 +1225,21 @@ function AdminPanel({ adminUser }) {
             ? (tutteNote.filter(n=>n.stars>0).reduce((a,n)=>a+n.stars,0) / tutteNote.filter(n=>n.stars>0).length).toFixed(1)
             : "—";
           const totSessioni = studenti.reduce((a,s) => a + (s.packages||[]).reduce((b,p) => b + (p.total||0), 0), 0);
+          const formatUltimoAccesso = (ts) => {
+            if (!ts?.toDate) return { label: "Mai effettuato l'accesso", color: C.red, ms: -1 };
+            const ms = ts.toDate().getTime();
+            const diffDays = Math.floor((Date.now() - ms) / 86400000);
+            if (diffDays <= 0) return { label: "Oggi", color: C.green, ms };
+            if (diffDays === 1) return { label: "Ieri", color: "#f59e0b", ms };
+            if (diffDays <= 6) return { label: `${diffDays} giorni fa`, color: "#f59e0b", ms };
+            if (diffDays === 7) return { label: "Ultima settimana", color: "#f59e0b", ms };
+            return { label: `Inattivo da ${diffDays} giorni`, color: C.red, ms };
+          };
+          const studentiAttivita = [...studenti].sort((a, b) => {
+            const msA = a.ultimoAccesso?.toDate ? a.ultimoAccesso.toDate().getTime() : -1;
+            const msB = b.ultimoAccesso?.toDate ? b.ultimoAccesso.toDate().getTime() : -1;
+            return msB - msA;
+          });
           const statCards = [
             { label: "Studenti totali", value: totStudenti, icon: "👥", color: C.purple },
             { label: "Studenti attivi", value: attivi, icon: "🟢", color: C.green },
@@ -1270,6 +1286,22 @@ function AdminPanel({ adminUser }) {
                         <span style={{ fontSize: 13, fontWeight: 700, color: col, minWidth: 38 }}>{perc}%</span>
                         <span style={{ fontSize: 12, color: C.muted }}>{done}/{tot} lezioni</span>
                       </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: "32px 0 14px" }}>🕒 Attività studenti</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {studentiAttivita.map((s, i) => {
+                  const { label, color } = formatUltimoAccesso(s.ultimoAccesso);
+                  return (
+                    <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                      <div style={{ width: 38, height: 38, borderRadius: "50%", background: `${C.purple}33`, border: `2px solid ${C.purple}55`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: C.purple, flexShrink: 0 }}>{s.avatar || s.name?.slice(0,2).toUpperCase()}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{s.name}</div>
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color, flexShrink: 0 }}>{label}</span>
                     </div>
                   );
                 })}
