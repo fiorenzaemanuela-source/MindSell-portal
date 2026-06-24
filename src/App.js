@@ -959,7 +959,9 @@ function AdminPanel({ adminUser }) {
   const [fPromo, setFPromo] = useState({ title: "", desc: "", price: "", badge: "", color: C.green, evergreen: true, scadenza: "" });
 
   const [fStudent, setFStudent] = useState({ name: "", email: "", password: "", plan: "" });
-  const [fModuloLib, setFModuloLib] = useState({ title: "", emoji: "📚", descrizione: "", tipo: "modulo" });
+  const [fModuloLib, setFModuloLib] = useState({ title: "", emoji: "📚", descrizione: "", tipo: "modulo", corsoId: "" });
+  const [corsi, setCorsi] = useState([]);
+  const [nuovoCorsoNome, setNuovoCorsoNome] = useState("");
   const [fVideoLib, setFVideoLib] = useState({ title: "", duration: "", url: "", emoji: "🎬" });
   const [fSession, setFSession] = useState({ label: "", icon: "🎯", total: 1 });
   const [fRec, setFRec] = useState({ title: "", date: "", duration: "", coach: "", url: "", tipo: "aula" });
@@ -974,15 +976,17 @@ function AdminPanel({ adminUser }) {
   const loadAll = async () => {
     setLoadingData(true);
     try {
-      const [snapS, snapL, snapG, snapConfig] = await Promise.all([
+      const [snapS, snapL, snapG, snapConfig, snapC] = await Promise.all([
         getDocs(collection(db, "studenti")),
         getDocs(collection(db, "libreria")),
         getDocs(collection(db, "guide")),
         getDoc(doc(db, "config", "prezzi_sessioni")),
+        getDocs(collection(db, "corsi")),
       ]);
       setStudenti(snapS.docs.map(d => ({ uid: d.id, ...d.data() })));
       setLibreria(snapL.docs.map(d => ({ id: d.id, ...d.data() })));
       setGuide(snapG?.docs?.map(d => ({ id: d.id, ...d.data() })) || []);
+      setCorsi(snapC.docs.map(d => ({ id: d.id, ...d.data() })));
       if (snapConfig.exists() && snapConfig.data().sessioni) {
         setPrezziSessioni(snapConfig.data().sessioni);
       }
@@ -1032,13 +1036,32 @@ function AdminPanel({ adminUser }) {
 
   const addModuloLib = async () => {
     if (!fModuloLib.title) { showToast("⚠️ Inserisci un titolo."); return; }
+    if (!fModuloLib.corsoId) { showToast("⚠️ Seleziona un corso."); return; }
     const id = "mod_" + Date.now();
     try {
       await setDoc(doc(db, "libreria", id), { ...fModuloLib, videolezioni: [] });
       await loadAll();
-      setFModuloLib({ title: "", emoji: "📚", descrizione: "", tipo: "modulo" });
+      setFModuloLib({ title: "", emoji: "📚", descrizione: "", tipo: "modulo", corsoId: "" });
       setModalModuloLib(false);
       showToast("✅ Modulo aggiunto alla libreria!");
+    } catch { showToast("❌ Errore."); }
+  };
+
+  const addCorso = async () => {
+    if (!nuovoCorsoNome.trim()) { showToast("⚠️ Inserisci un nome corso."); return; }
+    try {
+      await addDoc(collection(db, "corsi"), { nome: nuovoCorsoNome.trim(), creatoIl: serverTimestamp() });
+      setNuovoCorsoNome("");
+      await loadAll();
+      showToast("✅ Corso creato!");
+    } catch { showToast("❌ Errore."); }
+  };
+
+  const toggleRilascioCorso = async (corso) => {
+    const nuovoStato = !(corso.rilascioAttivo !== false);
+    try {
+      await setDoc(doc(db, "corsi", corso.id), { rilascioAttivo: nuovoStato }, { merge: true });
+      await loadAll();
     } catch { showToast("❌ Errore."); }
   };
 
@@ -1394,6 +1417,28 @@ function AdminPanel({ adminUser }) {
               </div>
               <button style={btn(C.green)} onClick={() => setModalModuloLib(true)}>＋ Nuovo modulo</button>
             </div>
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>🎓 Corsi</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                {corsi.length === 0 && <span style={{ fontSize: 13, color: C.muted }}>Nessun corso ancora.</span>}
+                {corsi.map(c => {
+                  const attivo = c.rilascioAttivo !== false;
+                  return (
+                    <span key={c.id} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 600, color: "#045FA5", background: "#045FA522", border: "1px solid #045FA555", borderRadius: 20, padding: "4px 8px 4px 12px" }}>
+                      {c.nome}
+                      <label style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer", color: attivo ? "#6AB309" : C.muted, fontWeight: 700 }} title="Attiva/disattiva il rilascio dell'attestato per questo corso">
+                        <input type="checkbox" checked={attivo} onChange={() => toggleRilascioCorso(c)} style={{ accentColor: "#6AB309" }} />
+                        {attivo ? "Rilascio ON" : "Rilascio OFF"}
+                      </label>
+                    </span>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input style={{ ...inp(), flex: 1 }} placeholder="Nome nuovo corso" value={nuovoCorsoNome} onChange={e => setNuovoCorsoNome(e.target.value)} />
+                <button style={btn("#6AB309")} onClick={addCorso}>＋ Aggiungi corso</button>
+              </div>
+            </div>
             {loadingData ? <p style={{ color: C.muted }}>Caricamento...</p> : (
               libreria.length === 0
                 ? <EmptyState emoji="📚" text="Nessun modulo in libreria." sub="Crea il primo modulo didattico." />
@@ -1408,7 +1453,14 @@ function AdminPanel({ adminUser }) {
                             <span style={{ fontSize: 26 }}>{m.emoji || "📘"}</span>
                             <div>
                               <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{m.title}</div>
-                              <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{tot} videolezioni</div>
+                              <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                                {tot} videolezioni
+                                {m.corsoId ? (
+                                  <span style={{ marginLeft: 8, color: "#045FA5", fontWeight: 600 }}>· {corsi.find(c => c.id === m.corsoId)?.nome || "Corso eliminato"}</span>
+                                ) : (
+                                  <span style={{ marginLeft: 8, color: C.red }}>· Nessun corso assegnato</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1871,6 +1923,10 @@ function AdminPanel({ adminUser }) {
           <input style={inp()} placeholder="Emoji es. 🧠" value={fModuloLib.emoji} onChange={e => setFModuloLib({...fModuloLib,emoji:e.target.value})} />
           <input style={inp()} placeholder="Titolo modulo *" value={fModuloLib.title} onChange={e => setFModuloLib({...fModuloLib,title:e.target.value})} />
           <input style={inp()} placeholder="Descrizione breve (opzionale)" value={fModuloLib.descrizione} onChange={e => setFModuloLib({...fModuloLib,descrizione:e.target.value})} />
+          <select style={{...inp(),marginTop:4}} value={fModuloLib.corsoId} onChange={e => setFModuloLib({...fModuloLib,corsoId:e.target.value})}>
+            <option value="">Corso *</option>
+            {corsi.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select>
           <select style={{...inp(),marginTop:4}} value={fModuloLib.tipo} onChange={e => setFModuloLib({...fModuloLib,tipo:e.target.value})}>
             <option value="modulo">📚 Modulo didattico (unlock sequenziale)</option>
             <option value="webinar">🎥 Webinar / Registrazione (accesso libero)</option>
