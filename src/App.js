@@ -24,6 +24,7 @@ import NDAGate from "./NDAGate";
 import StudentDocumenti from "./StudentDocumenti";
 import AdminNDA from "./AdminNDA";
 import { NDA_ACTIVE_VERSION } from "./ndaConfig";
+import AttestatoNext from "./AttestatoNext";
 
 const ADMIN_EMAIL = "emanuela@mindsell.it";
 
@@ -3321,6 +3322,7 @@ const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.
               );
             })
         )}
+        {tab==="moduli" && <AttestatoNext uid={uid} userData={data} />}
 
         {/* SESSIONI */}
         {tab==="sessioni"&&(
