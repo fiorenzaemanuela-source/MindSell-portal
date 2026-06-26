@@ -13,7 +13,7 @@ import {
 } from "firebase/auth";
 import {
   doc, getDoc, setDoc, collection, getDocs, deleteDoc,
-  addDoc, updateDoc, query, orderBy, onSnapshot, serverTimestamp
+  addDoc, updateDoc, query, orderBy, where, onSnapshot, serverTimestamp
 } from "firebase/firestore";
 import { jsPDF } from "jspdf";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
@@ -937,6 +937,7 @@ function AdminPanel({ adminUser }) {
     { key: "roleplay", tipo: "🎭 Roleplay", prezzo: "149€", desc: "1 sessione di simulazione pratica" },
   ]);
   const [selected, setSelected] = useState(null);
+  const [certStudente, setCertStudente] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const [adminTab, setAdminTab] = useState("moduli");
   const [expLibMod, setExpLibMod] = useState(null);
@@ -973,6 +974,18 @@ function AdminPanel({ adminUser }) {
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
   useEffect(() => { loadAll(); }, []);
+
+  useEffect(() => {
+    if (!selected?.uid) { setCertStudente([]); return; }
+    let active = true;
+    (async () => {
+      try {
+        const snap = await getDocs(query(collection(db, "certificati"), where("uid", "==", selected.uid)));
+        if (active) setCertStudente(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch { if (active) setCertStudente([]); }
+    })();
+    return () => { active = false; };
+  }, [selected?.uid]);
 
   const loadAll = async () => {
     setLoadingData(true);
@@ -1588,41 +1601,81 @@ function AdminPanel({ adminUser }) {
                 </div>
                 {(!selected.moduli || selected.moduli.length === 0)
                   ? <EmptyState emoji="📚" text="Nessun modulo assegnato." sub="Clicca '+ Assegna dalla libreria' per aggiungere moduli." />
-                  : selected.moduli.map((m, mIdx) => {
-                    const col = [C.green, C.blue, C.purple][mIdx % 3];
-                    const tot = m.videolezioni?.length || 0;
-                    const done = m.videolezioni?.filter(v => v.progress === 100).length || 0;
-                    const openM = expStudMod === mIdx;
-                    return (
-                      <div key={mIdx} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
-                        <div style={{ padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderLeft: `4px solid ${col}` }} onClick={() => setExpStudMod(openM ? null : mIdx)}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span style={{ fontSize: 22 }}>{m.emoji}</span>
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{m.title}</div>
-                              <div style={{ fontSize: 12, color: C.muted }}>{done}/{tot} lezioni completate</div>
-                            </div>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span style={{ fontSize: 12, color: col, fontWeight: 600, background: col + "22", borderRadius: 20, padding: "3px 10px" }}>{tot} lezioni</span>
-                            <button style={{ ...btn(C.red), padding: "5px 10px", fontSize: 12 }} onClick={(e) => { e.stopPropagation(); upd(s => s.moduli.splice(mIdx, 1)); }}>Rimuovi</button>
-                            <span style={{ fontSize: 18, color: C.muted, transform: openM ? "rotate(180deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
-                          </div>
+                  : (() => {
+                    // Raggruppa i moduli dello studente per corso (join libId -> libreria.corsoId -> corsi.nome).
+                    const conCorso = [];
+                    const indexByCorso = new Map();
+                    const senzaCorso = [];
+                    selected.moduli.forEach(m => {
+                      const libDoc = libreria.find(l => l.id === m.libId);
+                      const corsoId = libDoc?.corsoId || null;
+                      const corsoDoc = corsoId ? corsi.find(c => c.id === corsoId) : null;
+                      if (corsoDoc) {
+                        if (!indexByCorso.has(corsoId)) {
+                          indexByCorso.set(corsoId, conCorso.length);
+                          conCorso.push({ corsoId, nomeCorso: corsoDoc.nome, moduli: [] });
+                        }
+                        conCorso[indexByCorso.get(corsoId)].moduli.push(m);
+                      } else {
+                        senzaCorso.push(m);
+                      }
+                    });
+                    const gruppi = [...conCorso];
+                    if (senzaCorso.length > 0) gruppi.push({ corsoId: null, nomeCorso: "Senza corso", moduli: senzaCorso });
+
+                    let flatIdx = -1;
+                    return gruppi.map((gruppo, gIdx) => {
+                      const cert = gruppo.corsoId ? certStudente.find(c => c.corsoId === gruppo.corsoId) : null;
+                      return (
+                        <div key={gruppo.corsoId || "senza-corso"} style={{ marginBottom: 24 }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: C.text, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>🎓 {gruppo.nomeCorso}</div>
+                          {gruppo.corsoId && (
+                            cert
+                              ? <div style={{ fontSize: 12, color: "#6AB309", fontWeight: 600, marginBottom: 10 }}>
+                                  ✅ Attestato emesso il {cert.dataRilascio?.toDate ? new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }).format(cert.dataRilascio.toDate()) : "—"} · {cert.idCredenziale}
+                                </div>
+                              : <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>Attestato non ancora emesso</div>
+                          )}
+                          {gruppo.moduli.map(m => {
+                            flatIdx++;
+                            const col = [C.green, C.blue, C.purple][flatIdx % 3];
+                            const tot = m.videolezioni?.length || 0;
+                            const done = m.videolezioni?.filter(v => v.progress === 100).length || 0;
+                            const openM = expStudMod === m.libId;
+                            return (
+                              <div key={m.libId} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
+                                <div style={{ padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderLeft: `4px solid ${col}` }} onClick={() => setExpStudMod(openM ? null : m.libId)}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <span style={{ fontSize: 22 }}>{m.emoji}</span>
+                                    <div>
+                                      <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{m.title}</div>
+                                      <div style={{ fontSize: 12, color: C.muted }}>{done}/{tot} lezioni completate</div>
+                                    </div>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <span style={{ fontSize: 12, color: col, fontWeight: 600, background: col + "22", borderRadius: 20, padding: "3px 10px" }}>{tot} lezioni</span>
+                                    <button style={{ ...btn(C.red), padding: "5px 10px", fontSize: 12 }} onClick={(e) => { e.stopPropagation(); upd(s => { const idx = s.moduli.findIndex(x => x.libId === m.libId); if (idx > -1) s.moduli.splice(idx, 1); }); }}>Rimuovi</button>
+                                    <span style={{ fontSize: 18, color: C.muted, transform: openM ? "rotate(180deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
+                                  </div>
+                                </div>
+                                {openM && m.videolezioni?.map((v, vIdx) => (
+                                  <div key={vIdx} style={{ background: C.surface, borderRadius: 8, padding: "10px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 10 }}>
+                                    <span style={{ fontSize: 16 }}>{v.emoji || "🎬"}</span>
+                                    <div style={{ flex: 1, fontSize: 14, color: C.text }}>{v.title}</div>
+                                    <span style={{ color: C.muted, fontSize: 12 }}>{v.duration}</span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                      <span style={{ color: C.muted, fontSize: 12 }}>%</span>
+                                      <input style={{ ...inp(), width: 60, padding: "4px 8px", textAlign: "center" }} type="number" min={0} max={100} value={v.progress || 0} onChange={e => upd(s => { const idx = s.moduli.findIndex(x => x.libId === m.libId); if (idx > -1) s.moduli[idx].videolezioni[vIdx].progress = Number(e.target.value); })} />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
                         </div>
-                        {openM && m.videolezioni?.map((v, vIdx) => (
-                          <div key={vIdx} style={{ background: C.surface, borderRadius: 8, padding: "10px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 10 }}>
-                            <span style={{ fontSize: 16 }}>{v.emoji || "🎬"}</span>
-                            <div style={{ flex: 1, fontSize: 14, color: C.text }}>{v.title}</div>
-                            <span style={{ color: C.muted, fontSize: 12 }}>{v.duration}</span>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ color: C.muted, fontSize: 12 }}>%</span>
-                              <input style={{ ...inp(), width: 60, padding: "4px 8px", textAlign: "center" }} type="number" min={0} max={100} value={v.progress || 0} onChange={e => upd(s => s.moduli[mIdx].videolezioni[vIdx].progress = Number(e.target.value))} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })
+                      );
+                    });
+                  })()
                 }
               </div>
             )}
@@ -2995,6 +3048,29 @@ function StudentPortal({ userData }) {
     return unsub;
   }, [uid]);
 
+  // ── Libreria + corsi: per raggruppare i moduli dello studente per corso ──
+  const [libreriaModuli, setLibreriaModuli] = useState([]);
+  const [corsiDisponibili, setCorsiDisponibili] = useState([]);
+
+  useEffect(() => {
+    if (!uid) return;
+    let active = true;
+    (async () => {
+      try {
+        const [libSnap, corsiSnap] = await Promise.all([
+          getDocs(collection(db, "libreria")),
+          getDocs(collection(db, "corsi")),
+        ]);
+        if (!active) return;
+        setLibreriaModuli(libSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setCorsiDisponibili(corsiSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e) {
+        console.warn("Libreria/corsi non disponibili:", e.message);
+      }
+    })();
+    return () => { active = false; };
+  }, [uid]);
+
   // ── Badge "NEW" Bacheca: confronta ultima visita con annunci/domande ──
   const [ultimaVisitaBacheca, setUltimaVisitaBacheca] = useState(null);
   const [ultimaAttivitaBacheca, setUltimaAttivitaBacheca] = useState(null);
@@ -3265,62 +3341,96 @@ function StudentPortal({ userData }) {
         {tab==="moduli" && (
           (!data.moduli||data.moduli.length===0)
             ?<EmptyState emoji="🎓" text="Il tuo percorso verrà attivato presto." sub="Torna qui dopo l'attivazione del coach."/>
-            :data.moduli.map((m,mIdx)=>{
-              const col=[C.green,C.blue,C.purple][mIdx%3];
-              const tot=m.videolezioni?.length||0;
-              const done=m.videolezioni?.filter(v=>v.progress===100).length||0;
-              const open=expandedModulo===mIdx;
-              const sbloccatoMod = m.tipo === "webinar" || mIdx===0 || (data.moduli[mIdx-1]?.videolezioni||[]).every(v=>v.progress===100);
-              return(
-                <div key={mIdx} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, marginBottom:14, overflow:"hidden" }}>
-                  <div style={{ padding:"20px 24px", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:sbloccatoMod?"pointer":"not-allowed", borderLeft:`4px solid ${sbloccatoMod?col:C.muted}`, opacity:sbloccatoMod?1:0.5 }} onClick={()=>{ if(sbloccatoMod) setExpandedModulo(open?null:mIdx); }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                      <span style={{ fontSize:26 }}>{m.emoji}</span>
-                      <div>
-                        <div style={{ fontWeight:700, fontSize:16 }}>{m.title}</div>
-                        <div style={{ fontSize:13, color:C.muted }}>{done}/{tot} lezioni completate</div>
-                      </div>
-                    </div>
-                    <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                      <div style={{ width:70, height:4, background:C.border, borderRadius:4, overflow:"hidden" }}>
-                        <div style={{ height:"100%", width:`${tot?(done/tot)*100:0}%`, background:col }}/>
-                      </div>
-                      <span style={{ color:C.muted }}>{open?"▲":"▼"}</span>
-                    </div>
-                  </div>
-                  {open&&m.videolezioni?.map((v,vIdx)=>{
-                    const completata = v.progress === 100;
-                    console.log('modulo:', m.title, 'tipo:', m.tipo);
-const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.progress === 100;
-                    const bgColor = completata ? `${C.green}11` : C.surface;
-                    const borderColor = completata ? `${C.green}44` : C.border;
-                    return (
-                    <div key={vIdx} style={{ padding:"14px 20px", borderTop:`1px solid ${borderColor}`, display:"flex", justifyContent:"space-between", alignItems:"center", background:bgColor, cursor:sbloccata?"pointer":"not-allowed", opacity:sbloccata?1:0.45 }} onClick={()=>{ if(sbloccata) setActiveVideo({...v,color:col}); else showToast("⚠️ Completa prima la lezione precedente!"); }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:10, flex:1, minWidth:0 }}>
-                        <div style={{ width:30, height:30, background:completata?`${C.green}22`:`${col}22`, border:`1px solid ${completata?C.green:col}55`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, flexShrink:0 }}>
-                          {completata ? "✓" : (v.emoji||"🎬")}
-                        </div>
-                        <div style={{ minWidth:0, flex:1 }}>
-                          <div style={{ fontWeight:600, fontSize:14, display:"flex", alignItems:"center", gap:6 }}>
-                            <span style={{ fontSize:11, fontWeight:700, color:completata?C.green:col, background:completata?`${C.green}22`:`${col}22`, borderRadius:4, padding:"1px 6px", flexShrink:0 }}>{vIdx+1}</span>
-                            <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:completata?C.green:C.text }}>{(v.title||"").replace(/^lezione\s*/i,"")}</span>
+            :(() => {
+              // Indice ORIGINALE di ogni modulo: mai ricalcolato, serve per note già
+              // persistite (chiavi "mIdx_vIdx"), espansione e chiave React.
+              const conIdx = data.moduli.map((modulo, idxOriginale) => ({ modulo, idxOriginale }));
+
+              // Raggruppa per corso (join libId -> libreriaModuli.corsoId -> corsiDisponibili.nome).
+              const conCorso = [];
+              const indexByCorso = new Map();
+              const senzaCorso = [];
+              conIdx.forEach(item => {
+                const libDoc = libreriaModuli.find(l => l.id === item.modulo.libId);
+                const corsoId = libDoc?.corsoId || null;
+                const corsoDoc = corsoId ? corsiDisponibili.find(c => c.id === corsoId) : null;
+                if (corsoDoc) {
+                  if (!indexByCorso.has(corsoId)) {
+                    indexByCorso.set(corsoId, conCorso.length);
+                    conCorso.push({ corsoId, nomeCorso: corsoDoc.nome, items: [] });
+                  }
+                  conCorso[indexByCorso.get(corsoId)].items.push(item);
+                } else {
+                  senzaCorso.push(item);
+                }
+              });
+              const gruppi = [...conCorso];
+              if (senzaCorso.length > 0) gruppi.push({ corsoId: null, nomeCorso: "Senza corso", items: senzaCorso });
+
+              return gruppi.map(gruppo => (
+                <div key={gruppo.corsoId || "senza-corso"} style={{ marginBottom:24 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10 }}>🎓 {gruppo.nomeCorso}</div>
+                  {gruppo.items.map((item, localIdx) => {
+                    const mIdx = item.idxOriginale;
+                    const m = item.modulo;
+                    const col=[C.green,C.blue,C.purple][mIdx%3];
+                    const tot=m.videolezioni?.length||0;
+                    const done=m.videolezioni?.filter(v=>v.progress===100).length||0;
+                    const open=expandedModulo===mIdx;
+                    const precedente = localIdx>0 ? gruppo.items[localIdx-1].modulo : null;
+                    const sbloccatoMod = m.tipo === "webinar" || localIdx===0 || (precedente?.videolezioni||[]).every(v=>v.progress===100);
+                    return(
+                      <div key={mIdx} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, marginBottom:14, overflow:"hidden" }}>
+                        <div style={{ padding:"20px 24px", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:sbloccatoMod?"pointer":"not-allowed", borderLeft:`4px solid ${sbloccatoMod?col:C.muted}`, opacity:sbloccatoMod?1:0.5 }} onClick={()=>{ if(sbloccatoMod) setExpandedModulo(open?null:mIdx); }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                            <span style={{ fontSize:26 }}>{m.emoji}</span>
+                            <div>
+                              <div style={{ fontWeight:700, fontSize:16 }}>{m.title}</div>
+                              <div style={{ fontSize:13, color:C.muted }}>{done}/{tot} lezioni completate</div>
+                            </div>
                           </div>
-                          {v.duration && isNaN(Number(String(v.duration).trim())) && <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{v.duration}</div>}
+                          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                            <div style={{ width:70, height:4, background:C.border, borderRadius:4, overflow:"hidden" }}>
+                              <div style={{ height:"100%", width:`${tot?(done/tot)*100:0}%`, background:col }}/>
+                            </div>
+                            <span style={{ color:C.muted }}>{open?"▲":"▼"}</span>
+                          </div>
                         </div>
+                        {open&&m.videolezioni?.map((v,vIdx)=>{
+                          const completata = v.progress === 100;
+                          const sbloccata = m.tipo === "webinar" || vIdx === 0 || m.videolezioni[vIdx-1]?.progress === 100;
+                          const bgColor = completata ? `${C.green}11` : C.surface;
+                          const borderColor = completata ? `${C.green}44` : C.border;
+                          return (
+                          <div key={vIdx} style={{ padding:"14px 20px", borderTop:`1px solid ${borderColor}`, display:"flex", justifyContent:"space-between", alignItems:"center", background:bgColor, cursor:sbloccata?"pointer":"not-allowed", opacity:sbloccata?1:0.45 }} onClick={()=>{ if(sbloccata) setActiveVideo({...v,color:col}); else showToast("⚠️ Completa prima la lezione precedente!"); }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:10, flex:1, minWidth:0 }}>
+                              <div style={{ width:30, height:30, background:completata?`${C.green}22`:`${col}22`, border:`1px solid ${completata?C.green:col}55`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, flexShrink:0 }}>
+                                {completata ? "✓" : (v.emoji||"🎬")}
+                              </div>
+                              <div style={{ minWidth:0, flex:1 }}>
+                                <div style={{ fontWeight:600, fontSize:14, display:"flex", alignItems:"center", gap:6 }}>
+                                  <span style={{ fontSize:11, fontWeight:700, color:completata?C.green:col, background:completata?`${C.green}22`:`${col}22`, borderRadius:4, padding:"1px 6px", flexShrink:0 }}>{vIdx+1}</span>
+                                  <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color:completata?C.green:C.text }}>{(v.title||"").replace(/^lezione\s*/i,"")}</span>
+                                </div>
+                                {v.duration && isNaN(Number(String(v.duration).trim())) && <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{v.duration}</div>}
+                              </div>
+                            </div>
+                            <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0, marginLeft:12 }}>
+                              <div style={{ width:56, height:3, background:C.border, borderRadius:4, overflow:"hidden" }}>
+                                <div style={{ height:"100%", width:`${v.progress||0}%`, background:col }}/>
+                              </div>
+                              <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:"0 4px", opacity: getNota(mIdx,vIdx) ? 1 : 0.3, filter: getNota(mIdx,vIdx) ? "none" : "grayscale(1)" }} onClick={e=>{ e.stopPropagation(); const n=getNota(mIdx,vIdx); setNoteText(n?.text||""); setNoteColor(n?.color||"yellow"); setNoteStars(n?.stars||0); setNoteModal({mIdx,vIdx,v}); }} title="Note lezione">💬</button>
+                              <span style={{ color:col, fontSize:13, fontWeight:600 }}>Guarda →</span>
+                            </div>
+                          </div>
+                          );
+                        })}
                       </div>
-                      <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0, marginLeft:12 }}>
-                        <div style={{ width:56, height:3, background:C.border, borderRadius:4, overflow:"hidden" }}>
-                          <div style={{ height:"100%", width:`${v.progress||0}%`, background:col }}/>
-                        </div>
-                        <button style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:"0 4px", opacity: getNota(mIdx,vIdx) ? 1 : 0.3, filter: getNota(mIdx,vIdx) ? "none" : "grayscale(1)" }} onClick={e=>{ e.stopPropagation(); const n=getNota(mIdx,vIdx); setNoteText(n?.text||""); setNoteColor(n?.color||"yellow"); setNoteStars(n?.stars||0); setNoteModal({mIdx,vIdx,v}); }} title="Note lezione">💬</button>
-                        <span style={{ color:col, fontSize:13, fontWeight:600 }}>Guarda →</span>
-                      </div>
-                    </div>
                     );
                   })}
                 </div>
-              );
-            })
+              ));
+            })()
         )}
         {tab==="moduli" && <AttestatoNext uid={uid} userData={data} />}
 
