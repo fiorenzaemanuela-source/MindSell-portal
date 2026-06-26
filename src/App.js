@@ -961,7 +961,7 @@ function AdminPanel({ adminUser }) {
   const [fPromo, setFPromo] = useState({ title: "", desc: "", price: "", badge: "", color: C.green, evergreen: true, scadenza: "" });
 
   const [fStudent, setFStudent] = useState({ name: "", email: "", password: "", plan: "" });
-  const [fModuloLib, setFModuloLib] = useState({ title: "", emoji: "📚", descrizione: "", tipo: "modulo", corsoId: "" });
+  const [fModuloLib, setFModuloLib] = useState({ title: "", emoji: "📚", descrizione: "", tipo: "modulo", corsoId: "", ordine: "" });
   const [corsi, setCorsi] = useState([]);
   const [nuovoCorsoNome, setNuovoCorsoNome] = useState("");
   const [fVideoLib, setFVideoLib] = useState({ title: "", duration: "", url: "", emoji: "🎬" });
@@ -1053,9 +1053,12 @@ function AdminPanel({ adminUser }) {
     if (!fModuloLib.corsoId) { showToast("⚠️ Seleziona un corso."); return; }
     const id = "mod_" + Date.now();
     try {
-      await setDoc(doc(db, "libreria", id), { ...fModuloLib, videolezioni: [] });
+      const payload = { ...fModuloLib, videolezioni: [] };
+      const n = Number(payload.ordine);
+      if (payload.ordine === "" || isNaN(n)) delete payload.ordine; else payload.ordine = n;
+      await setDoc(doc(db, "libreria", id), payload);
       await loadAll();
-      setFModuloLib({ title: "", emoji: "📚", descrizione: "", tipo: "modulo", corsoId: "" });
+      setFModuloLib({ title: "", emoji: "📚", descrizione: "", tipo: "modulo", corsoId: "", ordine: "" });
       setModalModuloLib(false);
       showToast("✅ Modulo aggiunto alla libreria!");
     } catch { showToast("❌ Errore."); }
@@ -1492,6 +1495,7 @@ function AdminPanel({ adminUser }) {
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                               <input style={{ background: "none", border: "none", fontSize: 26, width: 38, outline: "none", fontFamily: "inherit", color: C.text }} value={m.emoji} onChange={e => { const l = [...libreria]; l[mIdx].emoji = e.target.value; setLibreria(l); }} />
                               <input style={{ background: "none", border: `1px solid ${C.border}`, color: C.text, fontWeight: 700, fontSize: 15, borderRadius: 8, padding: "7px 14px", outline: "none", fontFamily: "inherit", flex: 1, boxSizing: "border-box" }} value={m.title} onChange={e => { const l = [...libreria]; l[mIdx].title = e.target.value; setLibreria(l); }} />
+                              <input style={{ background: "none", border: `1px solid ${C.border}`, color: C.muted, fontSize: 13, borderRadius: 8, padding: "7px 10px", outline: "none", fontFamily: "inherit", width: 64, textAlign: "center" }} type="number" min={1} placeholder="#" title="Ordine didattico" value={m.ordine ?? ""} onChange={e => { const l = [...libreria]; l[mIdx].ordine = e.target.value === "" ? undefined : Number(e.target.value); setLibreria(l); }} />
                             </div>
                             {tot === 0 && <p style={{ color: C.muted, fontSize: 13 }}>Nessuna videolezione. Aggiungine una.</p>}
                             {m.videolezioni?.map((v, vIdx) => (
@@ -1620,6 +1624,7 @@ function AdminPanel({ adminUser }) {
                         senzaCorso.push(m);
                       }
                     });
+                    conCorso.forEach(g => g.moduli.sort((a, b) => (libreria.find(l => l.id === a.libId)?.ordine ?? 9999) - (libreria.find(l => l.id === b.libId)?.ordine ?? 9999)));
                     const gruppi = [...conCorso];
                     if (senzaCorso.length > 0) gruppi.push({ corsoId: null, nomeCorso: "Senza corso", moduli: senzaCorso });
 
@@ -1985,6 +1990,7 @@ function AdminPanel({ adminUser }) {
             <option value="modulo">📚 Modulo didattico (unlock sequenziale)</option>
             <option value="webinar">🎥 Webinar / Registrazione (accesso libero)</option>
           </select>
+          <input style={{...inp(),marginTop:4}} type="number" min={1} placeholder="Ordine didattico es. 1, 2, 3 (consigliato)" value={fModuloLib.ordine} onChange={e => setFModuloLib({...fModuloLib, ordine: e.target.value})} />
           <button style={{...btn(C.green),width:"100%",marginTop:8}} onClick={addModuloLib}>Aggiungi alla libreria →</button>
         </Modal>
       )}
@@ -3364,6 +3370,7 @@ function StudentPortal({ userData }) {
                   senzaCorso.push(item);
                 }
               });
+              conCorso.forEach(g => g.items.sort((a, b) => (libreriaModuli.find(l => l.id === a.modulo.libId)?.ordine ?? 9999) - (libreriaModuli.find(l => l.id === b.modulo.libId)?.ordine ?? 9999)));
               const gruppi = [...conCorso];
               if (senzaCorso.length > 0) gruppi.push({ corsoId: null, nomeCorso: "Senza corso", items: senzaCorso });
 
