@@ -1,3 +1,27 @@
-node_modules 
-.env 
-.env 
+node_modules
+.env
+.env*.local
+.vercel
+
+# Build output
+build/
+
+# Credenziali service account (non committare mai)
+mindsell-portal-*.json
+*-9aca8ce6e9da.json
+
+# Script storici di migrazione/patch (one-off, non parte dell'app)
+patch-*.js
+patch_*.py
+fix-*.js
+debug-*.js
+extract-docs.js
+import-firestore.js
+_check-ordine-tmp.js
+
+# Cartelle di lavoro temporanee
+lezioni_estratte/
+
+# Documenti legali/sensibili
+NDA-*.md
+BRIEF-*.md
