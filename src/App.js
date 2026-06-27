@@ -3013,6 +3013,7 @@ async function inviaNotifica(uid, { emoji, titolo, testo, importante = false }) 
 // ═══════════════════════════════════════════════════════════════
 function StudentPortal({ userData }) {
   const [tab, setTab] = useState("moduli");
+  const [moduliHasNew, setModuliHasNew] = useState(false);
   const uid = auth.currentUser?.uid;
   const [showPromo, setShowPromo] = useState(false);
   const [activeVideo, setActiveVideo] = useState(null);
@@ -3277,6 +3278,9 @@ function StudentPortal({ userData }) {
                 {t.id === "bacheca" && bachecaHasNew && (
                   <span style={{ background:"#6AB309", color:"#fff", fontSize:10, borderRadius:20, padding:"2px 8px" }}>NEW</span>
                 )}
+                {t.id === "moduli" && moduliHasNew && (
+                  <span style={{ background:"#6AB309", color:"#fff", fontSize:10, borderRadius:20, padding:"2px 8px" }}>NEW</span>
+                )}
               </button>
             ))}
           </nav>
@@ -3342,6 +3346,17 @@ function StudentPortal({ userData }) {
             <button style={{ background:`linear-gradient(135deg,${C.purple},${C.blue})`, border:"none", borderRadius:10, color:"#fff", padding:"10px 20px", cursor:"pointer", fontWeight:700, fontSize:13, fontFamily:"inherit", whiteSpace:"nowrap" }} onClick={()=>setShowPromo(true)}>✦ Scopri le offerte</button>
           </div>
         </div>
+
+        {/* Banner attestato da scaricare */}
+        {tab==="moduli" && moduliHasNew && (
+          <div style={{ background:`linear-gradient(135deg,#6AB30918,#045FA518)`, border:`1px solid #6AB30966`, borderRadius:14, padding:"16px 22px", marginBottom:20, display:"flex", alignItems:"center", justifyContent:"space-between", gap:16, flexWrap:"wrap" }}>
+            <div>
+              <div style={{ fontWeight:800, fontSize:15, color:"#E8EDF5" }}>🎉 Hai completato il percorso! Il tuo attestato è pronto.</div>
+              <div style={{ fontSize:12, color:"#6B7A8D", marginTop:3 }}>Scorri in fondo alla pagina per scaricarlo o aggiungerlo a LinkedIn.</div>
+            </div>
+            <button style={{ background:"#6AB309", color:"#fff", border:"none", borderRadius:10, padding:"10px 20px", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }} onClick={() => document.getElementById("attestato-next-anchor")?.scrollIntoView({ behavior:"smooth" })}>📄 Scarica attestato</button>
+          </div>
+        )}
 
         {/* MODULI — accordion */}
         {tab==="moduli" && (
@@ -3439,7 +3454,7 @@ function StudentPortal({ userData }) {
               ));
             })()
         )}
-        {tab==="moduli" && <AttestatoNext uid={uid} userData={data} />}
+        {tab==="moduli" && <div id="attestato-next-anchor"><AttestatoNext uid={uid} userData={data} onAttestatoDaScaricare={setModuliHasNew} /></div>}
 
         {/* SESSIONI */}
         {tab==="sessioni"&&(

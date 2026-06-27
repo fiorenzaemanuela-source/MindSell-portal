@@ -16,7 +16,7 @@ function completato(m) {
   return Array.isArray(m.videolezioni) && m.videolezioni.length > 0 && m.videolezioni.every(v => v.progress === 100);
 }
 
-export default function AttestatoNext({ uid, userData }) {
+export default function AttestatoNext({ uid, userData, onAttestatoDaScaricare }) {
   const [stato, setStato] = useState({ loading: true, idoneo: false, rilascioAttivo: false });
   const [generando, setGenerando] = useState(false);
   const [errore, setErrore] = useState("");
@@ -51,6 +51,19 @@ export default function AttestatoNext({ uid, userData }) {
           .filter(s => s.count > 0);
 
         setStato({ loading: false, idoneo, rilascioAttivo, corsoNome, moduli, sessioni });
+        if (onAttestatoDaScaricare) {
+          if (idoneo && rilascioAttivo) {
+            const snapCert = await getDocs(query(
+              collection(db, "certificati"),
+              where("uid", "==", uid),
+              where("corsoId", "==", NEXT_ID),
+              limit(1)
+            ));
+            if (active) onAttestatoDaScaricare(snapCert.empty);
+          } else {
+            onAttestatoDaScaricare(false);
+          }
+        }
       } catch (e) {
         console.error("Errore calcolo idoneità attestato:", e);
         if (active) setStato({ loading: false, idoneo: false, rilascioAttivo: false });
@@ -121,6 +134,7 @@ export default function AttestatoNext({ uid, userData }) {
         verificaUrl: null,
       });
       pdf.save(`Attestato_${cert.corso}_${cert.idCredenziale}.pdf`);
+      onAttestatoDaScaricare?.(false);
     } catch (e) {
       console.error("Errore generazione attestato:", e);
       setErrore("Errore nella generazione del PDF. Riprova.");
