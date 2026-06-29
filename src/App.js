@@ -25,6 +25,7 @@ import StudentDocumenti from "./StudentDocumenti";
 import AdminNDA from "./AdminNDA";
 import { NDA_ACTIVE_VERSION } from "./ndaConfig";
 import AttestatoNext from "./AttestatoNext";
+import VerificaCertificato from "./VerificaCertificato";
 
 const ADMIN_EMAIL = "emanuela@mindsell.it";
 
@@ -113,6 +114,7 @@ export default function App() {
     return () => { unsubAuth(); if (unsubSnap) unsubSnap(); };
   }, []);
 
+  if (window.location.pathname.startsWith("/verifica/")) return <VerificaCertificato />;
   if (loading) return <Splash />;
   if (!user) return <LoginPage />;
   if (user.email === ADMIN_EMAIL) return <AdminPanel adminUser={user} />;
