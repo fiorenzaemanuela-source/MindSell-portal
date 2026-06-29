@@ -122,6 +122,7 @@ export default function AttestatoNext({ uid, userData, onAttestatoDaScaricare })
     setErrore("");
     try {
       const cert = await getOrCreateCertificato();
+      const verificaUrl = `https://academy.mindsell.it/verifica/${cert.idCredenziale}`;
       const [logoDataUrl, firmaDataUrl] = await Promise.all([assetToDataUrl(logoUrl), assetToDataUrl(firmaUrl)]);
       const pdf = await generaAttestatoNext({
         nomeStudente: cert.nomeStudente,
@@ -131,7 +132,7 @@ export default function AttestatoNext({ uid, userData, onAttestatoDaScaricare })
         sessioni: cert.sessioni,
         moduli: cert.moduli,
         logoDataUrl, firmaDataUrl,
-        verificaUrl: null,
+        verificaUrl,
       });
       pdf.save(`Attestato_${cert.corso}_${cert.idCredenziale}.pdf`);
       onAttestatoDaScaricare?.(false);
@@ -146,12 +147,13 @@ export default function AttestatoNext({ uid, userData, onAttestatoDaScaricare })
     setErrore("");
     try {
       const cert = await getOrCreateCertificato();
+      const verificaUrl = `https://academy.mindsell.it/verifica/${cert.idCredenziale}`;
       const d = cert.dataRilascio?.toDate ? cert.dataRilascio.toDate() : new Date();
       const url = linkedinAddUrl({
         idCredenziale: cert.idCredenziale,
         issueYear: d.getFullYear(),
         issueMonth: d.getMonth() + 1,
-        verificaUrl: null,
+        verificaUrl,
         corso: cert.corso,
       });
       window.open(url, "_blank");
